@@ -1,17 +1,27 @@
 #pragma once
 
-class Device
+#include "utils/types.h"
+#include "d3d12header.h"
+#include "swapchain.h"
+
+namespace vkr::Render
 {
-public:
-	Device();
-	~Device();
+	class Device
+	{
+	public:
+		Device();
+		~Device();
 
-	// Init device
+		bool Init(bool enableDebugLayer = false);
 
-	// Create render resources (textures, buffers, PSOs...)
+		// Create render resources (textures, buffers, PSOs...)
+		SwapChain* CreateSwapChain(void* windowHandle, const Vector2u& size);
 
-private:
-	// ID3D12Adapter...
-	// ID3D12Device...
-};
+	private:
+		ComPtr<IDXGIFactory2> m_Factory;
+		ComPtr<IDXGIAdapter1> m_Adapter;
+		ComPtr<ID3D12Device> m_Device;
+		ComPtr<ID3D12CommandQueue> m_CommandQueue;
+	};
+}
 

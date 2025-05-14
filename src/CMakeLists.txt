@@ -13,3 +13,5 @@ add_library(VikingRenderer
 			${VKR_GRAPHICS_SOURCES} 
 			${VKR_RENDER_SOURCES}
             ${VKR_UTILS_SOURCES}) 
+
+target_include_directories(VikingRenderer PUBLIC ${VKR_SRC_DIR})
