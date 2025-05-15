@@ -1,13 +1,22 @@
 #pragma once
 
-class Context
+#include "d3d12header.h"
+
+namespace vkr::Render
 {
-public:
-	Context();
-	~Context();
+	class Context
+	{
+	public:
+		Context();
+		~Context();
 
-	// Draw, DrawInstanced, Dispatch, Bind Resources etc..
+		void Init(ID3D12GraphicsCommandList* commandList, ID3D12CommandAllocator* commandAllocator);
 
-private:
-	// ID3D12GraphicsCommandList...
-};
+		// Draw, DrawInstanced, Dispatch, Bind Resources etc..
+
+	private:
+		ComPtr<ID3D12GraphicsCommandList> m_CommandList;
+		ComPtr<ID3D12CommandAllocator> m_CommandAllocator;
+		// ID3D12GraphicsCommandList...
+	};
+}

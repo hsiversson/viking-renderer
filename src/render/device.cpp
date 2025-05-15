@@ -50,4 +50,24 @@ namespace vkr::Render
 		return swapChain;
 	}
 
+	vkr::Render::Context* Device::CreateContext()
+	{
+		auto context = new Context;
+		ID3D12CommandAllocator* commandAllocator = nullptr;
+		if (!m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator)))
+		{
+			return nullptr;
+		}
+		ID3D12GraphicsCommandList* commandList = nullptr;
+		if (!m_Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator, nullptr, IID_PPV_ARGS(&commandList)))
+		{
+			commandAllocator->Release();
+			commandAllocator = nullptr;
+			return nullptr;
+		}
+		commandList->Close();
+		context->Init(commandList, commandAllocator);
+		return context;
+	}
+
 }

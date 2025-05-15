@@ -1,8 +1,9 @@
 #pragma once
 
-#include "utils/types.h"
+#include "context.h"
 #include "d3d12header.h"
 #include "swapchain.h"
+#include "utils/types.h"
 
 namespace vkr::Render
 {
@@ -16,6 +17,7 @@ namespace vkr::Render
 
 		// Create render resources (textures, buffers, PSOs...)
 		SwapChain* CreateSwapChain(void* windowHandle, const Vector2u& size);
+		Context* CreateContext();
 
 	private:
 		ComPtr<IDXGIFactory2> m_Factory;
