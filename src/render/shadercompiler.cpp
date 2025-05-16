@@ -1,7 +1,6 @@
 #include "shadercompiler.h"
 
 #include <dxcapi.h>
-#include <fstream>
 
 namespace vkr::Render
 {
@@ -69,7 +68,7 @@ namespace vkr::Render
 
 	bool ShaderCompiler::CompileFromMemory(Shader& outShader, const std::wstring& shaderSource, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel /*= ShaderModel::SM_6_6*/)
 	{
-		Microsoft::WRL::ComPtr<IDxcBlobEncoding> sourceBlob;
+		ComPtr<IDxcBlobEncoding> sourceBlob;
 		HRESULT hr = m_Utils->CreateBlob((LPBYTE)shaderSource.data(), static_cast<UINT32>(shaderSource.size() * sizeof(wchar_t)), DXC_CP_UTF16, sourceBlob.GetAddressOf());
 		if (FAILED(hr)) 
 		{
