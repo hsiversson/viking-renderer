@@ -1,4 +1,5 @@
 #pragma once
+#include "rendercommon.h"
 
 namespace vkr::Render
 {
