@@ -4,6 +4,8 @@
 #include <cfloat>
 #include <filesystem>
 #include <string>
+#include <vector>
+#include <array>
 
 namespace vkr
 {
