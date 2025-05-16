@@ -4,6 +4,8 @@
 #include "context.h"
 #include "swapchain.h"
 #include "pipelinestate.h"
+#include "texture.h"
+#include "buffer.h"
 
 namespace vkr::Render
 {
@@ -24,6 +26,9 @@ namespace vkr::Render
 
 		Shader* CreateShader(const std::filesystem::path& filepath, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel = ShaderModel::SM_6_6);
 		PipelineState* CreatePipelineState(const PipelineStateDesc& desc);
+
+		Texture* CreateTexture(const TextureDesc& desc);
+		Buffer* CreateBuffer(const BufferDesc& desc);
 
 	private:
 		ComPtr<IDXGIFactory2> m_Factory;

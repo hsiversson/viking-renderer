@@ -97,4 +97,26 @@ namespace vkr::Render
 		return pipelineState;
 	}
 
+	Texture* Device::CreateTexture(const TextureDesc& desc)
+	{
+		Texture* texture = new Texture;
+		if (!texture->Init(desc))
+		{
+			delete texture;
+			return nullptr;
+		}
+		return texture;
+	}
+
+	Buffer* Device::CreateBuffer(const BufferDesc& desc)
+	{
+		Buffer* buffer = new Buffer;
+		if (!buffer->Init(desc))
+		{
+			delete buffer;
+			return nullptr;
+		}
+		return buffer;
+	}
+
 }
