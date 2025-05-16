@@ -1,12 +1,14 @@
 #pragma once
 
+#include "rendercommon.h"
 #include "context.h"
-#include "d3d12header.h"
 #include "swapchain.h"
-#include "utils/types.h"
+#include "pipelinestate.h"
 
 namespace vkr::Render
 {
+	class ShaderCompiler;
+	class RootSignature;
 	class Device
 	{
 	public:
@@ -16,14 +18,22 @@ namespace vkr::Render
 		bool Init(bool enableDebugLayer = false);
 
 		// Create render resources (textures, buffers, PSOs...)
-		SwapChain* CreateSwapChain(void* windowHandle, const Vector2u& size);
 		Context* CreateContext();
+		
+		SwapChain* CreateSwapChain(void* windowHandle, const Vector2u& size);
+
+		Shader* CreateShader(const std::filesystem::path& filepath, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel = ShaderModel::SM_6_6);
+		PipelineState* CreatePipelineState(const PipelineStateDesc& desc);
 
 	private:
 		ComPtr<IDXGIFactory2> m_Factory;
 		ComPtr<IDXGIAdapter1> m_Adapter;
 		ComPtr<ID3D12Device> m_Device;
+
 		ComPtr<ID3D12CommandQueue> m_CommandQueue;
+
+		ShaderCompiler* m_ShaderCompiler;
+		RootSignature* m_RootSignatures[PIPELINE_STATE_TYPE_COUNT];
 	};
 }
 

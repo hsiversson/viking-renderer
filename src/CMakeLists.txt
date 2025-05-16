@@ -14,4 +14,11 @@ add_library(VikingRenderer
 			${VKR_RENDER_SOURCES}
             ${VKR_UTILS_SOURCES}) 
 
+find_package(directx-dxc CONFIG REQUIRED)
+target_link_libraries(VikingRenderer PRIVATE Microsoft::DirectXShaderCompiler)
+
 target_include_directories(VikingRenderer PUBLIC ${VKR_SRC_DIR})
+
+if(MSVC)
+	target_compile_options(VikingRenderer PRIVATE "/MP")
+endif()

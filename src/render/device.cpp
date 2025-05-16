@@ -1,4 +1,6 @@
 #include "device.h"
+#include "shadercompiler.h"
+#include "rootsignature.h"
 
 namespace vkr::Render
 {
@@ -35,12 +37,35 @@ namespace vkr::Render
 		D3D12_COMMAND_QUEUE_DESC cmdQueueDesc = {};
 		cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 		m_Device->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(&m_CommandQueue));
+
+		m_ShaderCompiler = new ShaderCompiler;
 		return true;
+	}
+
+	vkr::Render::Context* Device::CreateContext()
+	{
+		ID3D12CommandAllocator* commandAllocator = nullptr;
+		if (FAILED(m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator))))
+		{
+			return nullptr;
+		}
+		ID3D12GraphicsCommandList* commandList = nullptr;
+		if (FAILED(m_Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator, nullptr, IID_PPV_ARGS(&commandList))))
+		{
+			commandAllocator->Release();
+			commandAllocator = nullptr;
+			return nullptr;
+		}
+		commandList->Close();
+
+		Context* context = new Context;
+		context->Init(commandList, commandAllocator);
+		return context;
 	}
 
 	vkr::Render::SwapChain* Device::CreateSwapChain(void* windowHandle, const Vector2u& size)
 	{
-		SwapChain* swapChain = new SwapChain();
+		SwapChain* swapChain = new SwapChain;
 		if (!swapChain->Init(m_Factory.Get(), m_CommandQueue.Get(), windowHandle, size))
 		{
 			delete swapChain;
@@ -50,24 +75,26 @@ namespace vkr::Render
 		return swapChain;
 	}
 
-	vkr::Render::Context* Device::CreateContext()
+	Shader* Device::CreateShader(const std::filesystem::path& filepath, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel)
 	{
-		auto context = new Context;
-		ID3D12CommandAllocator* commandAllocator = nullptr;
-		if (!m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator)))
+		Shader* shader = new Shader;
+		if (!m_ShaderCompiler->CompileFromFile(*shader, filepath, entryPoint, stage, shaderModel))
 		{
+			delete shader;
 			return nullptr;
 		}
-		ID3D12GraphicsCommandList* commandList = nullptr;
-		if (!m_Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator, nullptr, IID_PPV_ARGS(&commandList)))
+		return shader;
+	}
+
+	PipelineState* Device::CreatePipelineState(const PipelineStateDesc& desc)
+	{
+		PipelineState* pipelineState = new PipelineState;
+		if (!pipelineState->Init(desc, m_RootSignatures[desc.m_Type]))
 		{
-			commandAllocator->Release();
-			commandAllocator = nullptr;
+			delete pipelineState;
 			return nullptr;
 		}
-		commandList->Close();
-		context->Init(commandList, commandAllocator);
-		return context;
+		return pipelineState;
 	}
 
 }

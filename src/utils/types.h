@@ -2,6 +2,8 @@
 
 #include <cstdint>
 #include <cfloat>
+#include <filesystem>
+#include <string>
 
 namespace vkr
 {
@@ -40,3 +42,5 @@ namespace vkr
 	using Mat44 = Mat<4, 4>;
 	using Mat33 = Mat<3, 3>;
 }
+
+#include "str.h"

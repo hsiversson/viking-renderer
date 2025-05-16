@@ -1,5 +1,5 @@
 #include "swapchain.h"
-#include "d3d12header.h"
+#include "rendercommon.h"
 
 namespace vkr::Render
 {
