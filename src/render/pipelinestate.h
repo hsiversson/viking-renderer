@@ -64,7 +64,7 @@ namespace vkr::Render
 		PipelineState();
 		~PipelineState();
 
-		bool Init(const PipelineStateDesc& desc, RootSignature* rootSignature);
+		bool Init(const PipelineStateDesc& desc, RootSignature* rootSignature, ID3D12Device* device);
 
 		ID3D12PipelineState* GetD3D12PipelineState() const;
 

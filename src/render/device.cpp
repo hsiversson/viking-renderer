@@ -39,7 +39,21 @@ namespace vkr::Render
 		m_Device->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(&m_CommandQueue));
 
 		m_ShaderCompiler = new ShaderCompiler;
+
+		InitRootSignatures();
+
 		return true;
+	}
+
+	void Device::InitRootSignatures()
+	{
+		for (int i = 0; i < PipelineStateType::PIPELINE_STATE_TYPE_COUNT; i++)
+		{
+			auto Signature = new RootSignature;
+			// For now just consider one unique constant buffer?
+			Signature->Init({ PipelineStateType(i), 1}, m_Device.Get());
+			m_RootSignatures[i] = Signature;
+		}
 	}
 
 	vkr::Render::Context* Device::CreateContext()
@@ -89,7 +103,7 @@ namespace vkr::Render
 	PipelineState* Device::CreatePipelineState(const PipelineStateDesc& desc)
 	{
 		PipelineState* pipelineState = new PipelineState;
-		if (!pipelineState->Init(desc, m_RootSignatures[desc.m_Type]))
+		if (!pipelineState->Init(desc, m_RootSignatures[desc.m_Type], m_Device.Get()))
 		{
 			delete pipelineState;
 			return nullptr;

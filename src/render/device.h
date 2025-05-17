@@ -31,6 +31,9 @@ namespace vkr::Render
 		Buffer* CreateBuffer(const BufferDesc& desc);
 
 	private:
+		void InitRootSignatures();
+
+	private:
 		ComPtr<IDXGIFactory2> m_Factory;
 		ComPtr<IDXGIAdapter1> m_Adapter;
 		ComPtr<ID3D12Device> m_Device;
