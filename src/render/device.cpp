@@ -2,8 +2,13 @@
 #include "shadercompiler.h"
 #include "rootsignature.h"
 
+#include <algorithm>
+
 namespace vkr::Render
 {
+	static const D3D12_HEAP_PROPERTIES DefHeapProps{ D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1 };
+	static const D3D12_HEAP_PROPERTIES UploadHeapProps{ D3D12_HEAP_TYPE_UPLOAD, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1 };
+
 	Device::Device()
 	{
 
@@ -114,7 +119,33 @@ namespace vkr::Render
 	Texture* Device::CreateTexture(const TextureDesc& desc)
 	{
 		Texture* texture = new Texture;
-		if (!texture->Init(desc))
+
+		//For now allocate resource in place. Later well see how we do pooling
+		UINT16 MipLevels = 1;
+		if (desc.bUseMips)
+		{
+			int32_t MaxDim = std::max<int32_t>(desc.Size.x, desc.Size.y);
+			MipLevels = unsigned int(std::floor(std::log2(MaxDim))) + 1;
+		}
+
+		ID3D12Resource* resource;
+		D3D12_RESOURCE_DESC TextureDesc;
+		TextureDesc.Dimension = desc.Dimension == 1 ? D3D12_RESOURCE_DIMENSION_TEXTURE1D : (desc.Dimension == 2 ? D3D12_RESOURCE_DIMENSION_TEXTURE2D : D3D12_RESOURCE_DIMENSION_TEXTURE3D);
+		TextureDesc.Format = desc.Format;
+		TextureDesc.MipLevels = MipLevels;
+		TextureDesc.Alignment = 0;
+		TextureDesc.DepthOrArraySize = desc.ArraySize;
+		TextureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+		TextureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		TextureDesc.SampleDesc.Count = 1;
+		TextureDesc.SampleDesc.Quality = 0;
+		HRESULT hr = m_Device->CreateCommittedResource(&DefHeapProps, D3D12_HEAP_FLAG_NONE, &TextureDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&resource));
+		if (FAILED(hr))
+		{
+			return nullptr;
+		}
+
+		if (!texture->Init(resource))
 		{
 			delete texture;
 			return nullptr;
@@ -125,7 +156,30 @@ namespace vkr::Render
 	Buffer* Device::CreateBuffer(const BufferDesc& desc)
 	{
 		Buffer* buffer = new Buffer;
-		if (!buffer->Init(desc))
+
+		//For now allocate resource in place. Later well see how we do pooling
+
+		ID3D12Resource* resource;
+		D3D12_RESOURCE_DESC bufferDesc = {};
+		bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		bufferDesc.Alignment = 0;
+		bufferDesc.Width = desc.Size;
+		bufferDesc.Height = 1;
+		bufferDesc.DepthOrArraySize = 1;
+		bufferDesc.MipLevels = 1;
+		bufferDesc.Format = DXGI_FORMAT_UNKNOWN;
+		bufferDesc.SampleDesc.Count = 1;
+		bufferDesc.SampleDesc.Quality = 0;
+		bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR; 
+		bufferDesc.Flags = desc.bWriteOnGPU ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
+
+		HRESULT hr = m_Device->CreateCommittedResource(desc.bWriteOnCPU ? &UploadHeapProps : &DefHeapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&resource));
+		if (FAILED(hr))
+		{
+			return nullptr;
+		}
+
+		if (!buffer->Init(resource))
 		{
 			delete buffer;
 			return nullptr;

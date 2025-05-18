@@ -5,7 +5,11 @@ namespace vkr::Render
 {
 	struct TextureDesc
 	{
-
+		int Dimension;
+		Vector3i Size;
+		int ArraySize;
+		DXGI_FORMAT Format;
+		bool bUseMips;
 	};
 
 	class Texture
@@ -14,7 +18,7 @@ namespace vkr::Render
 		Texture();
 		~Texture();
 
-		bool Init(const TextureDesc& desc);
+		bool Init(ID3D12Resource* Resource);
 
 		// How do we handle resource views? (SRV, UAV)
 		// Separate class, or do we include here?

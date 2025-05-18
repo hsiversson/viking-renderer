@@ -5,7 +5,9 @@ namespace vkr::Render
 {
 	struct BufferDesc
 	{
-
+		unsigned int Size;
+		bool bWriteOnCPU = true;
+		bool bWriteOnGPU = false;
 	};
 
 	class Buffer
@@ -14,7 +16,7 @@ namespace vkr::Render
 		Buffer();
 		~Buffer();
 
-		bool Init(const BufferDesc& desc);
+		bool Init(ID3D12Resource* resource);
 
 		// How do we handle resource views? (SRV, UAV)
 		// Separate class, or do we include here?

@@ -12,9 +12,10 @@ namespace vkr::Render
 
 	}
 
-	bool Buffer::Init(const BufferDesc& desc)
+	bool Buffer::Init(ID3D12Resource* resource)
 	{
-
-		return false;
+		m_Resource = resource;
+		return true;
 	}
+
 }
