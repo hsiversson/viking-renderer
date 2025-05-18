@@ -47,8 +47,7 @@ namespace vkr::Render
 		switch (Msg)
 		{
 		case WM_DESTROY:
-			PostQuitMessage(WM_QUIT);
-			break;
+			PostQuitMessage(0);
 		default:
 			return DefWindowProc(hwnd, Msg, wParam, lParam);
 		}
