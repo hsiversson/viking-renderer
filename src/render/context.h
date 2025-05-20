@@ -1,5 +1,6 @@
 #pragma once
-#include "rendercommon.h"
+#include "render/deviceobject.h"
+#include "render/rendercommon.h"
 
 namespace vkr::Render
 {
@@ -7,10 +8,20 @@ namespace vkr::Render
 	class PipelineState;
 	class RootSignature;
 
-	class Context
+	enum ContextType
+	{
+		CONTEXT_TYPE_GRAPHICS,
+		CONTEXT_TYPE_PRESENT = CONTEXT_TYPE_GRAPHICS,
+		CONTEXT_TYPE_COMPUTE,
+		CONTEXT_TYPE_COPY,
+
+		CONTEXT_TYPE_COUNT
+	};
+
+	class Context : public DeviceObject
 	{
 	public:
-		Context();
+		Context(Device& device, ContextType type);
 		~Context();
 
 		void Init(ID3D12GraphicsCommandList* commandList, ID3D12CommandAllocator* commandAllocator);
@@ -18,6 +29,8 @@ namespace vkr::Render
 		void Dispatch(const Vector3i& Groups);
 		void BindPSO(PipelineState* pipelineState, RootSignature* rootSignature);
 		void BindRootConstantBuffers(std::vector<Buffer*> buffers);
+
+		ContextType GetType() const;
 
 	private:
 		struct DrawState
@@ -35,5 +48,7 @@ namespace vkr::Render
 		DrawState CurrentState;
 		DrawState NewState;
 		bool m_StateUpdate = false;
+
+		const ContextType m_Type;
 	};
 }

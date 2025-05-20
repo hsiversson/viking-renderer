@@ -1,5 +1,6 @@
 #pragma once
-#include "rendercommon.h"
+#include "render/deviceobject.h"
+#include "render/rendercommon.h"
 
 namespace vkr::Render
 {
@@ -12,10 +13,16 @@ namespace vkr::Render
 		bool bUseMips;
 	};
 
-	class Texture
+	struct TextureData
+	{
+		std::vector<uint8_t> Data;
+		uint32_t ByteSize;
+	};
+
+	class Texture : public DeviceObject
 	{
 	public:
-		Texture();
+		Texture(Device& device);
 		~Texture();
 
 		bool Init(ID3D12Resource* Resource);

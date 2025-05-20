@@ -10,7 +10,9 @@ void vkr::Render::Context::Init(ID3D12GraphicsCommandList* commandList, ID3D12Co
 	m_CommandAllocator = commandAllocator;
 }
 
-vkr::Render::Context::Context()
+vkr::Render::Context::Context(Device& device, ContextType type)
+	: DeviceObject(device)
+	, m_Type(type)
 {
 
 }
@@ -45,7 +47,7 @@ void vkr::Render::Context::UpdateState()
 	{
 		if (CurrentState.m_PipelineState != NewState.m_PipelineState)
 		{
-			m_CommandList->SetPipelineState(NewState.m_PipelineState->GetD3D12PipelineState());
+			m_CommandList->SetPipelineState(NewState.m_PipelineState->GetD3DPipelineState());
 		}
 		if (CurrentState.m_RootSignature != NewState.m_RootSignature)
 		{
@@ -65,4 +67,9 @@ void vkr::Render::Context::UpdateState()
 		CurrentState = NewState;
 		m_StateUpdate = false;
 	}
+}
+
+vkr::Render::ContextType vkr::Render::Context::GetType() const
+{
+	return m_Type;
 }

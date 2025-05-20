@@ -7,12 +7,14 @@
 #include <windows.h>
 
 #include "utils/types.h"
+#include "utils/commandline.h"
 
 #include "render/window.h"
 #include "render/device.h"
 
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
+	vkr::CommandLine::Parse(__argc, __argv);
 	vkr::Render::Window window = vkr::Render::Window("Raytracer Sample", {1280, 720}, nShowCmd);
 	vkr::Render::Device device;
 

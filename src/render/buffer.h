@@ -1,5 +1,6 @@
 #pragma once
-#include "rendercommon.h"
+#include "render/deviceobject.h"
+#include "render/rendercommon.h"
 
 namespace vkr::Render
 {
@@ -10,10 +11,10 @@ namespace vkr::Render
 		bool bWriteOnGPU = false;
 	};
 
-	class Buffer
+	class Buffer : public DeviceObject
 	{
 	public:
-		Buffer();
+		Buffer(Device& device);
 		~Buffer();
 
 		bool Init(ID3D12Resource* resource);

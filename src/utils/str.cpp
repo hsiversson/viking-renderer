@@ -47,4 +47,28 @@ namespace vkr
 		contents << file.rdbuf();
 		return contents.str();
 	}
+
+	bool IsInt(const std::string& str)
+	{
+		return !str.empty() && std::find_if(str.begin(),str.end(), [](unsigned char c) { return !std::isdigit(c); }) == str.end();
+	}
+
+	int32_t ToInt(const std::string& str)
+	{
+		return std::stoi(str);
+	}
+
+	bool IsFloat(const std::string& str)
+	{
+		std::istringstream iss(str);
+		float f;
+		iss >> std::noskipws >> f;
+		return iss.eof() && !iss.fail();
+	}
+
+	float ToFloat(const std::string& str)
+	{
+		return std::stof(str);
+	}
+
 }
