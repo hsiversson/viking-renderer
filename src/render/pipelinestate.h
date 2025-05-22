@@ -16,7 +16,8 @@ namespace vkr::Render
 		PIPELINE_STATE_TYPE_COMPUTE,
 		//PIPELINE_STATE_TYPE_MESH,
 
-		PIPELINE_STATE_TYPE_COUNT
+		PIPELINE_STATE_TYPE_COUNT,
+		PIPELINE_STATE_TYPE_UNKNOWN = PIPELINE_STATE_TYPE_COUNT
 	};
 
 	struct DefaultPipelineStateDesc
@@ -58,6 +59,32 @@ namespace vkr::Render
 			ComputePipelineStateDesc Compute;
 			//MeshPipelineStateDesc Mesh;
 		};
+
+		PipelineStateDesc() : m_Type(PIPELINE_STATE_TYPE_UNKNOWN), Default{} {}
+		~PipelineStateDesc() {}
+	};
+
+	struct PipelineStateDefaultMetaData
+	{
+		// something?
+	};
+
+	struct PipelineStateComputeMetaData
+	{
+		Vector3u m_NumThreads;
+	};
+
+	struct PipelineStateMetaData
+	{
+		PipelineStateType m_Type;
+		union
+		{
+			PipelineStateDefaultMetaData Default;
+			PipelineStateComputeMetaData Compute;
+		};
+
+		PipelineStateMetaData() : m_Type(PIPELINE_STATE_TYPE_UNKNOWN), Default{} {}
+		~PipelineStateMetaData() {}
 	};
 
 	class PipelineState : public DeviceObject
@@ -70,9 +97,10 @@ namespace vkr::Render
 
 		ID3D12PipelineState* GetD3DPipelineState() const;
 		RootSignature* GetRootSignature() const;
+		const PipelineStateMetaData& GetMetaData() const;
 	private:
 		ComPtr<ID3D12PipelineState> m_PipelineState;
-
 		RootSignature* m_RootSignature;
+		PipelineStateMetaData m_MetaData;
 	};
 }
