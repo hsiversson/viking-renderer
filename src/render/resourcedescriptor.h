@@ -21,7 +21,7 @@ namespace vkr::Render
 
 	struct TextureDescriptorDesc
 	{
-
+		unsigned int Mip = 0; //Use -1 to reference all mips when applicable
 	};
 
 	struct ResourceDescriptorDesc

@@ -25,5 +25,7 @@ namespace vkr::Render
 	public:
 		Texture(Device& device);
 		~Texture();
+
+		TextureDesc m_TextureDesc;
 	};
 }

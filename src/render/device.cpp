@@ -48,6 +48,7 @@ namespace vkr::Render
 
 		m_ShaderCompiler = new ShaderCompiler;
 
+		InitDescriptorHeaps();
 		InitRootSignatures();
 		InitTextureLoaders();
 		InitCommandQueues();
@@ -145,6 +146,7 @@ namespace vkr::Render
 	Texture* Device::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
 	{
 		Texture* texture = new Texture(*this);
+		texture->m_TextureDesc = desc;
 
 		//For now allocate resource in place. Later well see how we do pooling
 		UINT16 MipLevels = 1;
@@ -297,20 +299,93 @@ namespace vkr::Render
 		auto descriptor = tex->GetDescriptor(hashvalue);
 		if (!descriptor)
 		{
-			D3D12_CPU_DESCRIPTOR_HANDLE handle;
 			switch (desc.Type)
 			{
 				case ResourceDescriptorType::UAV:
 				{
 					descriptor = m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->Allocate();
-					D3D12_UNORDERED_ACCESS_VIEW_DESC descd3d;
-					//Fill desc
-					m_Device->CreateUnorderedAccessView(tex->GetD3DResource(), nullptr, &descd3d, descriptor->GetHandle());
+					D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+					uavDesc.Format = tex->m_TextureDesc.Format; 
+					if (tex->m_TextureDesc.Dimension == 1)
+					{
+						uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
+						uavDesc.Texture1D.MipSlice = desc.TextureDesc.Mip;
+					}
+					else if (tex->m_TextureDesc.Dimension == 2)
+					{
+						uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+						uavDesc.Texture2D.PlaneSlice = 0;
+						uavDesc.Texture2D.MipSlice = desc.TextureDesc.Mip;
+					}
+					m_Device->CreateUnorderedAccessView(tex->GetD3DResource(), nullptr, &uavDesc, descriptor->GetHandle());
+				}
+				break;
+				case ResourceDescriptorType::SRV:
+				{
+					descriptor = m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->Allocate();
+					D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+					srvDesc.Format = tex->m_TextureDesc.Format;
+					srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+					if (tex->m_TextureDesc.Dimension == 1)
+					{
+						srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
+						srvDesc.Texture1D.MipLevels = desc.TextureDesc.Mip;
+					}
+					else if (tex->m_TextureDesc.Dimension == 2)
+					{
+						srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+						srvDesc.Texture2D.PlaneSlice = 0;
+						srvDesc.Texture2D.MostDetailedMip = 0;
+						srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+					}
+					m_Device->CreateShaderResourceView(tex->GetD3DResource(), &srvDesc, descriptor->GetHandle());
 				}
 				break;
 			}
 
 			tex->AddDescriptor(hashvalue, descriptor);
+		}
+		return descriptor;
+	}
+
+	vkr::Render::ResourceDescriptor* Device::GetOrCreateDescriptor(Buffer* buf, const ResourceDescriptorDesc& desc)
+	{
+		const uint8_t* buffer = reinterpret_cast<const uint8_t*>(&desc);
+		uint64_t hashvalue = vkr::hash_fnv64(buffer, buffer + sizeof(ResourceDescriptorDesc));
+		auto descriptor = buf->GetDescriptor(hashvalue);
+		if (!descriptor)
+		{
+			switch (desc.Type)
+			{
+			case ResourceDescriptorType::UAV:
+			{
+				descriptor = m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->Allocate();
+				D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+				uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+				uavDesc.Buffer.FirstElement = desc.BufferDesc.First;
+				uavDesc.Buffer.NumElements = desc.BufferDesc.Last - desc.BufferDesc.First;
+				uavDesc.Buffer.StructureByteStride = desc.BufferDesc.ElementSize;
+				uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+				m_Device->CreateUnorderedAccessView(buf->GetD3DResource(), nullptr, &uavDesc, descriptor->GetHandle());
+			}
+			break;
+			case ResourceDescriptorType::SRV:
+			{
+				descriptor = m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->Allocate();
+				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+				srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+				srvDesc.Buffer.FirstElement = desc.BufferDesc.First;
+				srvDesc.Buffer.NumElements = desc.BufferDesc.Last - desc.BufferDesc.First;
+				srvDesc.Buffer.StructureByteStride = desc.BufferDesc.ElementSize;
+				srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+				m_Device->CreateShaderResourceView(buf->GetD3DResource(), &srvDesc, descriptor->GetHandle());
+			}
+			break;
+			}
+
+			buf->AddDescriptor(hashvalue, descriptor);
 		}
 		return descriptor;
 	}

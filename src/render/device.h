@@ -33,6 +33,7 @@ namespace vkr::Render
 		Texture* LoadTexture(const std::filesystem::path& filepath);
 		ResourceDescriptor* GetOrCreateDescriptor(Texture* tex, const ResourceDescriptorDesc& desc);
 		Buffer* CreateBuffer(const BufferDesc& desc);
+		ResourceDescriptor* GetOrCreateDescriptor(Buffer* buf, const ResourceDescriptorDesc& desc);
 
 		ID3D12Device* GetD3DDevice() const;
 		IDXGIFactory2* GetDXGIFactory() const;
