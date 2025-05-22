@@ -26,8 +26,10 @@ namespace vkr::Render
 
 		void Init(ID3D12GraphicsCommandList* commandList, ID3D12CommandAllocator* commandAllocator);
 
-		void Dispatch(const Vector3i& Groups);
-		void BindPSO(PipelineState* pipelineState, RootSignature* rootSignature);
+		void Dispatch(const Vector3u& Groups);
+		void DispatchThreads(const Vector3u& threads);
+		void DispatchThreads(PipelineState* pipelineState, const Vector3u& threads);
+		void BindPSO(PipelineState* pipelineState);
 		void BindRootConstantBuffers(std::vector<Buffer*> buffers);
 
 		ContextType GetType() const;
