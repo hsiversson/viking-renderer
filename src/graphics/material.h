@@ -1,6 +1,27 @@
 #pragma once
+#include "utils/types.h"
 
-class Material
+namespace vkr::Render
 {
+	class Texture;
+	class Sampler;
+	class PipelineState;
+}
 
+namespace vkr::Graphics
+{
+	class Material
+	{
+	public:
+		Material();
+		~Material();
+
+	private:
+		// Make this parameterized?
+		std::vector<Ref<Render::Texture>> m_Textures;
+		//std::vector<Ref<Render::Sampler>> m_Samplers; // This should probably not be stored, but rather requested from device to be able to handle dynamic mip biasing.
+
+		// Should we have multiple?
+		Ref<Render::PipelineState> m_PipelineState;
+	};
 };

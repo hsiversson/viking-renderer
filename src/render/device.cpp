@@ -46,7 +46,7 @@ namespace vkr::Render
 
 		D3D12CreateDevice(m_Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_Device));
 
-		m_ShaderCompiler = new ShaderCompiler;
+		m_ShaderCompiler = MakeUnique<ShaderCompiler>();
 
 		InitDescriptorHeaps();
 		InitRootSignatures();
@@ -59,14 +59,14 @@ namespace vkr::Render
 	{
 		for (int i = 0; i < PipelineStateType::PIPELINE_STATE_TYPE_COUNT; i++)
 		{
-			auto Signature = new RootSignature(*this);
+			auto Signature = MakeRef<RootSignature>(*this);
 			// For now just consider one unique constant buffer?
 			Signature->Init({ PipelineStateType(i), 1 });
 			m_RootSignatures[i] = Signature;
 		}
 	}
 
-	vkr::Render::Context* Device::CreateContext(ContextType contextType)
+	Ref<Context> Device::CreateContext(ContextType contextType)
 	{
 		// Should we move this into the context itself.
 		// Potentially each context would need several command lists, 
@@ -104,48 +104,44 @@ namespace vkr::Render
 		}
 		commandList->Close();
 
-		Context* context = new Context(*this, contextType);
+		Ref<Context> context = MakeRef<Context>(*this, contextType);
 		context->Init(commandList, commandAllocator);
 		return context;
 	}
 
-	vkr::Render::SwapChain* Device::CreateSwapChain(void* windowHandle, const Vector2u& size)
+	Ref<SwapChain> Device::CreateSwapChain(void* windowHandle, const Vector2u& size)
 	{
-		SwapChain* swapChain = new SwapChain(*this);
+		Ref<SwapChain> swapChain = MakeRef<SwapChain>(*this);
 		if (!swapChain->Init(windowHandle, size))
 		{
-			delete swapChain;
 			return nullptr;
 		}
-
 		return swapChain;
 	}
 
-	Shader* Device::CreateShader(const std::filesystem::path& filepath, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel)
+	Ref<Shader> Device::CreateShader(const std::filesystem::path& filepath, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel)
 	{
-		Shader* shader = new Shader;
+		Ref<Shader> shader = MakeRef<Shader>();
 		if (!m_ShaderCompiler->CompileFromFile(*shader, filepath, entryPoint, stage, shaderModel))
 		{
-			delete shader;
 			return nullptr;
 		}
 		return shader;
 	}
 
-	PipelineState* Device::CreatePipelineState(const PipelineStateDesc& desc)
+	Ref<PipelineState> Device::CreatePipelineState(const PipelineStateDesc& desc)
 	{
-		PipelineState* pipelineState = new PipelineState(*this);
+		Ref<PipelineState> pipelineState = MakeRef<PipelineState>(*this);
 		if (!pipelineState->Init(desc, m_RootSignatures[desc.m_Type]))
 		{
-			delete pipelineState;
 			return nullptr;
 		}
 		return pipelineState;
 	}
 
-	Texture* Device::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
+	Ref<Texture> Device::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
 	{
-		Texture* texture = new Texture(*this);
+		Ref<Texture> texture = MakeRef<Texture>(*this);
 		texture->m_TextureDesc = desc;
 
 		//For now allocate resource in place. Later well see how we do pooling
@@ -177,15 +173,14 @@ namespace vkr::Render
 		// Move all of the resource creation into Texture?
 		if (!texture->Init(resource))
 		{
-			delete texture;
 			return nullptr;
 		}
 		return texture;
 	}
 
-	Buffer* Device::CreateBuffer(const BufferDesc& desc)
+	Ref<Buffer> Device::CreateBuffer(const BufferDesc& desc)
 	{
-		Buffer* buffer = new Buffer(*this);
+		Ref<Buffer> buffer = MakeRef<Buffer>(*this);
 
 		//For now allocate resource in place. Later well see how we do pooling
 
@@ -212,19 +207,18 @@ namespace vkr::Render
 		// Move all of the resource creation into Buffer?
 		if (!buffer->Init(resource))
 		{
-			delete buffer;
 			return nullptr;
 		}
 		return buffer;
 	}
 
-	vkr::Render::Texture* Device::LoadTexture(const std::filesystem::path& filepath)
+	Ref<Texture> Device::LoadTexture(const std::filesystem::path& filepath)
 	{
 		TextureLoader* loader = nullptr;
 		auto loaderSearch = m_TextureLoaderByExtension.find(filepath.extension());
 		if (loaderSearch != m_TextureLoaderByExtension.end())
 		{
-			loader = loaderSearch->second;
+			loader = loaderSearch->second.get();
 		}
 		else
 		{
@@ -243,14 +237,9 @@ namespace vkr::Render
 
 	void Device::InitTextureLoaders()
 	{
-		TextureLoader* ddsLoader = new TextureLoader_DDS;
-		m_TextureLoaderByExtension[".dds"] = ddsLoader;
-
-		TextureLoader* pngLoader = new TextureLoader_PNG;
-		m_TextureLoaderByExtension[".png"] = pngLoader;
-
-		TextureLoader* tgaLoader = new TextureLoader_TGA;
-		m_TextureLoaderByExtension[".tga"] = pngLoader;
+		m_TextureLoaderByExtension[".dds"] = MakeUnique<TextureLoader_DDS>();
+		m_TextureLoaderByExtension[".png"] = MakeUnique<TextureLoader_PNG>();
+		m_TextureLoaderByExtension[".tga"] = MakeUnique<TextureLoader_TGA>();
 	}
 
 	void Device::InitCommandQueues()
@@ -292,7 +281,7 @@ namespace vkr::Render
 		return m_CommandQueue[contextType].Get();
 	}
 
-	vkr::Render::ResourceDescriptor* Device::GetOrCreateDescriptor(Texture* tex, const ResourceDescriptorDesc& desc)
+	Ref<ResourceDescriptor> Device::GetOrCreateDescriptor(Texture* tex, const ResourceDescriptorDesc& desc)
 	{
 		const uint8_t* buffer = reinterpret_cast<const uint8_t*>(&desc);
 		uint64_t hashvalue = vkr::hash_fnv64(buffer, buffer + sizeof(ResourceDescriptorDesc));
@@ -348,7 +337,7 @@ namespace vkr::Render
 		return descriptor;
 	}
 
-	vkr::Render::ResourceDescriptor* Device::GetOrCreateDescriptor(Buffer* buf, const ResourceDescriptorDesc& desc)
+	Ref<ResourceDescriptor> Device::GetOrCreateDescriptor(Buffer* buf, const ResourceDescriptorDesc& desc)
 	{
 		const uint8_t* buffer = reinterpret_cast<const uint8_t*>(&desc);
 		uint64_t hashvalue = vkr::hash_fnv64(buffer, buffer + sizeof(ResourceDescriptorDesc));
@@ -424,6 +413,7 @@ namespace vkr::Render
 		m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER] = heap;
 
 		HeapDesc.NumDescriptors = 500;
+		HeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 		HeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 		hr = m_Device->CreateDescriptorHeap(&HeapDesc, IID_PPV_ARGS(&d3dheap));
 		if (FAILED(hr))

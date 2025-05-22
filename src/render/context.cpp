@@ -52,7 +52,7 @@ namespace vkr::Render
 	void Context::BindPSO(PipelineState* pipelineState)
 	{
 		NewState.m_PipelineState = pipelineState;
-		NewState.m_RootSignature = pipelineState->GetRootSignature();
+		NewState.m_RootSignature = pipelineState->GetRootSignature().get();
 		m_StateUpdate = true;
 	}
 

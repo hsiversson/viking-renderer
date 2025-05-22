@@ -8,7 +8,7 @@ namespace vkr::Render
 		return true;
 	}
 
-	bool Resource::AddDescriptor(uint64_t descriptorhash, ResourceDescriptor* descriptor)
+	bool Resource::AddDescriptor(uint64_t descriptorhash, const Ref<ResourceDescriptor>& descriptor)
 	{
 		auto it = m_Descriptors.find(descriptorhash);
 		if (it != m_Descriptors.end())
@@ -17,7 +17,7 @@ namespace vkr::Render
 		return true;
 	}
 
-	ResourceDescriptor* Resource::GetDescriptor(uint64_t descriptorhash)
+	Ref<ResourceDescriptor> Resource::GetDescriptor(uint64_t descriptorhash)
 	{
 		auto it = m_Descriptors.find(descriptorhash);
 		return it == m_Descriptors.end() ? nullptr : it->second;

@@ -16,7 +16,7 @@ namespace vkr::Render
 
 	}
 
-	bool PipelineState::Init(const PipelineStateDesc& desc, RootSignature* rootSignature)
+	bool PipelineState::Init(const PipelineStateDesc& desc, const Ref<RootSignature> rootSignature)
 	{
 		ID3D12Device* device = m_Device.GetD3DDevice();
 
@@ -77,7 +77,7 @@ namespace vkr::Render
 		return m_PipelineState.Get();
 	}
 
-	RootSignature* PipelineState::GetRootSignature() const
+	const Ref<RootSignature>& PipelineState::GetRootSignature() const
 	{
 		return m_RootSignature;
 	}

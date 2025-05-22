@@ -21,7 +21,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 	device.Init();
 
 	// Init render device, pass in window handle
-	vkr::Render::SwapChain* swapChain = device.CreateSwapChain(window.GetNativeHandle(), { 1280, 720 });
+	vkr::Ref<vkr::Render::SwapChain> swapChain = device.CreateSwapChain(window.GetNativeHandle(), { 1280, 720 });
 
 	// Should we encapsulate this loop to accomodate different sample apps?
 	bool running = true;

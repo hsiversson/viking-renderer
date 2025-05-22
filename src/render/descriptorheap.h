@@ -13,8 +13,8 @@ namespace vkr::Render
 		~DescriptorHeap();
 
 		void Init(ID3D12DescriptorHeap* heap, uint32_t NumElements, uint32_t descriptorsize);
-		ResourceDescriptor* Allocate();
-		void Release(ResourceDescriptor* descriptor);
+		Ref<ResourceDescriptor> Allocate();
+		void Release(const Ref<ResourceDescriptor> descriptor);
 
 	private:
 		ComPtr<ID3D12DescriptorHeap> m_D3DHeap;

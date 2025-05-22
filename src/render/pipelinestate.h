@@ -93,14 +93,14 @@ namespace vkr::Render
 		PipelineState(Device& device);
 		~PipelineState();
 
-		bool Init(const PipelineStateDesc& desc, RootSignature* rootSignature);
+		bool Init(const PipelineStateDesc& desc, Ref<RootSignature> rootSignature);
 
 		ID3D12PipelineState* GetD3DPipelineState() const;
-		RootSignature* GetRootSignature() const;
+		const Ref<RootSignature>& GetRootSignature() const;
 		const PipelineStateMetaData& GetMetaData() const;
 	private:
 		ComPtr<ID3D12PipelineState> m_PipelineState;
-		RootSignature* m_RootSignature;
+		Ref<RootSignature> m_RootSignature;
 		PipelineStateMetaData m_MetaData;
 	};
 }

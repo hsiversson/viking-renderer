@@ -22,18 +22,18 @@ namespace vkr::Render
 
 		bool Init();
 
-		Context* CreateContext(ContextType contextType);
+		Ref<Context> CreateContext(ContextType contextType);
 		
-		SwapChain* CreateSwapChain(void* windowHandle, const Vector2u& size);
+		Ref<SwapChain> CreateSwapChain(void* windowHandle, const Vector2u& size);
 
-		Shader* CreateShader(const std::filesystem::path& filepath, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel = ShaderModel::SM_6_6);
-		PipelineState* CreatePipelineState(const PipelineStateDesc& desc);
+		Ref<Shader> CreateShader(const std::filesystem::path& filepath, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel = ShaderModel::SM_6_6);
+		Ref<PipelineState> CreatePipelineState(const PipelineStateDesc& desc);
 
-		Texture* CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr);
-		Texture* LoadTexture(const std::filesystem::path& filepath);
-		ResourceDescriptor* GetOrCreateDescriptor(Texture* tex, const ResourceDescriptorDesc& desc);
-		Buffer* CreateBuffer(const BufferDesc& desc);
-		ResourceDescriptor* GetOrCreateDescriptor(Buffer* buf, const ResourceDescriptorDesc& desc);
+		Ref<Texture> CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr);
+		Ref<Texture> LoadTexture(const std::filesystem::path& filepath);
+		Ref<ResourceDescriptor> GetOrCreateDescriptor(Texture* tex, const ResourceDescriptorDesc& desc);
+		Ref<Buffer> CreateBuffer(const BufferDesc& desc);
+		Ref<ResourceDescriptor> GetOrCreateDescriptor(Buffer* buf, const ResourceDescriptorDesc& desc);
 
 		ID3D12Device* GetD3DDevice() const;
 		IDXGIFactory2* GetDXGIFactory() const;
@@ -55,10 +55,10 @@ namespace vkr::Render
 		ComPtr<ID3D12Fence> m_CommandQueueFence[CONTEXT_TYPE_COUNT];
 		uint64_t m_CommandQueueFenceValue[CONTEXT_TYPE_COUNT];
 
-		ShaderCompiler* m_ShaderCompiler;
-		RootSignature* m_RootSignatures[PIPELINE_STATE_TYPE_COUNT];
+		UniquePtr<ShaderCompiler> m_ShaderCompiler;
+		Ref<RootSignature> m_RootSignatures[PIPELINE_STATE_TYPE_COUNT];
 
-		std::unordered_map<std::filesystem::path, TextureLoader*> m_TextureLoaderByExtension;
+		std::unordered_map<std::filesystem::path, UniquePtr<TextureLoader>> m_TextureLoaderByExtension;
 		DescriptorHeap* m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 	};
 }
