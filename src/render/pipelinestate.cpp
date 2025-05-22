@@ -34,6 +34,8 @@ namespace vkr::Render
 			{
 				return false;
 			}
+
+			m_MetaData.Compute.m_NumThreads = desc.Compute.m_ComputeShader->GetNumThreads();
 		}
 		break;
 		case PIPELINE_STATE_TYPE_DEFAULT:
@@ -65,6 +67,8 @@ namespace vkr::Render
 		}
 
 		m_RootSignature = rootSignature;
+
+		m_MetaData.m_Type = desc.m_Type;
 		return true;
 	}
 
@@ -73,9 +77,13 @@ namespace vkr::Render
 		return m_PipelineState.Get();
 	}
 
-	vkr::Render::RootSignature* PipelineState::GetRootSignature() const
+	RootSignature* PipelineState::GetRootSignature() const
 	{
 		return m_RootSignature;
 	}
 
+	const PipelineStateMetaData& PipelineState::GetMetaData() const
+	{
+		return m_MetaData;
+	}
 }
