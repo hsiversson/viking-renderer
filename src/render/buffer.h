@@ -1,5 +1,6 @@
 #pragma once
 #include "rendercommon.h"
+#include "Resource.h"
 
 namespace vkr::Render
 {
@@ -10,20 +11,10 @@ namespace vkr::Render
 		bool bWriteOnGPU = false;
 	};
 
-	class Buffer
+	class Buffer : public Resource
 	{
 	public:
 		Buffer();
 		~Buffer();
-
-		bool Init(ID3D12Resource* resource);
-
-		// How do we handle resource views? (SRV, UAV)
-		// Separate class, or do we include here?
-		// Each resource can have multiple views.
-		ID3D12Resource* GetD3DResource() { return m_Resource.Get(); }
-
-	private:
-		ComPtr<ID3D12Resource> m_Resource; // do we generalize the resources between texture/buffer? We need to keep track of resource state etc, so would be annoying to duplicate.
 	};
 }

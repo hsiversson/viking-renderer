@@ -11,11 +11,4 @@ namespace vkr::Render
 	{
 
 	}
-
-	bool Texture::Init(ID3D12Resource* resource)
-	{
-		m_Resource = resource;
-		return true;
-	}
-
 }

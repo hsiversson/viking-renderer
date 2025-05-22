@@ -1,6 +1,8 @@
 #include "device.h"
+#include "descriptorheap.h"
 #include "shadercompiler.h"
 #include "rootsignature.h"
+#include "utils/hash.h"
 
 #include <algorithm>
 
@@ -135,11 +137,12 @@ namespace vkr::Render
 		TextureDesc.MipLevels = MipLevels;
 		TextureDesc.Alignment = 0;
 		TextureDesc.DepthOrArraySize = desc.ArraySize;
-		TextureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+		TextureDesc.Flags = desc.bWriteable ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
 		TextureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 		TextureDesc.SampleDesc.Count = 1;
 		TextureDesc.SampleDesc.Quality = 0;
-		HRESULT hr = m_Device->CreateCommittedResource(&DefHeapProps, D3D12_HEAP_FLAG_NONE, &TextureDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&resource));
+		//If we want the texture to be used as UAV assume the initial state then will be UAV access
+		HRESULT hr = m_Device->CreateCommittedResource(&DefHeapProps, D3D12_HEAP_FLAG_NONE, &TextureDesc, desc.bWriteable ? D3D12_RESOURCE_STATE_UNORDERED_ACCESS : D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&resource));
 		if (FAILED(hr))
 		{
 			return nullptr;
@@ -185,6 +188,91 @@ namespace vkr::Render
 			return nullptr;
 		}
 		return buffer;
+	}
+
+	vkr::Render::ResourceDescriptor* Device::GetOrCreateDescriptor(Texture* tex, const ResourceDescriptorDesc& desc)
+	{
+		const uint8_t* buffer = reinterpret_cast<const uint8_t*>(&desc);
+		uint64_t hashvalue = vkr::hash_fnv64(buffer, buffer + sizeof(ResourceDescriptorDesc));
+		auto descriptor = tex->GetDescriptor(hashvalue);
+		if (!descriptor)
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE handle;
+			switch (desc.Type)
+			{
+				case ResourceDescriptorType::UAV:
+				{
+					descriptor = m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->Allocate();
+					D3D12_UNORDERED_ACCESS_VIEW_DESC descd3d;
+					//Fill desc
+					m_Device->CreateUnorderedAccessView(tex->GetD3DResource(), nullptr, &descd3d, descriptor->GetHandle());
+				}
+				break;
+			}
+
+			tex->AddDescriptor(hashvalue, descriptor);
+		}
+		return descriptor;
+	}
+
+	void Device::InitDescriptorHeaps()
+	{
+		ID3D12DescriptorHeap* d3dheap = nullptr;
+		D3D12_DESCRIPTOR_HEAP_DESC HeapDesc;
+		HeapDesc.NumDescriptors = 1,000,000;
+		HeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		HeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		HeapDesc.NodeMask = 0;
+
+		HRESULT hr = m_Device->CreateDescriptorHeap(&HeapDesc, IID_PPV_ARGS(&d3dheap));
+		if (FAILED(hr))
+		{
+
+		}
+
+		UINT descriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		auto heap = new DescriptorHeap;
+		heap->Init(d3dheap, 1000000, descriptorSize);
+		m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] = heap;
+
+		HeapDesc.NumDescriptors = 100;
+		HeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+		hr = m_Device->CreateDescriptorHeap(&HeapDesc, IID_PPV_ARGS(&d3dheap));
+		if (FAILED(hr))
+		{
+
+		}
+
+		descriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		heap = new DescriptorHeap;
+		heap->Init(d3dheap, 100, descriptorSize);
+		m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER] = heap;
+
+		HeapDesc.NumDescriptors = 500;
+		HeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+		hr = m_Device->CreateDescriptorHeap(&HeapDesc, IID_PPV_ARGS(&d3dheap));
+		if (FAILED(hr))
+		{
+
+		}
+
+		descriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		heap = new DescriptorHeap;
+		heap->Init(d3dheap, 500, descriptorSize);
+		m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_RTV] = heap;
+
+		HeapDesc.NumDescriptors = 16;
+		HeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+		hr = m_Device->CreateDescriptorHeap(&HeapDesc, IID_PPV_ARGS(&d3dheap));
+		if (FAILED(hr))
+		{
+
+		}
+
+		descriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+		heap = new DescriptorHeap;
+		heap->Init(d3dheap, 16, descriptorSize);
+		m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV] = heap;
 	}
 
 }

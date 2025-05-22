@@ -9,8 +9,10 @@
 
 namespace vkr::Render
 {
-	class ShaderCompiler;
+	class DescriptorHeap;
 	class RootSignature;
+	class ShaderCompiler;
+	
 	class Device
 	{
 	public:
@@ -28,10 +30,12 @@ namespace vkr::Render
 		PipelineState* CreatePipelineState(const PipelineStateDesc& desc);
 
 		Texture* CreateTexture(const TextureDesc& desc);
+		ResourceDescriptor* GetOrCreateDescriptor(Texture* tex, const ResourceDescriptorDesc& desc);
 		Buffer* CreateBuffer(const BufferDesc& desc);
 
 	private:
 		void InitRootSignatures();
+		void InitDescriptorHeaps();
 
 	private:
 		ComPtr<IDXGIFactory2> m_Factory;
@@ -42,6 +46,8 @@ namespace vkr::Render
 
 		ShaderCompiler* m_ShaderCompiler;
 		RootSignature* m_RootSignatures[PIPELINE_STATE_TYPE_COUNT];
+
+		DescriptorHeap* m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 	};
 }
 
