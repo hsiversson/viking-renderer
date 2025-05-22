@@ -2,7 +2,8 @@
 
 namespace vkr::Render
 {
-	Texture::Texture()
+	Texture::Texture(Device& device)
+		: Resource(device)
 	{
 
 	}

@@ -14,10 +14,16 @@ namespace vkr::Render
 		bool bUseMips;
 	};
 
+	struct TextureData
+	{
+		std::vector<uint8_t> Data;
+		uint32_t ByteSize;
+	};
+
 	class Texture : public Resource
 	{
 	public:
-		Texture();
+		Texture(Device& device);
 		~Texture();
 	};
 }

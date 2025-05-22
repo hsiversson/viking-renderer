@@ -1,10 +1,11 @@
 #include "swapchain.h"
-#include "rendercommon.h"
+#include "device.h"
 
 namespace vkr::Render
 {
-	SwapChain::SwapChain()
-		: currentBackBufferIndex(0)
+	SwapChain::SwapChain(Device& device)
+		: DeviceObject(device)
+		, currentBackBufferIndex(0)
 		, m_IsHdrEnabled(false)
 		, m_HdrSupported(false)
 	{
@@ -15,7 +16,7 @@ namespace vkr::Render
 		ReleaseResources();
 	}
 
-	bool SwapChain::Init(IDXGIFactory2* factory, void* cmdQueue, void* nativeWindowHandle, const Vector2u& size)
+	bool SwapChain::Init(void* nativeWindowHandle, const Vector2u& size)
 	{
 		DXGI_SWAP_CHAIN_DESC1 desc = {};
 		desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -30,7 +31,7 @@ namespace vkr::Render
 		DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc = {};
 		fullscreenDesc.Windowed = true;
 
-		factory->CreateSwapChainForHwnd((ID3D12CommandQueue*)cmdQueue, (HWND)nativeWindowHandle, &desc, &fullscreenDesc, nullptr, &m_SwapChain);
+		m_Device.GetDXGIFactory()->CreateSwapChainForHwnd(m_Device.GetCommandQueue(CONTEXT_TYPE_PRESENT), (HWND)nativeWindowHandle, &desc, &fullscreenDesc, nullptr, &m_SwapChain);
 		m_SwapChain.As(&m_SwapChain4);
 
 		ComPtr<IDXGIOutput> output;

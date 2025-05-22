@@ -14,7 +14,7 @@ namespace vkr::Render
 	class Buffer : public Resource
 	{
 	public:
-		Buffer();
+		Buffer(Device& device);
 		~Buffer();
 	};
 }

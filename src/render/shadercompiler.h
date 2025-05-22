@@ -1,6 +1,6 @@
 #pragma once
-#include "rendercommon.h"
-#include "shader.h"
+#include "render/rendercommon.h"
+#include "render/shader.h"
 
 struct IDxcCompiler3;
 struct IDxcUtils;

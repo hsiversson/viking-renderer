@@ -1,18 +1,19 @@
 #pragma once
-#include "rendercommon.h"
+#include "render/deviceobject.h"
+#include "render/rendercommon.h"
 
 namespace vkr::Render
 {
 	class Texture;
-	class SwapChain
+	class SwapChain : public DeviceObject
 	{
 		static constexpr uint32_t NumBackBuffers = 2;
 
 	public:
-		SwapChain();
+		SwapChain(Device& device);
 		~SwapChain();
 
-		bool Init(IDXGIFactory2* factory, void* cmdQueue, void* nativeWindowHandle, const Vector2u& size);
+		bool Init(void* nativeWindowHandle, const Vector2u& size);
 
 		void Resize(const Vector2u& newSize);
 		void SetHdrEnabled(bool hdr);

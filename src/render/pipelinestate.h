@@ -1,12 +1,14 @@
 #pragma once
 
-#include "rendercommon.h"
-#include "shader.h"
-#include "renderstates.h"
+#include "render/deviceobject.h"
+#include "render/rendercommon.h"
+#include "render/shader.h"
+#include "render/renderstates.h"
 
 namespace vkr::Render
 {
-	struct RootSignature;
+	class RootSignature;
+	class Device;
 
 	enum PipelineStateType
 	{
@@ -58,17 +60,19 @@ namespace vkr::Render
 		};
 	};
 
-	class PipelineState
+	class PipelineState : public DeviceObject
 	{
 	public:
-		PipelineState();
+		PipelineState(Device& device);
 		~PipelineState();
 
-		bool Init(const PipelineStateDesc& desc, RootSignature* rootSignature, ID3D12Device* device);
+		bool Init(const PipelineStateDesc& desc, RootSignature* rootSignature);
 
-		ID3D12PipelineState* GetD3D12PipelineState() const;
-
+		ID3D12PipelineState* GetD3DPipelineState() const;
+		RootSignature* GetRootSignature() const;
 	private:
 		ComPtr<ID3D12PipelineState> m_PipelineState;
+
+		RootSignature* m_RootSignature;
 	};
 }

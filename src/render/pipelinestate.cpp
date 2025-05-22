@@ -1,10 +1,12 @@
 #include "pipelinestate.h"
 #include "rootsignature.h"
+#include "device.h"
 
 namespace vkr::Render
 {
-
-	PipelineState::PipelineState()
+	PipelineState::PipelineState(Device& device)
+		: DeviceObject(device)
+		, m_RootSignature(nullptr)
 	{
 
 	}
@@ -14,8 +16,10 @@ namespace vkr::Render
 
 	}
 
-	bool PipelineState::Init(const PipelineStateDesc& desc, RootSignature* rootSignature, ID3D12Device* device)
+	bool PipelineState::Init(const PipelineStateDesc& desc, RootSignature* rootSignature)
 	{
+		ID3D12Device* device = m_Device.GetD3DDevice();
+
 		HRESULT hr;
 		switch (desc.m_Type)
 		{
@@ -59,12 +63,19 @@ namespace vkr::Render
 		}
 		break;
 		}
+
+		m_RootSignature = rootSignature;
 		return true;
 	}
 
-	ID3D12PipelineState* PipelineState::GetD3D12PipelineState() const
+	ID3D12PipelineState* PipelineState::GetD3DPipelineState() const
 	{
 		return m_PipelineState.Get();
+	}
+
+	vkr::Render::RootSignature* PipelineState::GetRootSignature() const
+	{
+		return m_RootSignature;
 	}
 
 }

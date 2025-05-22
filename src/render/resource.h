@@ -1,14 +1,16 @@
 #pragma once
 
+#include "deviceobject.h"
 #include "rendercommon.h"
 #include "resourcedescriptor.h"
 #include <unordered_map>
 
 namespace vkr::Render
 {
-	class Resource
+	class Resource : public DeviceObject
 	{
 	public:
+		Resource(Device& device);
 		bool Init(ID3D12Resource* Resource);
 
 		ID3D12Resource* GetD3DResource() { return m_Resource.Get(); }

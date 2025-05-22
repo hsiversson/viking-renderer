@@ -22,4 +22,11 @@ namespace vkr::Render
 		auto it = m_Descriptors.find(descriptorhash);
 		return it == m_Descriptors.end() ? nullptr : it->second;
 	}
+
+	Resource::Resource(Device& device) :
+		DeviceObject(device)
+	{
+
+	}
+
 }

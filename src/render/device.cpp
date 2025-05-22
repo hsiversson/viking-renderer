@@ -2,6 +2,11 @@
 #include "descriptorheap.h"
 #include "shadercompiler.h"
 #include "rootsignature.h"
+#include "textureloader_dds.h"
+#include "textureloader_png.h"
+#include "textureloader_tga.h"
+
+#include "utils/commandline.h"
 #include "utils/hash.h"
 
 #include <algorithm>
@@ -21,14 +26,12 @@ namespace vkr::Render
 
 	}
 
-	bool Device::Init(bool enableDebugLayer)
+	bool Device::Init()
 	{
-		uint32_t createFactoryFlags = 0;
-		if (enableDebugLayer)
-			createFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
-		CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&m_Factory));
+		const bool enableDebugLayer = CommandLine::Has("debug_device");
 
-		m_Factory->EnumAdapters1(0, &m_Adapter); // Make this smarter?
+		uint32_t createFactoryFlags = (enableDebugLayer) ? DXGI_CREATE_FACTORY_DEBUG : 0;
+		CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&m_Factory));
 
 		if (enableDebugLayer)
 		{
@@ -39,16 +42,15 @@ namespace vkr::Render
 			}
 		}
 
-		D3D12CreateDevice(m_Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_Device));
+		m_Factory->EnumAdapters1(0, &m_Adapter); // Make this smarter?
 
-		D3D12_COMMAND_QUEUE_DESC cmdQueueDesc = {};
-		cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-		m_Device->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(&m_CommandQueue));
+		D3D12CreateDevice(m_Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_Device));
 
 		m_ShaderCompiler = new ShaderCompiler;
 
 		InitRootSignatures();
-
+		InitTextureLoaders();
+		InitCommandQueues();
 		return true;
 	}
 
@@ -56,22 +58,44 @@ namespace vkr::Render
 	{
 		for (int i = 0; i < PipelineStateType::PIPELINE_STATE_TYPE_COUNT; i++)
 		{
-			auto Signature = new RootSignature;
+			auto Signature = new RootSignature(*this);
 			// For now just consider one unique constant buffer?
-			Signature->Init({ PipelineStateType(i), 1}, m_Device.Get());
+			Signature->Init({ PipelineStateType(i), 1 });
 			m_RootSignatures[i] = Signature;
 		}
 	}
 
-	vkr::Render::Context* Device::CreateContext()
+	vkr::Render::Context* Device::CreateContext(ContextType contextType)
 	{
+		// Should we move this into the context itself.
+		// Potentially each context would need several command lists, 
+		// so we might need some form of functionality to "reset" a context with a new command list.
+		// Maybe Context::Begin & Context::End functions?
+
+		D3D12_COMMAND_LIST_TYPE type;
+		switch (contextType)
+		{
+		case vkr::Render::CONTEXT_TYPE_GRAPHICS:
+			type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+			break;
+		case vkr::Render::CONTEXT_TYPE_COMPUTE:
+			type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
+			break;
+		case vkr::Render::CONTEXT_TYPE_COPY:
+			type = D3D12_COMMAND_LIST_TYPE_COPY;
+			break;
+		default:
+			assert(false);
+			return nullptr;
+		}
+
 		ID3D12CommandAllocator* commandAllocator = nullptr;
-		if (FAILED(m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator))))
+		if (FAILED(m_Device->CreateCommandAllocator(type, IID_PPV_ARGS(&commandAllocator))))
 		{
 			return nullptr;
 		}
 		ID3D12GraphicsCommandList* commandList = nullptr;
-		if (FAILED(m_Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator, nullptr, IID_PPV_ARGS(&commandList))))
+		if (FAILED(m_Device->CreateCommandList(0, type, commandAllocator, nullptr, IID_PPV_ARGS(&commandList))))
 		{
 			commandAllocator->Release();
 			commandAllocator = nullptr;
@@ -79,15 +103,15 @@ namespace vkr::Render
 		}
 		commandList->Close();
 
-		Context* context = new Context;
+		Context* context = new Context(*this, contextType);
 		context->Init(commandList, commandAllocator);
 		return context;
 	}
 
 	vkr::Render::SwapChain* Device::CreateSwapChain(void* windowHandle, const Vector2u& size)
 	{
-		SwapChain* swapChain = new SwapChain;
-		if (!swapChain->Init(m_Factory.Get(), m_CommandQueue.Get(), windowHandle, size))
+		SwapChain* swapChain = new SwapChain(*this);
+		if (!swapChain->Init(windowHandle, size))
 		{
 			delete swapChain;
 			return nullptr;
@@ -109,8 +133,8 @@ namespace vkr::Render
 
 	PipelineState* Device::CreatePipelineState(const PipelineStateDesc& desc)
 	{
-		PipelineState* pipelineState = new PipelineState;
-		if (!pipelineState->Init(desc, m_RootSignatures[desc.m_Type], m_Device.Get()))
+		PipelineState* pipelineState = new PipelineState(*this);
+		if (!pipelineState->Init(desc, m_RootSignatures[desc.m_Type]))
 		{
 			delete pipelineState;
 			return nullptr;
@@ -118,9 +142,9 @@ namespace vkr::Render
 		return pipelineState;
 	}
 
-	Texture* Device::CreateTexture(const TextureDesc& desc)
+	Texture* Device::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
 	{
-		Texture* texture = new Texture;
+		Texture* texture = new Texture(*this);
 
 		//For now allocate resource in place. Later well see how we do pooling
 		UINT16 MipLevels = 1;
@@ -148,6 +172,7 @@ namespace vkr::Render
 			return nullptr;
 		}
 
+		// Move all of the resource creation into Texture?
 		if (!texture->Init(resource))
 		{
 			delete texture;
@@ -158,7 +183,7 @@ namespace vkr::Render
 
 	Buffer* Device::CreateBuffer(const BufferDesc& desc)
 	{
-		Buffer* buffer = new Buffer;
+		Buffer* buffer = new Buffer(*this);
 
 		//For now allocate resource in place. Later well see how we do pooling
 
@@ -182,12 +207,87 @@ namespace vkr::Render
 			return nullptr;
 		}
 
+		// Move all of the resource creation into Buffer?
 		if (!buffer->Init(resource))
 		{
 			delete buffer;
 			return nullptr;
 		}
 		return buffer;
+	}
+
+	vkr::Render::Texture* Device::LoadTexture(const std::filesystem::path& filepath)
+	{
+		TextureLoader* loader = nullptr;
+		auto loaderSearch = m_TextureLoaderByExtension.find(filepath.extension());
+		if (loaderSearch != m_TextureLoaderByExtension.end())
+		{
+			loader = loaderSearch->second;
+		}
+		else
+		{
+			return nullptr;
+		}
+
+		TextureDesc textureDesc = {};
+		TextureData textureData = {};
+		if (!loader->LoadTexture(textureDesc, textureData, filepath))
+		{
+			return nullptr;
+		}
+
+		return CreateTexture(textureDesc, &textureData);
+	}
+
+	void Device::InitTextureLoaders()
+	{
+		TextureLoader* ddsLoader = new TextureLoader_DDS;
+		m_TextureLoaderByExtension[".dds"] = ddsLoader;
+
+		TextureLoader* pngLoader = new TextureLoader_PNG;
+		m_TextureLoaderByExtension[".png"] = pngLoader;
+
+		TextureLoader* tgaLoader = new TextureLoader_TGA;
+		m_TextureLoaderByExtension[".tga"] = pngLoader;
+	}
+
+	void Device::InitCommandQueues()
+	{
+		D3D12_COMMAND_QUEUE_DESC cmdQueueDesc = {};
+		cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+		m_Device->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(&m_CommandQueue[CONTEXT_TYPE_GRAPHICS]));
+		m_Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_CommandQueueFence[CONTEXT_TYPE_GRAPHICS]));
+		m_CommandQueueFenceValue[CONTEXT_TYPE_GRAPHICS] = 0;
+
+		cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
+		m_Device->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(&m_CommandQueue[CONTEXT_TYPE_COMPUTE]));
+		m_Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_CommandQueueFence[CONTEXT_TYPE_COMPUTE]));
+		m_CommandQueueFenceValue[CONTEXT_TYPE_COMPUTE] = 0;
+
+		cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
+		m_Device->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(&m_CommandQueue[CONTEXT_TYPE_COPY]));
+		m_Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_CommandQueueFence[CONTEXT_TYPE_COPY]));
+		m_CommandQueueFenceValue[CONTEXT_TYPE_COPY] = 0;
+	}
+
+	ID3D12Device* Device::GetD3DDevice() const
+	{
+		return m_Device.Get();
+	}
+
+	IDXGIFactory2* Device::GetDXGIFactory() const
+	{
+		return m_Factory.Get();
+	}
+
+	IDXGIAdapter1* Device::GetDXGIAdapter() const
+	{
+		return m_Adapter.Get();
+	}
+
+	ID3D12CommandQueue* Device::GetCommandQueue(ContextType contextType) const
+	{
+		return m_CommandQueue[contextType].Get();
 	}
 
 	vkr::Render::ResourceDescriptor* Device::GetOrCreateDescriptor(Texture* tex, const ResourceDescriptorDesc& desc)

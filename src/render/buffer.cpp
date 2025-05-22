@@ -2,7 +2,8 @@
 
 namespace vkr::Render
 {
-	Buffer::Buffer()
+	Buffer::Buffer(Device& device)
+		: Resource(device)
 	{
 
 	}
