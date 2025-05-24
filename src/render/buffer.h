@@ -16,5 +16,7 @@ namespace vkr::Render
 	public:
 		Buffer(Device& device);
 		~Buffer();
+
+		bool InitWithData(uint8_t* Data, size_t size);
 	};
 }
