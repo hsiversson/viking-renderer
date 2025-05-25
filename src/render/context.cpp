@@ -3,31 +3,58 @@
 #include "buffer.h"
 #include "pipelinestate.h"
 #include "rootsignature.h"
+#include "device.h"
+#include "commandlist.h"
+#include "commandqueue.h"
 
 namespace vkr::Render
 {
-	void Context::Init(ID3D12GraphicsCommandList* commandList, ID3D12CommandAllocator* commandAllocator)
-	{
-		m_CommandList = commandList;
-		m_CommandAllocator = commandAllocator;
-	}
-
 	Context::Context(Device& device, ContextType type)
 		: DeviceObject(device)
+		, m_CurrentD3DCommandList(nullptr)
 		, m_Type(type)
 	{
-
 	}
 
 	Context::~Context()
 	{
+	}
 
+	void Context::Init(ID3D12GraphicsCommandList* commandList, ID3D12CommandAllocator* commandAllocator)
+	{
+		//m_CommandList = commandList;
+		//m_CommandAllocator = commandAllocator;
+	}
+
+	void Context::Begin()
+	{
+		m_CommandList = m_Device.GetCommandListPool(m_Type)->GetCommandList();
+		m_CurrentD3DCommandList = m_CommandList->GetD3DCommandList();
+		m_CommandList->Open();
+	}
+
+	void Context::End()
+	{
+		// insert potential auto transitions/barriers
+		m_CommandList->Close();
+		m_CommandListsToSubmit.push_back(m_CommandList);
+		m_CurrentD3DCommandList = nullptr;
+		m_CommandList = nullptr;
+	}
+
+	Event Context::Flush()
+	{
+		m_LastFlushEvent = m_Device.GetCommandQueue(m_Type)->Submit(m_CommandListsToSubmit.size(), m_CommandListsToSubmit.data());
+		m_Device.GetCommandListPool(m_Type)->ReturnCommandList(m_CommandListsToSubmit.size(), m_CommandListsToSubmit.data());
+		m_CommandListsToSubmit.clear();
+
+		return m_LastFlushEvent;
 	}
 
 	void Context::Dispatch(const Vector3u& Groups)
 	{
 		UpdateState();
-		m_CommandList->Dispatch(Groups.x, Groups.y, Groups.z);
+		m_CurrentD3DCommandList->Dispatch(Groups.x, Groups.y, Groups.z);
 	}
 
 	void Context::DispatchThreads(PipelineState* pipelineState, const Vector3u& threads)
@@ -68,11 +95,11 @@ namespace vkr::Render
 		{
 			if (CurrentState.m_PipelineState != NewState.m_PipelineState)
 			{
-				m_CommandList->SetPipelineState(NewState.m_PipelineState->GetD3DPipelineState());
+				m_CurrentD3DCommandList->SetPipelineState(NewState.m_PipelineState->GetD3DPipelineState());
 			}
 			if (CurrentState.m_RootSignature != NewState.m_RootSignature)
 			{
-				m_CommandList->SetComputeRootSignature(NewState.m_RootSignature->GetD3DRootSignature());
+				m_CurrentD3DCommandList->SetComputeRootSignature(NewState.m_RootSignature->GetD3DRootSignature());
 			}
 
 			for (int i = 0; i < NewState.m_RootCB.size(); i++)
@@ -81,7 +108,7 @@ namespace vkr::Render
 				if ((CurrentState.m_RootCB.size() <= i) || (CurrentState.m_RootCB[i] != buffer))
 				{
 					//Aditional buffer bound or different buffer bound at a previously bound slot
-					m_CommandList->SetComputeRootConstantBufferView(i, buffer->GetD3DResource()->GetGPUVirtualAddress());
+					m_CurrentD3DCommandList->SetComputeRootConstantBufferView(i, buffer->GetD3DResource()->GetGPUVirtualAddress());
 				}
 			}
 

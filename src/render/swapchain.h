@@ -1,10 +1,12 @@
 #pragma once
 #include "render/deviceobject.h"
 #include "render/rendercommon.h"
+#include "render/event.h"
 
 namespace vkr::Render
 {
 	class Texture;
+	class CommandQueue;
 	class SwapChain : public DeviceObject
 	{
 		static constexpr uint32_t NumBackBuffers = 2;
@@ -29,15 +31,17 @@ namespace vkr::Render
 		ComPtr<IDXGISwapChain1> m_SwapChain;
 		ComPtr<IDXGISwapChain4> m_SwapChain4;
 		ComPtr<IDXGIOutput6> m_Output;
+		Ref<CommandQueue> m_CommandQueue;
 
 		struct BackBufferResource
 		{
+			Event m_LastFrameEvent;
 			Texture* m_Texture;
 			// SRV?
 			// RTV?
 		};
 		std::array<BackBufferResource, NumBackBuffers> m_BackBuffers;
-		uint32_t currentBackBufferIndex;
+		uint32_t m_CurrentBackBufferIndex;
 
 		bool m_IsHdrEnabled;
 		bool m_HdrSupported;

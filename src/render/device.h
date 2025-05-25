@@ -14,6 +14,8 @@ namespace vkr::Render
 	class ShaderCompiler;
 	class RootSignature;
 	class TextureLoader;
+	class CommandQueue;
+	class CommandListPool;
 	class Device
 	{
 	public:
@@ -38,7 +40,8 @@ namespace vkr::Render
 		ID3D12Device* GetD3DDevice() const;
 		IDXGIFactory2* GetDXGIFactory() const;
 		IDXGIAdapter1* GetDXGIAdapter() const;
-		ID3D12CommandQueue* GetCommandQueue(ContextType contextType) const;
+		const Ref<CommandQueue>& GetCommandQueue(ContextType contextType) const;
+		const Ref<CommandListPool>& GetCommandListPool(ContextType contextType) const;
 
 	private:
 		void InitRootSignatures();
@@ -51,9 +54,8 @@ namespace vkr::Render
 		ComPtr<IDXGIAdapter1> m_Adapter;
 		ComPtr<ID3D12Device> m_Device;
 
-		ComPtr<ID3D12CommandQueue> m_CommandQueue[CONTEXT_TYPE_COUNT];
-		ComPtr<ID3D12Fence> m_CommandQueueFence[CONTEXT_TYPE_COUNT];
-		uint64_t m_CommandQueueFenceValue[CONTEXT_TYPE_COUNT];
+		Ref<CommandQueue> m_CommandQueue[CONTEXT_TYPE_COUNT];
+		Ref<CommandListPool> m_CommandListPool[CONTEXT_TYPE_COUNT];
 
 		UniquePtr<ShaderCompiler> m_ShaderCompiler;
 		Ref<RootSignature> m_RootSignatures[PIPELINE_STATE_TYPE_COUNT];

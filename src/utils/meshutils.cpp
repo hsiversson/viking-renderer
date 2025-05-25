@@ -29,5 +29,6 @@ namespace vkr
 		auto mesh = MakeRef<Graphics::Mesh>();
 		mesh->SetVertexBuffer(vtxbuffer);
 		mesh->SetIndexBuffer(idxbuffer);
+		return mesh;
 	}
 }

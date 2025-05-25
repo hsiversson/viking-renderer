@@ -1,6 +1,9 @@
 @echo off
 cd /d %~dp0
 
+for /f "usebackq tokens=*" %%i in (`tools\vswhere.exe -latest -property installationPath`) do set "VS_INSTALL_DIR=%%i"
+call "%VS_INSTALL_DIR%\VC\Auxiliary\Build\vcvarsall.bat" x64
+
 :: INSTALL VCPKG
 if not exist "vcpkg" (
     git clone https://github.com/microsoft/vcpkg.git
@@ -15,7 +18,9 @@ if not exist "vcpkg" (
 	cd ..
 )
 :: INSTALL_DEPENDENCIES
+vcpkg\vcpkg.exe install directx12-agility
 vcpkg\vcpkg.exe install directx-dxc
+vcpkg\vcpkg.exe install directxtex
 if errorlevel 1 goto ERROR_END
 
 :: CMAKE BUILD
@@ -23,7 +28,7 @@ if not exist "build" (
     mkdir build
 )
 
-cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake -A x64
+cmake -G "Visual Studio 17 2022" -A x64 -B build -S . -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake
 if errorlevel 1 goto ERROR_END
 
 goto SUCCESS_END
@@ -35,4 +40,5 @@ exit /b 1
 
 :SUCCESS_END
 echo Build succeeded!
+pause
 exit /b 0

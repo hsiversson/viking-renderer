@@ -1,11 +1,12 @@
 #include "swapchain.h"
 #include "device.h"
+#include "commandqueue.h"
 
 namespace vkr::Render
 {
 	SwapChain::SwapChain(Device& device)
 		: DeviceObject(device)
-		, currentBackBufferIndex(0)
+		, m_CurrentBackBufferIndex(0)
 		, m_IsHdrEnabled(false)
 		, m_HdrSupported(false)
 	{
@@ -18,6 +19,8 @@ namespace vkr::Render
 
 	bool SwapChain::Init(void* nativeWindowHandle, const Vector2u& size)
 	{
+		m_CommandQueue = m_Device.GetCommandQueue(CONTEXT_TYPE_PRESENT);
+
 		DXGI_SWAP_CHAIN_DESC1 desc = {};
 		desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		desc.BufferCount = NumBackBuffers;
@@ -31,7 +34,7 @@ namespace vkr::Render
 		DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc = {};
 		fullscreenDesc.Windowed = true;
 
-		m_Device.GetDXGIFactory()->CreateSwapChainForHwnd(m_Device.GetCommandQueue(CONTEXT_TYPE_PRESENT), (HWND)nativeWindowHandle, &desc, &fullscreenDesc, nullptr, &m_SwapChain);
+		m_Device.GetDXGIFactory()->CreateSwapChainForHwnd(m_CommandQueue->GetD3DCommandQueue(), (HWND)nativeWindowHandle, &desc, &fullscreenDesc, nullptr, &m_SwapChain);
 		m_SwapChain.As(&m_SwapChain4);
 
 		ComPtr<IDXGIOutput> output;
@@ -77,7 +80,11 @@ namespace vkr::Render
 	void SwapChain::Present()
 	{
 		m_SwapChain->Present(1, 0);
-		currentBackBufferIndex = m_SwapChain4->GetCurrentBackBufferIndex();
+		m_BackBuffers[m_CurrentBackBufferIndex].m_LastFrameEvent = m_CommandQueue->Signal();
+		m_CurrentBackBufferIndex = m_SwapChain4->GetCurrentBackBufferIndex();
+
+		// Wait for current backbuffer to become available
+		m_BackBuffers[m_CurrentBackBufferIndex].m_LastFrameEvent.Wait();
 	}
 
 	void SwapChain::CreateResources()

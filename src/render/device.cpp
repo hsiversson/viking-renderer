@@ -5,11 +5,16 @@
 #include "textureloader_dds.h"
 #include "textureloader_png.h"
 #include "textureloader_tga.h"
+#include "commandlist.h"
+#include "commandqueue.h"
 
 #include "utils/commandline.h"
 #include "utils/hash.h"
 
 #include <algorithm>
+
+extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 615; }
+extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = "./"; }
 
 namespace vkr::Render
 {
@@ -244,21 +249,14 @@ namespace vkr::Render
 
 	void Device::InitCommandQueues()
 	{
-		D3D12_COMMAND_QUEUE_DESC cmdQueueDesc = {};
-		cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-		m_Device->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(&m_CommandQueue[CONTEXT_TYPE_GRAPHICS]));
-		m_Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_CommandQueueFence[CONTEXT_TYPE_GRAPHICS]));
-		m_CommandQueueFenceValue[CONTEXT_TYPE_GRAPHICS] = 0;
+		m_CommandQueue[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandQueue>(*this, CONTEXT_TYPE_GRAPHICS);
+		m_CommandListPool[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandListPool>(*this, CONTEXT_TYPE_GRAPHICS);
 
-		cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
-		m_Device->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(&m_CommandQueue[CONTEXT_TYPE_COMPUTE]));
-		m_Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_CommandQueueFence[CONTEXT_TYPE_COMPUTE]));
-		m_CommandQueueFenceValue[CONTEXT_TYPE_COMPUTE] = 0;
+		m_CommandQueue[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandQueue>(*this, CONTEXT_TYPE_COMPUTE);
+		m_CommandListPool[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandListPool>(*this, CONTEXT_TYPE_COMPUTE);
 
-		cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
-		m_Device->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(&m_CommandQueue[CONTEXT_TYPE_COPY]));
-		m_Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_CommandQueueFence[CONTEXT_TYPE_COPY]));
-		m_CommandQueueFenceValue[CONTEXT_TYPE_COPY] = 0;
+		m_CommandQueue[CONTEXT_TYPE_COPY] = MakeRef<CommandQueue>(*this, CONTEXT_TYPE_COPY);
+		m_CommandListPool[CONTEXT_TYPE_COPY] = MakeRef<CommandListPool>(*this, CONTEXT_TYPE_COPY);
 	}
 
 	ID3D12Device* Device::GetD3DDevice() const
@@ -276,9 +274,14 @@ namespace vkr::Render
 		return m_Adapter.Get();
 	}
 
-	ID3D12CommandQueue* Device::GetCommandQueue(ContextType contextType) const
+	const Ref<CommandQueue>& Device::GetCommandQueue(ContextType contextType) const
 	{
-		return m_CommandQueue[contextType].Get();
+		return m_CommandQueue[contextType];
+	}
+
+	const Ref<CommandListPool>& Device::GetCommandListPool(ContextType contextType) const
+	{
+		return m_CommandListPool[contextType];
 	}
 
 	Ref<ResourceDescriptor> Device::GetOrCreateDescriptor(Texture* tex, const ResourceDescriptorDesc& desc)
@@ -439,5 +442,4 @@ namespace vkr::Render
 		heap->Init(d3dheap, 16, descriptorSize);
 		m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV] = heap;
 	}
-
 }

@@ -7,3 +7,12 @@ target_link_libraries(Raytracer VikingRenderer)
 if(MSVC)
 	target_compile_options(Raytracer PRIVATE "/MP")
 endif()
+
+find_package(directx-dxc CONFIG REQUIRED)
+set(VCPKG_DLL_DIR "${VKR_VCPKG_ROOT_DIR}/installed/x64-windows/bin")
+
+add_custom_command(TARGET Raytracer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${VCPKG_DLL_DIR}"
+    $<TARGET_FILE_DIR:Raytracer>
+)

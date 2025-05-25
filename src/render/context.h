@@ -1,14 +1,16 @@
 #pragma once
 #include "render/deviceobject.h"
 #include "render/rendercommon.h"
+#include "render/event.h"
 
 namespace vkr::Render
 {
 	class Buffer;
 	class PipelineState;
 	class RootSignature;
+	class CommandList;
 
-	enum ContextType
+	enum ContextType : uint8_t
 	{
 		CONTEXT_TYPE_GRAPHICS,
 		CONTEXT_TYPE_PRESENT = CONTEXT_TYPE_GRAPHICS,
@@ -25,6 +27,10 @@ namespace vkr::Render
 		~Context();
 
 		void Init(ID3D12GraphicsCommandList* commandList, ID3D12CommandAllocator* commandAllocator);
+
+		void Begin();
+		void End();
+		Event Flush();
 
 		void Dispatch(const Vector3u& Groups);
 		void DispatchThreads(const Vector3u& threads);
@@ -44,8 +50,11 @@ namespace vkr::Render
 
 		void UpdateState();
 
-		ComPtr<ID3D12GraphicsCommandList> m_CommandList;
-		ComPtr<ID3D12CommandAllocator> m_CommandAllocator;
+		Ref<CommandList> m_CommandList;
+		ID3D12GraphicsCommandList* m_CurrentD3DCommandList;
+
+		std::vector<Ref<CommandList>> m_CommandListsToSubmit;
+		Event m_LastFlushEvent;
 
 		DrawState CurrentState;
 		DrawState NewState;
