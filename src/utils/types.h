@@ -60,10 +60,56 @@ namespace vkr
 	template<uint32_t X, uint32_t Y>
 	struct Mat
 	{
+		float operator[](size_t Idx) const
+		{
+			return m[Idx];
+		}
+
+		float& operator[](size_t Idx)
+		{
+			return m[Idx];
+		}
+
+		Mat<X, Y>& operator=(const Mat<X, Y>& other)
+		{
+			std::copy(other.m, other.m + (X * Y), m);
+			return *this;
+		}
+
 		float m[X*Y];
 	};
-	using Mat44 = Mat<4, 4>;
-	using Mat33 = Mat<3, 3>;
+
+	struct Mat43 : public Mat<4, 3>
+	{
+		static const Mat43 Identity;
+		Mat43 operator*(const Mat43& other);
+	};
+
+	struct Mat44 : public Mat<4, 4>
+	{
+		static const Mat44 Identity;
+
+		Mat44();
+
+		Mat44(float m00, float m01, float m02, float m03,
+			float m10, float m11, float m12, float m13,
+			float m20, float m21, float m22, float m23,
+			float m30, float m31, float m32, float m33);
+
+		Mat44(const Mat43& other);
+
+		Mat44 operator*(const Mat44& other);
+	};
+
+	bool Inverse(const Mat44& m, Mat44& out);
+
+	struct Mat33 : public Mat<3, 3>
+	{
+		static const Mat33 Identity;
+
+		
+	};
+	
 }
 
 #include "str.h"
