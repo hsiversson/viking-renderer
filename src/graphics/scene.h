@@ -1,7 +1,11 @@
 #pragma once
 
+#include "utils/types.h"
+
 namespace vkr::Graphics
 {
+	class SceneObject;
+
 	class Scene
 	{
 	public:
@@ -29,5 +33,6 @@ namespace vkr::Graphics
 		// For now only a simple list of scene objects, 
 		// but later maybe a spatial partitioning structure of scene objects?
 		// Quadtree, Octree, Grid?
+		std::vector<Ref<SceneObject>> m_SceneObjects;
 	};
 }
