@@ -5,7 +5,7 @@
 namespace vkr::Graphics
 {
 	class SceneObject;
-
+	class View;
 	class Scene
 	{
 	public:
@@ -13,26 +13,26 @@ namespace vkr::Graphics
 		~Scene();
 
 		// These should be thread-safe
-		// Create/Destroy view?
+		Ref<View> CreateView();
+		void DestroyView(const Ref<View>& view);
 		// Add/Remove model/object?
 		// Add/Remove light
 		// Add/Remove this...
 		// Add/Remove that...
 
 		// Run per frame updates to the scene and its objects & views
-		// Update()
+		void Update();
 
 		// Prepare render data for rendering for each view. 
 		// I.e extract renderable information and store in list to be picked up by render tasks later
-		// Prepare()
-
-		// Launch actual gpu recording rendering tasks for each view
-		// Render()
+		void PrepareView(View& view);
 
 	private:
 		// For now only a simple list of scene objects, 
 		// but later maybe a spatial partitioning structure of scene objects?
 		// Quadtree, Octree, Grid?
 		std::vector<Ref<SceneObject>> m_SceneObjects;
+
+		std::vector<Ref<View>> m_Views;
 	};
 }

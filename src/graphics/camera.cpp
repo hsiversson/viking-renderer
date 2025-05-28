@@ -4,18 +4,12 @@
 
 namespace vkr::Graphics
 {
-	void Camera::SetupPerspective(float fov, float aspect, float near, float far)
+	Camera::Camera()
 	{
-		float yscale = 1.0f / tan(fov * 0.5f);
-		float xscale = yscale / aspect;
+	}
 
-		float q = near / (near - far);
-		float r = far * near / (near - far);
-		m_Projection = 
-		{xscale,0,0,0,
-		0,yscale,0,0,
-		0,0,q,1,
-		0,0,r,0};
+	Camera::~Camera()
+	{
 	}
 
 	vkr::Mat44 Camera::GetView()
@@ -34,6 +28,20 @@ namespace vkr::Graphics
 	vkr::Mat44 Camera::GetViewProjection()
 	{
 		return GetView() * GetProjection();
+	}
+
+	void Camera::SetupPerspective(float fov, float aspect, float near, float far)
+	{
+		float yscale = 1.0f / tan(fov * 0.5f);
+		float xscale = yscale / aspect;
+
+		float q = near / (near - far);
+		float r = far * near / (near - far);
+		m_Projection =
+		{ xscale,0,0,0,
+		0,yscale,0,0,
+		0,0,q,1,
+		0,0,r,0 };
 	}
 
 	void Camera::SetupOrthographic(float left, float right, float bottom, float top, float near, float far)

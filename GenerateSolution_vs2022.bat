@@ -40,5 +40,4 @@ exit /b 1
 
 :SUCCESS_END
 echo Build succeeded!
-pause
 exit /b 0
