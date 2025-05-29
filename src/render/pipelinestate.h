@@ -25,6 +25,7 @@ namespace vkr::Render
 		Shader* m_VertexShader;
 		Shader* m_PixelShader;
 
+		PrimitiveType m_PrimitiveType;
 		VertexLayout m_VertexLayout;
 		RasterizerState m_RasterizerState;
 		DepthStencilState m_DepthStencilState;

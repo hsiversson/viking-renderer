@@ -21,6 +21,7 @@ if not exist "vcpkg" (
 vcpkg\vcpkg.exe install directx12-agility
 vcpkg\vcpkg.exe install directx-dxc
 vcpkg\vcpkg.exe install directxtex
+vcpkg\vcpkg.exe install cgltf
 if errorlevel 1 goto ERROR_END
 
 :: CMAKE BUILD

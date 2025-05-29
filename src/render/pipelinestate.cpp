@@ -1,6 +1,7 @@
 #include "pipelinestate.h"
 #include "rootsignature.h"
 #include "device.h"
+#include "d3dconvert.h"
 
 namespace vkr::Render
 {
@@ -40,24 +41,71 @@ namespace vkr::Render
 		break;
 		case PIPELINE_STATE_TYPE_DEFAULT:
 		{
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsDesc;
-			GraphicsDesc.InputLayout = { desc.Default.m_VertexLayout.m_D3DElements.data(), (unsigned int)desc.Default.m_VertexLayout.m_D3DElements.size() };
-			GraphicsDesc.pRootSignature = rootSignature->GetD3DRootSignature();
-			GraphicsDesc.VS = {desc.Default.m_VertexShader->GetByteCode(), desc.Default.m_VertexShader->GetByteCodeSize()};
-			GraphicsDesc.PS = { desc.Default.m_PixelShader->GetByteCode(), desc.Default.m_PixelShader->GetByteCodeSize() };
-			GraphicsDesc.RasterizerState = desc.Default.m_RasterizerState.m_D3DRasterizerState;
-			GraphicsDesc.BlendState = desc.Default.m_BlendState.m_D3DBlendDesc;
-			GraphicsDesc.DepthStencilState = desc.Default.m_DepthStencilState.m_D3DDepthStencilState;
-			GraphicsDesc.SampleMask = UINT_MAX;
-			GraphicsDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; // DO WE WANT TO BE ABLE TO RENDER OTHER TOPOLOGIES?
-			GraphicsDesc.NumRenderTargets = desc.Default.m_RenderTargetState.m_D3DRTFormats.size();
-			for (int i = 0; i < GraphicsDesc.NumRenderTargets; i++)
-			{
-				GraphicsDesc.RTVFormats[0] = desc.Default.m_RenderTargetState.m_D3DRTFormats[i];
-			}
-			GraphicsDesc.SampleDesc.Count = 1;
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsDesc;
 
-			hr = device->CreateGraphicsPipelineState(&GraphicsDesc, IID_PPV_ARGS(&m_PipelineState));
+			std::vector<D3D12_INPUT_ELEMENT_DESC> inputElements;
+			for (auto& attrib : desc.Default.m_VertexLayout.m_Attributes)
+			{
+				D3D12_INPUT_ELEMENT_DESC element = {};
+				element.Format = D3DConvertFormat(attrib.m_Format);
+				element.InputSlot = attrib.m_BufferSlot;
+				element.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+				element.SemanticIndex = attrib.m_Index;
+				element.SemanticName = VertexAttribute::GetTypeSemantic(attrib.m_Type);
+				element.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+				inputElements.push_back(element);
+			}
+			graphicsDesc.InputLayout.NumElements = static_cast<UINT>(inputElements.size());
+			graphicsDesc.InputLayout.pInputElementDescs = inputElements.data();
+
+			graphicsDesc.pRootSignature = rootSignature->GetD3DRootSignature();
+			graphicsDesc.VS = {desc.Default.m_VertexShader->GetByteCode(), desc.Default.m_VertexShader->GetByteCodeSize()};
+			graphicsDesc.PS = { desc.Default.m_PixelShader->GetByteCode(), desc.Default.m_PixelShader->GetByteCodeSize() };
+
+			{
+				const RasterizerState& rasterState = desc.Default.m_RasterizerState;
+				graphicsDesc.RasterizerState = {};
+				graphicsDesc.RasterizerState.AntialiasedLineEnable = rasterState.m_AntialiasedLine;
+				graphicsDesc.RasterizerState.FillMode = rasterState.m_Wireframe ? D3D12_FILL_MODE_WIREFRAME : D3D12_FILL_MODE_SOLID;
+				graphicsDesc.RasterizerState.FrontCounterClockwise = rasterState.m_FrontIsCounterClockwise;
+				switch (rasterState.m_CullMode)
+				{
+				case FACE_CULL_MODE_NONE:
+					graphicsDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+					break;
+				default:
+				case FACE_CULL_MODE_BACK:
+					graphicsDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+					break;
+				case FACE_CULL_MODE_FRONT:
+					graphicsDesc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
+					break;
+				}
+			}
+
+			graphicsDesc.BlendState = desc.Default.m_BlendState.m_D3DBlendDesc;
+			{
+				const DepthStencilState& depthStencilState = desc.Default.m_DepthStencilState;
+				graphicsDesc.DepthStencilState = {};
+				graphicsDesc.DepthStencilState.DepthEnable = depthStencilState.m_Enabled;
+				graphicsDesc.DepthStencilState.DepthWriteMask = depthStencilState.m_WriteDepth ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+				graphicsDesc.DepthStencilState.DepthFunc = D3DConvertComparisonFunc(depthStencilState.m_ComparisonFunc);
+			}
+			graphicsDesc.SampleMask = UINT_MAX;
+			graphicsDesc.PrimitiveTopologyType = D3DConvertPrimitiveType(desc.Default.m_PrimitiveType);
+			
+			for (uint32_t i = 0; i < MAX_NUM_RENDER_TARGETS; i++)
+			{
+				if (desc.Default.m_RenderTargetState.m_Formats[i] != FORMAT_UNKNOWN)
+				{
+					graphicsDesc.RTVFormats[0] = D3DConvertFormat(desc.Default.m_RenderTargetState.m_Formats[i]);
+					++graphicsDesc.NumRenderTargets;
+
+				}
+			}
+			graphicsDesc.SampleDesc.Count = 1;
+
+			hr = device->CreateGraphicsPipelineState(&graphicsDesc, IID_PPV_ARGS(&m_PipelineState));
 			if (FAILED(hr))
 			{
 				return false;

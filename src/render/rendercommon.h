@@ -19,3 +19,4 @@
 using Microsoft::WRL::ComPtr;
 
 #include "utils/types.h"
+#include "render/renderenums.h"
