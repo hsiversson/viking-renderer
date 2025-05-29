@@ -2,6 +2,8 @@
 
 #include "render/rendercommon.h"
 
+#include <functional>
+
 namespace vkr::Render
 {
 	struct VertexAttribute
@@ -23,12 +25,14 @@ namespace vkr::Render
 		uint32_t m_Index;
 		uint32_t m_BufferSlot;
 		Format m_Format;
+
+		bool operator==(const VertexAttribute& other) const = default;
+		bool operator<(const VertexAttribute& other) const { return m_Type < other.m_Type; }
 	};
 
 	struct VertexLayout
 	{
-		// We should probably be using a hash set or something to make sure we only have one occurance per attribute.
-		std::vector<VertexAttribute> m_Attributes;
+		std::set<VertexAttribute> m_Attributes;
 	};
 
 	struct RasterizerState
@@ -55,5 +59,29 @@ namespace vkr::Render
 	{
 		// should we wrap the things we need?
 		D3D12_BLEND_DESC m_D3DBlendDesc;
+	};
+}
+
+namespace std
+{
+	template <>
+	struct hash<vkr::Render::VertexAttribute>
+	{
+		size_t operator()(const vkr::Render::VertexAttribute& attr) const noexcept
+		{
+			size_t h = 0;
+			HashCombine(h, static_cast<uint8_t>(attr.m_Type));
+			HashCombine(h, attr.m_Index);
+			HashCombine(h, attr.m_BufferSlot);
+			HashCombine(h, static_cast<std::underlying_type_t<vkr::Render::Format>>(attr.m_Format));
+			return h;
+		}
+
+	private:
+		template <typename T>
+		static void HashCombine(size_t& seed, const T& val)
+		{
+			seed ^= std::hash<T>{}(val)+0x9e3779b9 + (seed << 6) + (seed >> 2);
+		}
 	};
 }

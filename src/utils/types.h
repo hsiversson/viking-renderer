@@ -7,7 +7,9 @@
 #include <vector>
 #include <array>
 #include <unordered_map>
+#include <map>
 #include <unordered_set>
+#include <set>
 #include <algorithm>
 #include <cassert>
 #include <memory>
@@ -56,6 +58,7 @@ namespace vkr
 	using Vector4f = Vector4<float>;
 	using Vector4i = Vector4<int32_t>;
 	using Vector4u = Vector4<uint32_t>;
+	using Vector4u16 = Vector4<uint16_t>;
 
 	template<uint32_t X, uint32_t Y>
 	struct Mat

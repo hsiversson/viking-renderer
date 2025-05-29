@@ -59,7 +59,7 @@ namespace vkr::Render
 			graphicsDesc.InputLayout.pInputElementDescs = inputElements.data();
 
 			graphicsDesc.pRootSignature = rootSignature->GetD3DRootSignature();
-			graphicsDesc.VS = {desc.Default.m_VertexShader->GetByteCode(), desc.Default.m_VertexShader->GetByteCodeSize()};
+			graphicsDesc.VS = { desc.Default.m_VertexShader->GetByteCode(), desc.Default.m_VertexShader->GetByteCodeSize() };
 			graphicsDesc.PS = { desc.Default.m_PixelShader->GetByteCode(), desc.Default.m_PixelShader->GetByteCodeSize() };
 
 			{
@@ -90,6 +90,7 @@ namespace vkr::Render
 				graphicsDesc.DepthStencilState.DepthEnable = depthStencilState.m_Enabled;
 				graphicsDesc.DepthStencilState.DepthWriteMask = depthStencilState.m_WriteDepth ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
 				graphicsDesc.DepthStencilState.DepthFunc = D3DConvertComparisonFunc(depthStencilState.m_ComparisonFunc);
+				graphicsDesc.DepthStencilState.StencilEnable = false;
 			}
 			graphicsDesc.SampleMask = UINT_MAX;
 			graphicsDesc.PrimitiveTopologyType = D3DConvertPrimitiveType(desc.Default.m_PrimitiveType);
