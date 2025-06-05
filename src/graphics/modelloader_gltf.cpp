@@ -25,12 +25,12 @@ namespace vkr::Graphics
 		cgltf_options options = {};
 		cgltf_data* data = nullptr;
 		if (cgltf_parse_file(&options, path.c_str(), &data) != cgltf_result_success)
-			return false;
+			return nullptr;
 
 		if (cgltf_load_buffers(&options, data, path.c_str()) != cgltf_result_success)
 		{
 			cgltf_free(data);
-			return false;
+			return nullptr;
 		}
 
 		ModelDesc modelDesc = {};
@@ -212,7 +212,10 @@ namespace vkr::Graphics
 
 		cgltf_free(data);
 
-		return true;
+		Ref<Model> model = MakeRef<Model>();
+		if (!model->Init(modelDesc))
+			return nullptr;
+		return model;
 	}
 
 }

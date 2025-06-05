@@ -14,16 +14,16 @@ namespace vkr
 {
 	Ref<Graphics::Mesh> vkr::CreateCubeMesh(Ref<Render::Device> device)
 	{
-		BufferDesc vtxbufferdesc;
+		Render::BufferDesc vtxbufferdesc;
 		vtxbufferdesc.bWriteOnCPU = true;
 		vtxbufferdesc.Size = sizeof(cubeVtx);
-		Ref<Buffer> vtxbuffer = device->CreateBuffer(vtxbufferdesc);
+		Ref<Render::Buffer> vtxbuffer = device->CreateBuffer(vtxbufferdesc);
 		if (!vtxbuffer || !vtxbuffer->InitWithData((uint8_t*)(&cubeVtx), vtxbufferdesc.Size))
 			return nullptr;
-		BufferDesc idxbufferdesc;
+		Render::BufferDesc idxbufferdesc;
 		idxbufferdesc.bWriteOnCPU = true;
 		idxbufferdesc.Size = sizeof(cubeIdx);
-		Ref<Buffer> idxbuffer = device->CreateBuffer(idxbufferdesc);
+		Ref<Render::Buffer> idxbuffer = device->CreateBuffer(idxbufferdesc);
 		if (!idxbuffer || !idxbuffer->InitWithData((uint8_t*)&cubeIdx, idxbufferdesc.Size))
 			return nullptr;
 		auto mesh = MakeRef<Graphics::Mesh>();

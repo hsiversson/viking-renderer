@@ -25,7 +25,7 @@ namespace vkr::Render
 
 	Device::Device()
 	{
-		assert(g_Instance);
+		assert(g_Instance == nullptr);
 		g_Instance = this;
 	}
 
