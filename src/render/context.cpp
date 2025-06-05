@@ -89,6 +89,36 @@ namespace vkr::Render
 		m_StateUpdate = true;
 	}
 
+	void Context::TextureBarrier(uint32_t numBarriers, const TextureBarrierDesc* barrierDescs)
+	{
+		// do we defer barriers to group them better?
+	}
+
+	void Context::TextureBarrier(const TextureBarrierDesc& barrierDesc)
+	{
+		TextureBarrier(1, &barrierDesc);
+	}
+
+	void Context::BufferBarrier(uint32_t numBarriers, const BufferBarrierDesc* barrierDescs)
+	{
+		// do we defer barriers to group them better?
+	}
+
+	void Context::BufferBarrier(const BufferBarrierDesc& barrierDesc)
+	{
+		BufferBarrier(1, &barrierDesc);
+	}
+
+	void Context::GlobalBarrier(uint32_t numBarriers, const GlobalBarrierDesc* barrierDescs)
+	{
+		// do we defer barriers to group them better?
+	}
+
+	void Context::GlobalBarrier(const GlobalBarrierDesc& barrierDesc)
+	{
+		GlobalBarrier(1, &barrierDesc);
+	}
+
 	void Context::UpdateState()
 	{
 		if (m_StateUpdate)

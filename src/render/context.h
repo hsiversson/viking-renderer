@@ -20,6 +20,28 @@ namespace vkr::Render
 		CONTEXT_TYPE_COUNT
 	};
 
+	struct TextureBarrierDesc
+	{
+		ResourceStateAccess m_TargetAccess;
+		ResourceStateSync m_TargetSync;
+		ResourceStateLayout m_TargetLayout;
+		Texture* m_Texture;
+		// subresources?
+	};
+
+	struct BufferBarrierDesc
+	{
+		ResourceStateAccess m_TargetAccess;
+		ResourceStateSync m_TargetSync;
+		Buffer* m_Buffer;
+	};
+
+	struct GlobalBarrierDesc
+	{
+		ResourceStateAccess m_TargetAccess;
+		ResourceStateSync m_TargetSync;
+	};
+
 	class Context : public DeviceObject
 	{
 	public:
@@ -37,6 +59,13 @@ namespace vkr::Render
 		void DispatchThreads(PipelineState* pipelineState, const Vector3u& threads);
 		void BindPSO(PipelineState* pipelineState);
 		void BindRootConstantBuffers(std::vector<Buffer*> buffers);
+
+		void TextureBarrier(uint32_t numBarriers, const TextureBarrierDesc* barrierDescs);
+		void TextureBarrier(const TextureBarrierDesc& barrierDesc);
+		void BufferBarrier(uint32_t numBarriers, const BufferBarrierDesc* barrierDescs);
+		void BufferBarrier(const BufferBarrierDesc& barrierDesc);
+		void GlobalBarrier(uint32_t numBarriers, const GlobalBarrierDesc* barrierDescs);
+		void GlobalBarrier(const GlobalBarrierDesc& barrierDesc);
 
 		ContextType GetType() const;
 
