@@ -21,14 +21,17 @@ namespace vkr::Render
 	static const D3D12_HEAP_PROPERTIES DefHeapProps{ D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1 };
 	static const D3D12_HEAP_PROPERTIES UploadHeapProps{ D3D12_HEAP_TYPE_UPLOAD, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1 };
 
+	Device* Device::g_Instance = nullptr;
+
 	Device::Device()
 	{
-
+		assert(g_Instance);
+		g_Instance = this;
 	}
 
 	Device::~Device()
 	{
-
+		g_Instance = nullptr;
 	}
 
 	bool Device::Init()
@@ -442,4 +445,10 @@ namespace vkr::Render
 		heap->Init(d3dheap, 16, descriptorSize);
 		m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV] = heap;
 	}
+
+	vkr::Render::Device& GetDevice()
+	{
+		return *Device::g_Instance;
+	}
+
 }

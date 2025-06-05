@@ -3,10 +3,11 @@
 
 namespace vkr::Graphics
 {
+	class Model;
 	class ModelLoader
 	{
 	public:
-		virtual bool Load(const std::filesystem::path& filepath) = 0;
+		virtual Ref<Model> Load(const std::filesystem::path& filepath) = 0;
 
 	protected:
 

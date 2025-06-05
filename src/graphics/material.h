@@ -10,6 +10,11 @@ namespace vkr::Render
 
 namespace vkr::Graphics
 {
+	struct MaterialDesc
+	{
+
+	};
+
 	class Material
 	{
 	public:

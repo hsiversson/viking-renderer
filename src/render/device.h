@@ -18,6 +18,7 @@ namespace vkr::Render
 	class CommandListPool;
 	class Device
 	{
+		friend Device& GetDevice();
 	public:
 		Device();
 		~Device();
@@ -62,6 +63,10 @@ namespace vkr::Render
 
 		std::unordered_map<std::filesystem::path, UniquePtr<TextureLoader>> m_TextureLoaderByExtension;
 		DescriptorHeap* m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+
+		static Device* g_Instance;
 	};
+
+	static Device& GetDevice();
 }
 
