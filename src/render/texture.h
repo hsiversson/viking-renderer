@@ -26,6 +26,8 @@ namespace vkr::Render
 		Texture(Device& device);
 		~Texture();
 
+		bool Init(const TextureDesc& desc, const TextureData* initialData = nullptr);
+
 		TextureDesc m_TextureDesc;
 	};
 }

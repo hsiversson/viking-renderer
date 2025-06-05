@@ -17,6 +17,11 @@ namespace vkr::Render
 		Buffer(Device& device);
 		~Buffer();
 
+		bool Init(const BufferDesc& desc, uint32_t initialDataSize = 0, const void* initialData = nullptr);
+
+		void UploadData();
+		void DownloadData();
+
 		bool InitWithData(uint8_t* Data, size_t size);
 	};
 }

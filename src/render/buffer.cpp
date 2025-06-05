@@ -13,6 +13,13 @@ namespace vkr::Render
 
 	}
 
+	bool Buffer::Init(const BufferDesc& desc, uint32_t initialDataSize, const void* initialData)
+	{
+		// encapsulate buffer inits in here, instead of in device.
+
+		return false;
+	}
+
 	bool Buffer::InitWithData(uint8_t* Data, size_t size)
 	{
 		void* ptr;
