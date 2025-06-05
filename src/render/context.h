@@ -5,6 +5,7 @@
 
 namespace vkr::Render
 {
+	class Texture;
 	class Buffer;
 	class PipelineState;
 	class RootSignature;
