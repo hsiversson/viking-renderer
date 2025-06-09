@@ -179,7 +179,7 @@ namespace vkr::Render
 		}
 
 		// Move all of the resource creation into Texture?
-		if (!texture->Init(resource))
+		if (!texture->InitWithResource(resource))
 		{
 			return nullptr;
 		}
@@ -213,7 +213,7 @@ namespace vkr::Render
 		}
 
 		// Move all of the resource creation into Buffer?
-		if (!buffer->Init(resource))
+		if (!buffer->InitWithResource(resource))
 		{
 			return nullptr;
 		}

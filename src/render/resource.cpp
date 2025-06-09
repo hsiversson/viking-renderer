@@ -2,7 +2,7 @@
 
 namespace vkr::Render
 {
-	bool Resource::Init(ID3D12Resource* resource)
+	bool Resource::InitWithResource(ID3D12Resource* resource)
 	{
 		m_Resource = resource;
 		return true;
@@ -27,6 +27,16 @@ namespace vkr::Render
 		DeviceObject(device)
 	{
 
+	}
+
+	ResourceStateTracking& Resource::GetStateTracking()
+	{
+		return m_StateTracking;
+	}
+
+	const ResourceStateTracking& Resource::GetStateTracking() const
+	{
+		return m_StateTracking;
 	}
 
 }

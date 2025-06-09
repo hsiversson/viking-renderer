@@ -6,12 +6,14 @@
 #include "device.h"
 #include "commandlist.h"
 #include "commandqueue.h"
+#include "d3dconvert.h"
 
 namespace vkr::Render
 {
 	Context::Context(Device& device, ContextType type)
 		: DeviceObject(device)
 		, m_CurrentD3DCommandList(nullptr)
+		, m_CurrentD3DCommandList7(nullptr)
 		, m_Type(type)
 	{
 	}
@@ -30,6 +32,7 @@ namespace vkr::Render
 	{
 		m_CommandList = m_Device.GetCommandListPool(m_Type)->GetCommandList();
 		m_CurrentD3DCommandList = m_CommandList->GetD3DCommandList();
+		m_CurrentD3DCommandList->QueryInterface(IID_PPV_ARGS(&m_CurrentD3DCommandList7));
 		m_CommandList->Open();
 	}
 
@@ -39,6 +42,7 @@ namespace vkr::Render
 		m_CommandList->Close();
 		m_CommandListsToSubmit.push_back(m_CommandList);
 		m_CurrentD3DCommandList = nullptr;
+		m_CurrentD3DCommandList7 = nullptr;
 		m_CommandList = nullptr;
 	}
 
@@ -91,7 +95,38 @@ namespace vkr::Render
 
 	void Context::TextureBarrier(uint32_t numBarriers, const TextureBarrierDesc* barrierDescs)
 	{
-		// do we defer barriers to group them better?
+		// TODO: defer barriers to group them better?
+
+		std::vector<D3D12_TEXTURE_BARRIER> barriers;
+		for (uint32_t i = 0; i < numBarriers; ++i)
+		{
+			const TextureBarrierDesc& barrierDesc = barrierDescs[i];
+			ResourceStateTracking& stateTracking = barrierDesc.m_Texture->GetStateTracking();
+
+			D3D12_TEXTURE_BARRIER barrier = {};
+			barrier.AccessAfter = D3DConvertResourceStateAccess(barrierDesc.m_TargetAccess);
+			barrier.AccessBefore = D3DConvertResourceStateAccess(stateTracking.m_CurrentAccess);
+			barrier.SyncAfter = D3DConvertResourceStateSync(barrierDesc.m_TargetSync);
+			barrier.SyncBefore = D3DConvertResourceStateSync(stateTracking.m_CurrentSync);
+			barrier.LayoutAfter = D3DConvertResourceStateLayout(barrierDesc.m_TargetLayout);
+			barrier.LayoutBefore = D3DConvertResourceStateLayout(stateTracking.m_CurrentLayout);
+			barrier.pResource = barrierDesc.m_Texture->GetD3DResource();
+
+			barrier.Subresources.IndexOrFirstMipLevel = 0xffffffff;
+			barrier.Subresources.NumMipLevels = 0;
+
+			barriers.push_back(barrier);
+		}
+
+		if (!barriers.empty())
+		{
+			D3D12_BARRIER_GROUP barrierGroup = {};
+			barrierGroup.Type = D3D12_BARRIER_TYPE_TEXTURE;
+			barrierGroup.pTextureBarriers = barriers.data();
+			barrierGroup.NumBarriers = barriers.size();
+
+			m_CurrentD3DCommandList7->Barrier(1, &barrierGroup);
+		}
 	}
 
 	void Context::TextureBarrier(const TextureBarrierDesc& barrierDesc)
@@ -101,7 +136,33 @@ namespace vkr::Render
 
 	void Context::BufferBarrier(uint32_t numBarriers, const BufferBarrierDesc* barrierDescs)
 	{
-		// do we defer barriers to group them better?
+		// TODO: defer barriers to group them better?
+
+		std::vector<D3D12_BUFFER_BARRIER> barriers;
+		for (uint32_t i = 0; i < numBarriers; ++i)
+		{
+			const BufferBarrierDesc& barrierDesc = barrierDescs[i];
+			ResourceStateTracking& stateTracking = barrierDesc.m_Buffer->GetStateTracking();
+
+			D3D12_BUFFER_BARRIER barrier = {};
+			barrier.AccessAfter = D3DConvertResourceStateAccess(barrierDesc.m_TargetAccess);
+			barrier.AccessBefore = D3DConvertResourceStateAccess(stateTracking.m_CurrentAccess);
+			barrier.SyncAfter = D3DConvertResourceStateSync(barrierDesc.m_TargetSync);
+			barrier.SyncBefore = D3DConvertResourceStateSync(stateTracking.m_CurrentSync);
+			barrier.pResource = barrierDesc.m_Buffer->GetD3DResource();
+
+			barriers.push_back(barrier);
+		}
+
+		if (!barriers.empty())
+		{
+			D3D12_BARRIER_GROUP barrierGroup = {};
+			barrierGroup.Type = D3D12_BARRIER_TYPE_BUFFER;
+			barrierGroup.pBufferBarriers = barriers.data();
+			barrierGroup.NumBarriers = barriers.size();
+
+			m_CurrentD3DCommandList7->Barrier(1, &barrierGroup);
+		}
 	}
 
 	void Context::BufferBarrier(const BufferBarrierDesc& barrierDesc)
@@ -111,7 +172,31 @@ namespace vkr::Render
 
 	void Context::GlobalBarrier(uint32_t numBarriers, const GlobalBarrierDesc* barrierDescs)
 	{
-		// do we defer barriers to group them better?
+		// TODO: defer barriers to group them better?
+
+		std::vector<D3D12_GLOBAL_BARRIER> barriers;
+		for (uint32_t i = 0; i < numBarriers; ++i)
+		{
+			const GlobalBarrierDesc& barrierDesc = barrierDescs[i];
+
+			D3D12_GLOBAL_BARRIER barrier = {};
+			barrier.AccessAfter = D3DConvertResourceStateAccess(barrierDesc.m_TargetAccess);
+			barrier.AccessBefore = D3DConvertResourceStateAccess(barrierDesc.m_SourceAccess);
+			barrier.SyncAfter = D3DConvertResourceStateSync(barrierDesc.m_TargetSync);
+			barrier.SyncBefore = D3DConvertResourceStateSync(barrierDesc.m_SourceSync);
+
+			barriers.push_back(barrier);
+		}
+
+		if (!barriers.empty())
+		{
+			D3D12_BARRIER_GROUP barrierGroup = {};
+			barrierGroup.Type = D3D12_BARRIER_TYPE_GLOBAL;
+			barrierGroup.pGlobalBarriers = barriers.data();
+			barrierGroup.NumBarriers = barriers.size();
+
+			m_CurrentD3DCommandList7->Barrier(1, &barrierGroup);
+		}
 	}
 
 	void Context::GlobalBarrier(const GlobalBarrierDesc& barrierDesc)

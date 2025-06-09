@@ -9,20 +9,23 @@ namespace vkr::Render
 {
 	struct ResourceStateTracking
 	{
-		uint32_t m_CurrentAccess;
-		uint32_t m_CurrentSync;
-		uint32_t m_CurrentLayout;
+		ResourceStateAccess m_CurrentAccess;
+		ResourceStateSync m_CurrentSync;
+		ResourceStateLayout m_CurrentLayout;
 	};
 
 	class Resource : public DeviceObject
 	{
 	public:
 		Resource(Device& device);
-		bool Init(ID3D12Resource* Resource);
+		bool InitWithResource(ID3D12Resource* Resource);
 
 		ID3D12Resource* GetD3DResource() { return m_Resource.Get(); }
 		Ref<ResourceDescriptor> GetDescriptor(uint64_t descriptorhash);
 		bool AddDescriptor(uint64_t descriptorhash, const Ref<ResourceDescriptor>& descriptor);
+
+		ResourceStateTracking& GetStateTracking();
+		const ResourceStateTracking& GetStateTracking() const;
 
 	protected:
 		ResourceStateTracking m_StateTracking;

@@ -39,7 +39,9 @@ namespace vkr::Render
 
 	struct GlobalBarrierDesc
 	{
+		ResourceStateAccess m_SourceAccess;
 		ResourceStateAccess m_TargetAccess;
+		ResourceStateSync m_SourceSync;
 		ResourceStateSync m_TargetSync;
 	};
 
@@ -82,6 +84,7 @@ namespace vkr::Render
 
 		Ref<CommandList> m_CommandList;
 		ID3D12GraphicsCommandList* m_CurrentD3DCommandList;
+		ID3D12GraphicsCommandList7* m_CurrentD3DCommandList7;
 
 		std::vector<Ref<CommandList>> m_CommandListsToSubmit;
 		Event m_LastFlushEvent;
