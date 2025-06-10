@@ -14,6 +14,7 @@
 #include "render/device.h"
 #include "render/pipelinestate.h"
 #include "render/resourcedescriptor.h"
+#include "render/shader.h"
 
 #include "graphics/camera.h"
 #include "graphics/material.h"
@@ -65,20 +66,20 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 		return 1;
 
 	//Init cube resources: shaders, root signature, pso, material, mesh, model... (probably we can move all this later to the "app")
-	Ref<Render::Shader> VS = device->CreateShader("content/shaders/simpleforwardtestVS.hlsl", L"MainVS", SHADER_STAGE_VERTEX, ShaderModel::SM_6_0);
-	Ref<Render::Shader> PS = device->CreateShader("content/shaders/simpleforwardtestPS.hlsl", L"MainPS", SHADER_STAGE_PIXEL, ShaderModel::SM_6_0);
+	Ref<Render::Shader> VS = device->CreateShader("content/shaders/simpleforwardtestVS.hlsl", L"MainVS", vkr::Render::SHADER_STAGE_VERTEX, vkr::Render::ShaderModel::SM_6_0);
+	Ref<Render::Shader> PS = device->CreateShader("content/shaders/simpleforwardtestPS.hlsl", L"MainPS", vkr::Render::SHADER_STAGE_PIXEL, vkr::Render::ShaderModel::SM_6_0);
 
 	Render::PipelineStateDesc psodesc;
-	psodesc.m_Type = PIPELINE_STATE_TYPE_DEFAULT;
-	psodesc.Default.m_PrimitiveType = PRIMITIVE_TYPE_TRIANGLE;
-	psodesc.Default.m_VertexLayout.m_Attributes.insert({ VertexAttribute::TYPE_POSITION, 0, 0, FORMAT_RGB32_FLOAT });
+	psodesc.m_Type = vkr::Render::PIPELINE_STATE_TYPE_DEFAULT;
+	psodesc.Default.m_PrimitiveType = vkr::Render::PRIMITIVE_TYPE_TRIANGLE;
+	psodesc.Default.m_VertexLayout.m_Attributes.insert({ vkr::Render::VertexAttribute::TYPE_POSITION, 0, 0, vkr::Render::FORMAT_RGB32_FLOAT });
 	psodesc.Default.m_VertexShader = VS.get();
 	psodesc.Default.m_PixelShader = PS.get();
-	psodesc.Default.m_RasterizerState = {FACE_CULL_MODE_BACK, true, false, false};
-	psodesc.Default.m_RenderTargetState = { {Format::FORMAT_RGBA8_UNORM_SRGB} };
-	psodesc.Default.m_DepthStencilState = { true, true, COMPARISON_FUNC_LESS };
+	psodesc.Default.m_RasterizerState = { vkr::Render::FACE_CULL_MODE_BACK, true, false, false};
+	psodesc.Default.m_RenderTargetState = { {vkr::Render::Format::FORMAT_RGBA8_UNORM_SRGB} };
+	psodesc.Default.m_DepthStencilState = { true, true, vkr::Render::COMPARISON_FUNC_LESS };
 	psodesc.Default.m_BlendState.m_D3DBlendDesc = CreateDefaultBlendDesc();
-	Ref<PipelineState> cubemainpso = device->CreatePipelineState(psodesc);
+	Ref<vkr::Render::PipelineState> cubemainpso = device->CreatePipelineState(psodesc);
 	Ref<Graphics::Material> cubematerial = MakeRef<Graphics::Material>();
 	cubematerial->SetPipelineState(cubemainpso);
 	Graphics::Model::Part part;
@@ -121,9 +122,9 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 		//gameworld->Update()
 		view->SetCamera(*camera);
 
-		Ref<Texture> backbuffer = swapChain->GetOutputTexture();
+		Ref<vkr::Render::Texture> backbuffer = swapChain->GetOutputTexture();
 		Render::ResourceDescriptorDesc rtdesc;
-		rtdesc.Type = ResourceDescriptorType::RTV;
+		rtdesc.Type = vkr::Render::ResourceDescriptorType::RTV;
 		Ref<Render::ResourceDescriptor> rtdescriptor = device->GetOrCreateDescriptor(backbuffer.get(), rtdesc);
 		view->SetOutputTarget(rtdescriptor);
 		scene.Update();

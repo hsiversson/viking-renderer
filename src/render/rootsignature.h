@@ -1,5 +1,4 @@
 #pragma once
-#include "render/deviceobject.h"
 #include "render/pipelinestate.h"
 
 namespace vkr::Render
@@ -10,10 +9,10 @@ namespace vkr::Render
 		uint32_t m_NumConstantBufferSlots;
 	};
 
-	class RootSignature : public DeviceObject
+	class RootSignature
 	{
 	public:
-		RootSignature(Device& device);
+		RootSignature();
 		~RootSignature();
 
 		bool Init(const RootSignatureDesc& desc);

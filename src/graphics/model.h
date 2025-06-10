@@ -1,10 +1,15 @@
 #pragma once
 #include "utils/types.h"
+#include "graphics/mesh.h"
+#include "graphics/material.h"
 
 namespace vkr::Graphics
 {
-	class Mesh;
-	class Material;
+	struct ModelDesc
+	{
+		std::vector<MeshDesc> m_MeshDescs;
+		std::vector<MaterialDesc> m_MaterialDescs;
+	};
 
 	class Model
 	{
@@ -19,8 +24,14 @@ namespace vkr::Graphics
 		Model();
 		~Model();
 
+		bool Init(const ModelDesc& desc);
+
 		void AddPart(const Part& part);
 		const std::vector<Part>& GetParts() const;
+
+	private:
+		bool InitMeshes(const ModelDesc& desc);
+		bool InitMaterials(const ModelDesc& desc);
 
 	private:
 		std::vector<Part> m_Parts;

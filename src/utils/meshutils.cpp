@@ -14,18 +14,18 @@ namespace vkr
 {
 	Ref<Graphics::Mesh> vkr::CreateCubeMesh(Ref<Render::Device> device)
 	{
-		BufferDesc vtxbufferdesc;
+		Render::BufferDesc vtxbufferdesc;
 		vtxbufferdesc.bWriteOnCPU = true;
-		vtxbufferdesc.ElementCount = sizeof(cubeVtx) / sizeof(cubeVtx[0]);
-		vtxbufferdesc.ElementSize = sizeof(float);
-		Ref<Buffer> vtxbuffer = device->CreateBuffer(vtxbufferdesc);
+		vtxbufferdesc.m_ElementCount = sizeof(cubeVtx) / sizeof(cubeVtx[0]);
+		vtxbufferdesc.m_ElementSize = sizeof(float);
+		Ref<Render::Buffer> vtxbuffer = device->CreateBuffer(vtxbufferdesc);
 		if (!vtxbuffer || !vtxbuffer->InitWithData((uint8_t*)(&cubeVtx), sizeof(cubeVtx)))
 			return nullptr;
-		BufferDesc idxbufferdesc;
+		Render::BufferDesc idxbufferdesc;
 		idxbufferdesc.bWriteOnCPU = true;
-		idxbufferdesc.ElementCount = sizeof(cubeIdx) / sizeof(cubeIdx[0]);
-		idxbufferdesc.ElementSize = sizeof(short);
-		Ref<Buffer> idxbuffer = device->CreateBuffer(idxbufferdesc);
+		idxbufferdesc.m_ElementCount = sizeof(cubeIdx) / sizeof(cubeIdx[0]);
+		idxbufferdesc.m_ElementSize = sizeof(short);
+		Ref<Render::Buffer> idxbuffer = device->CreateBuffer(idxbufferdesc);
 		if (!idxbuffer || !idxbuffer->InitWithData((uint8_t*)&cubeIdx, sizeof(cubeIdx)))
 			return nullptr;
 		auto mesh = MakeRef<Graphics::Mesh>();

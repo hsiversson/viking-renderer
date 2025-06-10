@@ -9,7 +9,7 @@ namespace vkr::Graphics
 		ModelLoader_GLTF();
 		~ModelLoader_GLTF();
 
-		bool Load(const std::filesystem::path& filepath) override;
+		Ref<Model> Load(const std::filesystem::path& filepath) override;
 
 	private:
 

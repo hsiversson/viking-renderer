@@ -4,9 +4,8 @@
 
 namespace vkr::Render
 {
-	CommandQueue::CommandQueue(Device& device, ContextType type)
-		: DeviceObject(device)
-		, m_Fence(MakeUnique<Fence>(device))
+	CommandQueue::CommandQueue(ContextType type)
+		: m_Fence(MakeUnique<Fence>())
 		, m_Type(type)
 	{
 		D3D12_COMMAND_QUEUE_DESC cmdQueueDesc = {};
@@ -24,7 +23,7 @@ namespace vkr::Render
 			break;
 
 		}
-		m_Device.GetD3DDevice()->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(&m_CommandQueue));
+		GetDevice().GetD3DDevice()->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(&m_CommandQueue));
 	}
 
 	CommandQueue::~CommandQueue()

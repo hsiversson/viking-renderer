@@ -1,14 +1,13 @@
 #pragma once
-#include "render/deviceobject.h"
 #include "render/rendercommon.h"
 #include "render/context.h"
 
 namespace vkr::Render
 {
-	class CommandList : public DeviceObject
+	class CommandList
 	{
 	public:
-		CommandList(Device& device, ContextType type);
+		CommandList(ContextType type);
 
 		void Open();
 		void Close();
@@ -23,21 +22,32 @@ namespace vkr::Render
 		const ContextType m_Type;
 	};
 
-	class CommandListPool : public DeviceObject
+	class CommandListPool
 	{
 	public:
-		CommandListPool(Device& device, ContextType type);
+		struct PendingCommandLists
+		{
+			std::vector<Ref<CommandList>> m_CommandLists;
+			Event m_Event;
+		};
+
+	public:
+		CommandListPool(ContextType type);
 		~CommandListPool();
 
 		Ref<CommandList> GetCommandList();
-		void ReturnCommandList(const Ref<CommandList>& commandList);
-		void ReturnCommandList(uint32_t numCommandLists, const Ref<CommandList>* commandLists);
+		void ReturnCommandList(Ref<CommandList> commandList, Event event);
+		void ReturnCommandList(const PendingCommandLists& pendingCommandLists);
 
 		ContextType GetType() const;
 
 	private:
+		void CheckPendingCommandLists();
+
+		std::queue<PendingCommandLists> m_PendingCommandLists;
 		std::vector<Ref<CommandList>> m_FreeCommandLists;
-		std::mutex m_Mutex;
+		std::mutex m_PendingListMutex;
+		std::mutex m_FreeListMutex;
 
 		const ContextType m_Type;
 	};

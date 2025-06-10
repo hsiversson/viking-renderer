@@ -12,4 +12,9 @@ namespace vkr::Graphics
 
 	}
 
+	bool Mesh::Init(const MeshDesc& desc)
+	{
+		return false;
+	}
+
 }

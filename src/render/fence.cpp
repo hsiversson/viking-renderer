@@ -5,11 +5,10 @@
 namespace vkr::Render
 {
 
-	Fence::Fence(Device& device)
-		: DeviceObject(device)
-		, m_Value(0)
+	Fence::Fence()
+		: m_Value(0)
 	{
-		m_Device.GetD3DDevice()->CreateFence(m_Value, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
+		GetDevice().GetD3DDevice()->CreateFence(m_Value, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
 	}
 
 	Fence::~Fence()

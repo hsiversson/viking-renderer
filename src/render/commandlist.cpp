@@ -3,9 +3,8 @@
 
 namespace vkr::Render
 {
-	CommandList::CommandList(Device& device, ContextType type)
-		: DeviceObject(device)
-		, m_Type(type)
+	CommandList::CommandList(ContextType type)
+		: m_Type(type)
 	{
 		D3D12_COMMAND_LIST_TYPE cmdListType;
 		switch (type)
@@ -22,8 +21,9 @@ namespace vkr::Render
 			break;
 		}
 
-		m_Device.GetD3DDevice()->CreateCommandAllocator(cmdListType, IID_PPV_ARGS(&m_Allocator));
-		m_Device.GetD3DDevice()->CreateCommandList(0, cmdListType, m_Allocator.Get(), nullptr, IID_PPV_ARGS(&m_CommandList));
+		ID3D12Device* device = GetDevice().GetD3DDevice();
+		device->CreateCommandAllocator(cmdListType, IID_PPV_ARGS(&m_Allocator));
+		device->CreateCommandList(0, cmdListType, m_Allocator.Get(), nullptr, IID_PPV_ARGS(&m_CommandList));
 		m_CommandList->Close();
 	}
 
@@ -47,9 +47,8 @@ namespace vkr::Render
 		return m_CommandList.Get();
 	}
 
-	CommandListPool::CommandListPool(Device& device, ContextType type)
-		: DeviceObject(device)
-		, m_Type(type)
+	CommandListPool::CommandListPool(ContextType type)
+		: m_Type(type)
 	{
 
 	}
@@ -62,7 +61,7 @@ namespace vkr::Render
 	Ref<CommandList> CommandListPool::GetCommandList()
 	{
 		Ref<CommandList> cmdList;
-		std::unique_lock<std::mutex> lock(m_Mutex);
+		std::unique_lock<std::mutex> lock(m_FreeListMutex);
 		if (m_FreeCommandLists.size() > 0)
 		{
 			cmdList = m_FreeCommandLists.back();
@@ -70,26 +69,26 @@ namespace vkr::Render
 		}
 		else
 		{
-			cmdList = MakeRef<CommandList>(m_Device, m_Type);
+			cmdList = MakeRef<CommandList>(m_Type);
 		}
 		return cmdList;
 	}
 
-	void CommandListPool::ReturnCommandList(const Ref<CommandList>& commandList)
+	void CommandListPool::ReturnCommandList(Ref<CommandList> commandList, Event event)
 	{
-		std::unique_lock<std::mutex> lock(m_Mutex);
-		m_FreeCommandLists.push_back(commandList);
-
+		PendingCommandLists pending;
+		pending.m_CommandLists.push_back(commandList);
+		pending.m_Event = event;
+		ReturnCommandList(pending);
 	}
 
-	void CommandListPool::ReturnCommandList(uint32_t numCommandLists, const Ref<CommandList>* commandLists)
+	void CommandListPool::ReturnCommandList(const PendingCommandLists& pendingCommandLists)
 	{
-		std::unique_lock<std::mutex> lock(m_Mutex);
-		m_FreeCommandLists.reserve(m_FreeCommandLists.size() + numCommandLists);
-		for (uint32_t i = 0; i < numCommandLists; ++i)
 		{
-			m_FreeCommandLists.push_back(commandLists[i]);
+			std::unique_lock<std::mutex> lock(m_PendingListMutex);
+			m_PendingCommandLists.push(pendingCommandLists);
 		}
+		CheckPendingCommandLists();
 	}
 
 	ContextType CommandListPool::GetType() const
@@ -97,4 +96,27 @@ namespace vkr::Render
 		return m_Type;
 	}
 
+	void CommandListPool::CheckPendingCommandLists()
+	{
+		std::vector<Ref<CommandList>> freeCommandLists;
+		{
+			std::unique_lock<std::mutex> lock(m_PendingListMutex);
+			while (!m_PendingCommandLists.empty())
+			{
+				const PendingCommandLists& pending = m_PendingCommandLists.front();
+				if (!pending.m_Event.IsPending())
+				{
+					freeCommandLists.insert(freeCommandLists.end(), pending.m_CommandLists.begin(), pending.m_CommandLists.end());
+					m_PendingCommandLists.pop();
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+
+		std::unique_lock<std::mutex> lock(m_FreeListMutex);
+		m_FreeCommandLists.insert(m_FreeCommandLists.end(), freeCommandLists.begin(), freeCommandLists.end());
+	}
 }

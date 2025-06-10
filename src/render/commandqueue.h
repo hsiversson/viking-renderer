@@ -1,5 +1,4 @@
 #pragma once 
-#include "deviceobject.h"
 #include "context.h"
 #include "event.h"
 #include "fence.h"
@@ -9,10 +8,10 @@ struct ID3D12CommandQueue;
 namespace vkr::Render
 {
 	class CommandList;
-	class CommandQueue : public DeviceObject
+	class CommandQueue
 	{
 	public:
-		CommandQueue(Device& device, ContextType type);
+		CommandQueue(ContextType type);
 		~CommandQueue();
 
 		Event Signal();

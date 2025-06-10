@@ -15,6 +15,7 @@
 #include <cassert>
 #include <memory>
 #include <mutex>
+#include <queue>
 
 namespace vkr
 {

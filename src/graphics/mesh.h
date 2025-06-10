@@ -1,28 +1,37 @@
 #pragma once
 #include "utils/types.h"
+#include "render/renderstates.h"
 
 namespace vkr::Render
 {
 	class Buffer;
 }
 
-using namespace vkr::Render;
-
 namespace vkr::Graphics
 {
+	struct MeshDesc
+	{
+		Render::VertexLayout m_VertexLayout;
+		std::unordered_map<Render::VertexAttribute::Type, std::vector<uint8_t>> m_VertexData;
+		std::vector<uint32_t> m_Indices;
+	};
+
 	class Mesh
 	{
 	public:
 		Mesh();
 		~Mesh();
 
-		bool Init();
-		void SetVertexBuffer(Ref<Buffer> vtxbuffer) { m_VertexBuffer = vtxbuffer; }
-		Ref<Buffer> GetVertexBuffer() const { return m_VertexBuffer; }
-		void SetIndexBuffer(Ref<Buffer> idxbuffer) { m_VertexBuffer = idxbuffer; }
-		Ref<Buffer> GetIndexBuffer() const { return m_IndexBuffer; }
+		bool Init(const MeshDesc& desc);
+		void SetVertexBuffer(Ref<Render::Buffer> vtxbuffer) { m_VertexBuffer = vtxbuffer; }
+		void SetIndexBuffer(Ref<Render::Buffer> idxbuffer) { m_VertexBuffer = idxbuffer; }
+		Ref<Render::Buffer> GetVertexBuffer() const { return m_VertexBuffer; }
+		Ref<Render::Buffer>  GetIndexBuffer() const { return m_IndexBuffer; }
 
 	private:
+		bool InitVertexBuffer(const MeshDesc& desc);
+		bool InitIndexBuffer(const MeshDesc& desc);
+
 		Ref<Render::Buffer> m_VertexBuffer;
 		Ref<Render::Buffer> m_IndexBuffer;
 

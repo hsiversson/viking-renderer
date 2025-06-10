@@ -7,6 +7,7 @@
 #include "textureloader_tga.h"
 #include "commandlist.h"
 #include "commandqueue.h"
+#include "d3dconvert.h"
 
 #include "utils/commandline.h"
 #include "utils/hash.h"
@@ -18,17 +19,17 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = "./"; }
 
 namespace vkr::Render
 {
-	static const D3D12_HEAP_PROPERTIES DefHeapProps{ D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1 };
-	static const D3D12_HEAP_PROPERTIES UploadHeapProps{ D3D12_HEAP_TYPE_UPLOAD, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1 };
+	Device* Device::g_Instance = nullptr;
 
 	Device::Device()
 	{
-
+		assert(g_Instance == nullptr);
+		g_Instance = this;
 	}
 
 	Device::~Device()
 	{
-
+		g_Instance = nullptr;
 	}
 
 	bool Device::Init()
@@ -50,6 +51,7 @@ namespace vkr::Render
 		m_Factory->EnumAdapters1(0, &m_Adapter); // Make this smarter?
 
 		D3D12CreateDevice(m_Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_Device));
+		m_Device.As(&m_Device5);
 
 		m_ShaderCompiler = MakeUnique<ShaderCompiler>();
 
@@ -64,7 +66,7 @@ namespace vkr::Render
 	{
 		for (int i = 0; i < PipelineStateType::PIPELINE_STATE_TYPE_COUNT; i++)
 		{
-			auto Signature = MakeRef<RootSignature>(*this);
+			auto Signature = MakeRef<RootSignature>();
 			// For now just consider one unique constant buffer?
 			Signature->Init({ PipelineStateType(i), 1 });
 			m_RootSignatures[i] = Signature;
@@ -73,13 +75,13 @@ namespace vkr::Render
 
 	Ref<Context> Device::CreateContext(ContextType contextType)
 	{
-		Ref<Context> context = MakeRef<Context>(*this, contextType);
+		Ref<Context> context = MakeRef<Context>(contextType);
 		return context;
 	}
 
 	Ref<SwapChain> Device::CreateSwapChain(void* windowHandle, const Vector2u& size)
 	{
-		Ref<SwapChain> swapChain = MakeRef<SwapChain>(*this);
+		Ref<SwapChain> swapChain = MakeRef<SwapChain>();
 		if (!swapChain->Init(windowHandle, size))
 		{
 			return nullptr;
@@ -99,7 +101,7 @@ namespace vkr::Render
 
 	Ref<PipelineState> Device::CreatePipelineState(const PipelineStateDesc& desc)
 	{
-		Ref<PipelineState> pipelineState = MakeRef<PipelineState>(*this);
+		Ref<PipelineState> pipelineState = MakeRef<PipelineState>();
 		if (!pipelineState->Init(desc, m_RootSignatures[desc.m_Type]))
 		{
 			return nullptr;
@@ -109,37 +111,10 @@ namespace vkr::Render
 
 	Ref<Texture> Device::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
 	{
-		Ref<Texture> texture = MakeRef<Texture>(*this);
-		texture->m_TextureDesc = desc;
-
-		//For now allocate resource in place. Later well see how we do pooling
-		UINT16 MipLevels = 1;
-		if (desc.bUseMips)
-		{
-			int32_t MaxDim = std::max<int32_t>(desc.Size.x, desc.Size.y);
-			MipLevels = unsigned int(std::floor(std::log2(MaxDim))) + 1;
-		}
-
-		ID3D12Resource* resource;
-		D3D12_RESOURCE_DESC TextureDesc;
-		TextureDesc.Dimension = desc.Dimension == 1 ? D3D12_RESOURCE_DIMENSION_TEXTURE1D : (desc.Dimension == 2 ? D3D12_RESOURCE_DIMENSION_TEXTURE2D : D3D12_RESOURCE_DIMENSION_TEXTURE3D);
-		TextureDesc.Format = desc.Format;
-		TextureDesc.MipLevels = MipLevels;
-		TextureDesc.Alignment = 0;
-		TextureDesc.DepthOrArraySize = desc.ArraySize;
-		TextureDesc.Flags = desc.bWriteable ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
-		TextureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-		TextureDesc.SampleDesc.Count = 1;
-		TextureDesc.SampleDesc.Quality = 0;
-		//If we want the texture to be used as UAV assume the initial state then will be UAV access
-		HRESULT hr = m_Device->CreateCommittedResource(&DefHeapProps, D3D12_HEAP_FLAG_NONE, &TextureDesc, desc.bWriteable ? D3D12_RESOURCE_STATE_UNORDERED_ACCESS : D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&resource));
-		if (FAILED(hr))
-		{
-			return nullptr;
-		}
+		Ref<Texture> texture = MakeRef<Texture>();
 
 		// Move all of the resource creation into Texture?
-		if (!texture->Init(resource))
+		if (!texture->Init(desc,initialData))
 		{
 			return nullptr;
 		}
@@ -148,36 +123,9 @@ namespace vkr::Render
 
 	Ref<Buffer> Device::CreateBuffer(const BufferDesc& desc)
 	{
-		Ref<Buffer> buffer = MakeRef<Buffer>(*this);
-		buffer->m_BufferDesc = desc;
-
-		//For now allocate resource in place. Later well see how we do pooling
-
-		ID3D12Resource* resource;
-		D3D12_RESOURCE_DESC bufferDesc = {};
-		bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		bufferDesc.Alignment = 0;
-		bufferDesc.Width = desc.ElementCount * desc.ElementSize;
-		bufferDesc.Height = 1;
-		bufferDesc.DepthOrArraySize = 1;
-		bufferDesc.MipLevels = 1;
-		bufferDesc.Format = DXGI_FORMAT_UNKNOWN;
-		bufferDesc.SampleDesc.Count = 1;
-		bufferDesc.SampleDesc.Quality = 0;
-		bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR; 
-		bufferDesc.Flags = desc.bWriteOnGPU ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
-
-		HRESULT hr = m_Device->CreateCommittedResource(desc.bWriteOnCPU ? &UploadHeapProps : &DefHeapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&resource));
-		if (FAILED(hr))
-		{
-			return nullptr;
-		}
-
-		// Move all of the resource creation into Buffer?
-		if (!buffer->Init(resource))
-		{
-			return nullptr;
-		}
+		Ref<Buffer> buffer = MakeRef<Buffer>();
+		buffer->Init(desc);
+		
 		return buffer;
 	}
 
@@ -213,17 +161,17 @@ namespace vkr::Render
 
 	void Device::InitCommandQueues()
 	{
-		m_CommandQueue[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandQueue>(*this, CONTEXT_TYPE_GRAPHICS);
-		m_CommandListPool[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandListPool>(*this, CONTEXT_TYPE_GRAPHICS);
-		m_Contexts[CONTEXT_TYPE_GRAPHICS] = MakeRef<Context>(*this, CONTEXT_TYPE_GRAPHICS);
+		m_CommandQueue[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandQueue>(CONTEXT_TYPE_GRAPHICS);
+		m_CommandListPool[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandListPool>(CONTEXT_TYPE_GRAPHICS);
+		m_Contexts[CONTEXT_TYPE_GRAPHICS] = MakeRef<Context>(CONTEXT_TYPE_GRAPHICS);
 
-		m_CommandQueue[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandQueue>(*this, CONTEXT_TYPE_COMPUTE);
-		m_CommandListPool[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandListPool>(*this, CONTEXT_TYPE_COMPUTE);
-		m_Contexts[CONTEXT_TYPE_COMPUTE] = MakeRef<Context>(*this, CONTEXT_TYPE_COMPUTE);
+		m_CommandQueue[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandQueue>(CONTEXT_TYPE_COMPUTE);
+		m_CommandListPool[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandListPool>(CONTEXT_TYPE_COMPUTE);
+		m_Contexts[CONTEXT_TYPE_COMPUTE] = MakeRef<Context>(CONTEXT_TYPE_COMPUTE);
 
-		m_CommandQueue[CONTEXT_TYPE_COPY] = MakeRef<CommandQueue>(*this, CONTEXT_TYPE_COPY);
-		m_CommandListPool[CONTEXT_TYPE_COPY] = MakeRef<CommandListPool>(*this, CONTEXT_TYPE_COPY);
-		m_Contexts[CONTEXT_TYPE_COPY] = MakeRef<Context>(*this, CONTEXT_TYPE_COPY);
+		m_CommandQueue[CONTEXT_TYPE_COPY] = MakeRef<CommandQueue>(CONTEXT_TYPE_COPY);
+		m_CommandListPool[CONTEXT_TYPE_COPY] = MakeRef<CommandListPool>(CONTEXT_TYPE_COPY);
+		m_Contexts[CONTEXT_TYPE_COPY] = MakeRef<Context>(CONTEXT_TYPE_COPY);
 	}
 
 	ID3D12Device* Device::GetD3DDevice() const
@@ -367,6 +315,78 @@ namespace vkr::Render
 		return descriptor;
 	}
 
+	TempBuffer Device::GetTempBuffer(uint32_t byteSize, uint32_t initialDataSize, const void* initialData)
+	{
+		// TODO
+		assert(false);
+		return TempBuffer();
+	}
+
+	Ref<Buffer> Device::CreateTLAS(uint32_t numRtInstanceDescs, RtInstanceDesc* rtInstanceDescs)
+	{
+		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
+
+		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& inputs = buildDesc.Inputs;
+		inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+		inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+		inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD;
+
+		std::vector<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescs;
+		for (uint32_t i = 0; i < numRtInstanceDescs; ++i)
+		{
+			const RtInstanceDesc& rtInstanceDesc = rtInstanceDescs[i];
+			D3D12_RAYTRACING_INSTANCE_DESC desc = {};
+			desc.AccelerationStructure = rtInstanceDesc.m_BLAS->GetD3DResource()->GetGPUVirtualAddress();
+			desc.InstanceID = rtInstanceDesc.m_InstanceId;
+			desc.InstanceMask = 0xff;
+			// TODO: the other instance desc params
+			instanceDescs.push_back(desc);
+		}
+
+		const uint32_t bufferSize = sizeof(D3D12_RAYTRACING_INSTANCE_DESC) * instanceDescs.size();
+		TempBuffer instanceDescsBuffer = GetTempBuffer(bufferSize, bufferSize, instanceDescs.data());
+		inputs.InstanceDescs = instanceDescsBuffer.m_Buffer->GetD3DResource()->GetGPUVirtualAddress() + instanceDescsBuffer.m_Offset;
+		inputs.NumDescs = instanceDescs.size();
+
+		return CreateRaytracingAccelerationStructure(buildDesc);
+	}
+
+	Ref<Buffer> Device::CreateBLAS(uint32_t numRtGeometryDescs, RtGeometryDesc* rtGeometryDescs)
+	{
+		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
+
+		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& inputs = buildDesc.Inputs;
+		inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+		inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+		inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+
+		std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geometryDescs;
+		for (uint32_t i = 0; i < numRtGeometryDescs; ++i)
+		{
+			const RtGeometryDesc& rtGeometryDesc = rtGeometryDescs[i];
+			D3D12_RAYTRACING_GEOMETRY_DESC desc = {};
+			desc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+
+			const BufferDesc& indexBufferDesc = rtGeometryDesc.m_IndexBuffer->GetDesc();
+			desc.Triangles.IndexBuffer = rtGeometryDesc.m_IndexBuffer->GetD3DResource()->GetGPUVirtualAddress();
+			desc.Triangles.IndexFormat = D3DConvertFormat(indexBufferDesc.m_Format);
+			desc.Triangles.IndexCount = indexBufferDesc.m_ElementCount;
+
+			const BufferDesc& vertexBufferDesc = rtGeometryDesc.m_VertexBuffer->GetDesc();
+			desc.Triangles.VertexBuffer.StartAddress = rtGeometryDesc.m_VertexBuffer->GetD3DResource()->GetGPUVirtualAddress();
+			desc.Triangles.VertexBuffer.StrideInBytes = vertexBufferDesc.m_ElementSize;
+			desc.Triangles.VertexFormat = D3DConvertFormat(vertexBufferDesc.m_Format);
+			desc.Triangles.IndexCount = vertexBufferDesc.m_ElementCount;
+
+			geometryDescs.push_back(desc);
+		}
+
+		inputs.pGeometryDescs = geometryDescs.data();
+		inputs.NumDescs = geometryDescs.size();
+
+		return CreateRaytracingAccelerationStructure(buildDesc);
+	}
+
 	void Device::InitDescriptorHeaps()
 	{
 		ID3D12DescriptorHeap* d3dheap = nullptr;
@@ -428,6 +448,36 @@ namespace vkr::Render
 		m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV] = heap;
 	}
 
+	Ref<Buffer> Device::CreateRaytracingAccelerationStructure(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC& buildDesc)
+	{
+		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuildInfo = {};
+		m_Device5->GetRaytracingAccelerationStructurePrebuildInfo(&buildDesc.Inputs, &prebuildInfo);
+
+		TempBuffer scratchBuffer = GetTempBuffer(prebuildInfo.ScratchDataSizeInBytes);
+		buildDesc.ScratchAccelerationStructureData = scratchBuffer.m_Buffer->GetD3DResource()->GetGPUVirtualAddress() + scratchBuffer.m_Offset;
+
+		BufferDesc outBufferDesc = {};
+		outBufferDesc.m_ElementCount = prebuildInfo.ResultDataMaxSizeInBytes;
+
+		Ref<Buffer> outBuffer = CreateBuffer(outBufferDesc);
+		buildDesc.DestAccelerationStructureData = outBuffer->GetD3DResource()->GetGPUVirtualAddress();
+
+		Ref<CommandList> cmdList = m_RaytracingBuildPool->GetCommandList();
+		ID3D12GraphicsCommandList* d3dCmdList = cmdList->GetD3DCommandList();
+		ID3D12GraphicsCommandList4* d3dCmdList4 = nullptr;
+		d3dCmdList->QueryInterface(IID_PPV_ARGS(&d3dCmdList4));
+
+		d3dCmdList4->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
+
+		Event event = m_RaytracingBuildQueue->Submit(cmdList);
+		m_RaytracingBuildPool->ReturnCommandList(cmdList, event);
+
+		// set event on outBuffer to have it track its build status
+		outBuffer->SetGpuPending(event);
+
+		d3dCmdList4->Release();
+		return outBuffer;
+	}
 	vkr::Ref<vkr::Render::Context> Device::GetContext(ContextType contextType) const
 	{
 		return m_Contexts[contextType];

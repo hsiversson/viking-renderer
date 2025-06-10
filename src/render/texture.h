@@ -23,8 +23,10 @@ namespace vkr::Render
 	class Texture : public Resource
 	{
 	public:
-		Texture(Device& device);
+		Texture();
 		~Texture();
+
+		bool Init(const TextureDesc& desc, const TextureData* initialData = nullptr);
 
 		TextureDesc m_TextureDesc;
 	};

@@ -6,12 +6,13 @@
 #include "device.h"
 #include "commandlist.h"
 #include "commandqueue.h"
+#include "d3dconvert.h"
 
 namespace vkr::Render
 {
-	Context::Context(Device& device, ContextType type)
-		: DeviceObject(device)
-		, m_CurrentD3DCommandList(nullptr)
+	Context::Context(ContextType type)
+		: m_CurrentD3DCommandList(nullptr)
+		, m_CurrentD3DCommandList7(nullptr)
 		, m_Type(type)
 	{
 	}
@@ -22,8 +23,9 @@ namespace vkr::Render
 
 	void Context::Begin()
 	{
-		m_CommandList = m_Device.GetCommandListPool(m_Type)->GetCommandList();
+		m_CommandList = GetDevice().GetCommandListPool(m_Type)->GetCommandList();
 		m_CurrentD3DCommandList = m_CommandList->GetD3DCommandList();
+		m_CurrentD3DCommandList->QueryInterface(IID_PPV_ARGS(&m_CurrentD3DCommandList7));
 		m_CommandList->Open();
 	}
 
@@ -32,14 +34,23 @@ namespace vkr::Render
 		// insert potential auto transitions/barriers
 		m_CommandList->Close();
 		m_CommandListsToSubmit.push_back(m_CommandList);
+		if (m_CurrentD3DCommandList7)
+			m_CurrentD3DCommandList7->Release();
+		m_CurrentD3DCommandList7 = nullptr;
 		m_CurrentD3DCommandList = nullptr;
 		m_CommandList = nullptr;
 	}
 
 	Event Context::Flush()
 	{
-		m_LastFlushEvent = m_Device.GetCommandQueue(m_Type)->Submit(m_CommandListsToSubmit.size(), m_CommandListsToSubmit.data());
-		m_Device.GetCommandListPool(m_Type)->ReturnCommandList(m_CommandListsToSubmit.size(), m_CommandListsToSubmit.data());
+		Device& device = GetDevice();
+		m_LastFlushEvent = device.GetCommandQueue(m_Type)->Submit(m_CommandListsToSubmit.size(), m_CommandListsToSubmit.data());
+
+		CommandListPool::PendingCommandLists pending;
+		pending.m_CommandLists.insert(pending.m_CommandLists.end(), m_CommandListsToSubmit.begin(), m_CommandListsToSubmit.end());
+		pending.m_Event = m_LastFlushEvent;
+		device.GetCommandListPool(m_Type)->ReturnCommandList(pending);
+
 		m_CommandListsToSubmit.clear();
 
 		return m_LastFlushEvent;
@@ -83,6 +94,117 @@ namespace vkr::Render
 		m_StateUpdate = true;
 	}
 
+	void Context::TextureBarrier(uint32_t numBarriers, const TextureBarrierDesc* barrierDescs)
+	{
+		// TODO: defer barriers to group them better?
+
+		std::vector<D3D12_TEXTURE_BARRIER> barriers;
+		for (uint32_t i = 0; i < numBarriers; ++i)
+		{
+			const TextureBarrierDesc& barrierDesc = barrierDescs[i];
+			ResourceStateTracking& stateTracking = barrierDesc.m_Texture->GetStateTracking();
+
+			D3D12_TEXTURE_BARRIER barrier = {};
+			barrier.AccessAfter = D3DConvertResourceStateAccess(barrierDesc.m_TargetAccess);
+			barrier.AccessBefore = D3DConvertResourceStateAccess(stateTracking.m_CurrentAccess);
+			barrier.SyncAfter = D3DConvertResourceStateSync(barrierDesc.m_TargetSync);
+			barrier.SyncBefore = D3DConvertResourceStateSync(stateTracking.m_CurrentSync);
+			barrier.LayoutAfter = D3DConvertResourceStateLayout(barrierDesc.m_TargetLayout);
+			barrier.LayoutBefore = D3DConvertResourceStateLayout(stateTracking.m_CurrentLayout);
+			barrier.pResource = barrierDesc.m_Texture->GetD3DResource();
+
+			barrier.Subresources.IndexOrFirstMipLevel = 0xffffffff;
+			barrier.Subresources.NumMipLevels = 0;
+
+			barriers.push_back(barrier);
+		}
+
+		if (!barriers.empty())
+		{
+			D3D12_BARRIER_GROUP barrierGroup = {};
+			barrierGroup.Type = D3D12_BARRIER_TYPE_TEXTURE;
+			barrierGroup.pTextureBarriers = barriers.data();
+			barrierGroup.NumBarriers = barriers.size();
+
+			m_CurrentD3DCommandList7->Barrier(1, &barrierGroup);
+		}
+	}
+
+	void Context::TextureBarrier(const TextureBarrierDesc& barrierDesc)
+	{
+		TextureBarrier(1, &barrierDesc);
+	}
+
+	void Context::BufferBarrier(uint32_t numBarriers, const BufferBarrierDesc* barrierDescs)
+	{
+		// TODO: defer barriers to group them better?
+
+		std::vector<D3D12_BUFFER_BARRIER> barriers;
+		for (uint32_t i = 0; i < numBarriers; ++i)
+		{
+			const BufferBarrierDesc& barrierDesc = barrierDescs[i];
+			ResourceStateTracking& stateTracking = barrierDesc.m_Buffer->GetStateTracking();
+
+			D3D12_BUFFER_BARRIER barrier = {};
+			barrier.AccessAfter = D3DConvertResourceStateAccess(barrierDesc.m_TargetAccess);
+			barrier.AccessBefore = D3DConvertResourceStateAccess(stateTracking.m_CurrentAccess);
+			barrier.SyncAfter = D3DConvertResourceStateSync(barrierDesc.m_TargetSync);
+			barrier.SyncBefore = D3DConvertResourceStateSync(stateTracking.m_CurrentSync);
+			barrier.pResource = barrierDesc.m_Buffer->GetD3DResource();
+
+			barriers.push_back(barrier);
+		}
+
+		if (!barriers.empty())
+		{
+			D3D12_BARRIER_GROUP barrierGroup = {};
+			barrierGroup.Type = D3D12_BARRIER_TYPE_BUFFER;
+			barrierGroup.pBufferBarriers = barriers.data();
+			barrierGroup.NumBarriers = barriers.size();
+
+			m_CurrentD3DCommandList7->Barrier(1, &barrierGroup);
+		}
+	}
+
+	void Context::BufferBarrier(const BufferBarrierDesc& barrierDesc)
+	{
+		BufferBarrier(1, &barrierDesc);
+	}
+
+	void Context::GlobalBarrier(uint32_t numBarriers, const GlobalBarrierDesc* barrierDescs)
+	{
+		// TODO: defer barriers to group them better?
+
+		std::vector<D3D12_GLOBAL_BARRIER> barriers;
+		for (uint32_t i = 0; i < numBarriers; ++i)
+		{
+			const GlobalBarrierDesc& barrierDesc = barrierDescs[i];
+
+			D3D12_GLOBAL_BARRIER barrier = {};
+			barrier.AccessAfter = D3DConvertResourceStateAccess(barrierDesc.m_TargetAccess);
+			barrier.AccessBefore = D3DConvertResourceStateAccess(barrierDesc.m_SourceAccess);
+			barrier.SyncAfter = D3DConvertResourceStateSync(barrierDesc.m_TargetSync);
+			barrier.SyncBefore = D3DConvertResourceStateSync(barrierDesc.m_SourceSync);
+
+			barriers.push_back(barrier);
+		}
+
+		if (!barriers.empty())
+		{
+			D3D12_BARRIER_GROUP barrierGroup = {};
+			barrierGroup.Type = D3D12_BARRIER_TYPE_GLOBAL;
+			barrierGroup.pGlobalBarriers = barriers.data();
+			barrierGroup.NumBarriers = barriers.size();
+
+			m_CurrentD3DCommandList7->Barrier(1, &barrierGroup);
+		}
+	}
+
+	void Context::GlobalBarrier(const GlobalBarrierDesc& barrierDesc)
+	{
+		GlobalBarrier(1, &barrierDesc);
+	}
+
 	void Context::UpdateState()
 	{
 		if (m_StateUpdate)
@@ -95,8 +217,8 @@ namespace vkr::Render
 				{
 					D3D12_VERTEX_BUFFER_VIEW view;
 					view.BufferLocation = buffer->GetD3DResource()->GetGPUVirtualAddress();
-					view.SizeInBytes = buffer->m_BufferDesc.ElementCount * buffer->m_BufferDesc.ElementSize;
-					view.StrideInBytes = buffer->m_BufferDesc.ElementSize;
+					view.SizeInBytes = buffer->GetDesc().m_ElementCount * buffer->GetDesc().m_ElementSize;
+					view.StrideInBytes = buffer->GetDesc().m_ElementSize;
 					bufferviews.push_back(view);
 				}
 				m_CurrentD3DCommandList->IASetVertexBuffers(0, bufferviews.size(), bufferviews.data());
@@ -105,8 +227,8 @@ namespace vkr::Render
 			{
 				D3D12_INDEX_BUFFER_VIEW view;
 				view.BufferLocation = NewState.m_IndexBuffer->GetD3DResource()->GetGPUVirtualAddress();
-				view.SizeInBytes = NewState.m_IndexBuffer->m_BufferDesc.ElementSize * NewState.m_IndexBuffer->m_BufferDesc.ElementCount;
-				view.Format = NewState.m_IndexBuffer->m_BufferDesc.ElementSize == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+				view.SizeInBytes = NewState.m_IndexBuffer->GetDesc().m_ElementSize * NewState.m_IndexBuffer->GetDesc().m_ElementCount;
+				view.Format = NewState.m_IndexBuffer->GetDesc().m_ElementSize == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
 				m_CurrentD3DCommandList->IASetIndexBuffer(&view);
 			}
 			if (CurrentState.m_PipelineState != NewState.m_PipelineState)
