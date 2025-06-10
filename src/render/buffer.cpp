@@ -30,4 +30,9 @@ namespace vkr::Render
 		return true;
 	}
 
+	const BufferDesc& Buffer::GetDesc() const
+	{
+		return m_Desc;
+	}
+
 }

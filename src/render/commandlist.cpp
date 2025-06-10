@@ -62,7 +62,7 @@ namespace vkr::Render
 	Ref<CommandList> CommandListPool::GetCommandList()
 	{
 		Ref<CommandList> cmdList;
-		std::unique_lock<std::mutex> lock(m_Mutex);
+		std::unique_lock<std::mutex> lock(m_FreeListMutex);
 		if (m_FreeCommandLists.size() > 0)
 		{
 			cmdList = m_FreeCommandLists.back();
@@ -75,21 +75,21 @@ namespace vkr::Render
 		return cmdList;
 	}
 
-	void CommandListPool::ReturnCommandList(const Ref<CommandList>& commandList)
+	void CommandListPool::ReturnCommandList(Ref<CommandList> commandList, Event event)
 	{
-		std::unique_lock<std::mutex> lock(m_Mutex);
-		m_FreeCommandLists.push_back(commandList);
-
+		PendingCommandLists pending;
+		pending.m_CommandLists.push_back(commandList);
+		pending.m_Event = event;
+		ReturnCommandList(pending);
 	}
 
-	void CommandListPool::ReturnCommandList(uint32_t numCommandLists, const Ref<CommandList>* commandLists)
+	void CommandListPool::ReturnCommandList(const PendingCommandLists& pendingCommandLists)
 	{
-		std::unique_lock<std::mutex> lock(m_Mutex);
-		m_FreeCommandLists.reserve(m_FreeCommandLists.size() + numCommandLists);
-		for (uint32_t i = 0; i < numCommandLists; ++i)
 		{
-			m_FreeCommandLists.push_back(commandLists[i]);
+			std::unique_lock<std::mutex> lock(m_PendingListMutex);
+			m_PendingCommandLists.push(pendingCommandLists);
 		}
+		CheckPendingCommandLists();
 	}
 
 	ContextType CommandListPool::GetType() const
@@ -97,4 +97,27 @@ namespace vkr::Render
 		return m_Type;
 	}
 
+	void CommandListPool::CheckPendingCommandLists()
+	{
+		std::vector<Ref<CommandList>> freeCommandLists;
+		{
+			std::unique_lock<std::mutex> lock(m_PendingListMutex);
+			while (!m_PendingCommandLists.empty())
+			{
+				const PendingCommandLists& pending = m_PendingCommandLists.front();
+				if (!pending.m_Event.IsPending())
+				{
+					freeCommandLists.insert(freeCommandLists.end(), pending.m_CommandLists.begin(), pending.m_CommandLists.end());
+					m_PendingCommandLists.pop();
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+
+		std::unique_lock<std::mutex> lock(m_FreeListMutex);
+		m_FreeCommandLists.insert(m_FreeCommandLists.end(), freeCommandLists.begin(), freeCommandLists.end());
+	}
 }

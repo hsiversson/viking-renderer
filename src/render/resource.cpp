@@ -39,4 +39,20 @@ namespace vkr::Render
 		return m_StateTracking;
 	}
 
+	void Resource::SetGpuPending(Event event)
+	{
+		SyncGpu();
+		m_GpuPendingEvent = event;
+	}
+
+	bool Resource::IsGpuPending() const
+	{
+		return m_GpuPendingEvent.IsPending();
+	}
+
+	void Resource::SyncGpu()
+	{
+		m_GpuPendingEvent.Wait();
+	}
+
 }

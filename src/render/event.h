@@ -12,5 +12,6 @@ namespace vkr::Render
 		Event();
 		Event(Fence* fence, uint64_t value);
 		void Wait();
+		bool IsPending() const;
 	};
 }

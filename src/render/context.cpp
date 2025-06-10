@@ -41,15 +41,22 @@ namespace vkr::Render
 		// insert potential auto transitions/barriers
 		m_CommandList->Close();
 		m_CommandListsToSubmit.push_back(m_CommandList);
-		m_CurrentD3DCommandList = nullptr;
+		if (m_CurrentD3DCommandList7)
+			m_CurrentD3DCommandList7->Release();
 		m_CurrentD3DCommandList7 = nullptr;
+		m_CurrentD3DCommandList = nullptr;
 		m_CommandList = nullptr;
 	}
 
 	Event Context::Flush()
 	{
 		m_LastFlushEvent = m_Device.GetCommandQueue(m_Type)->Submit(m_CommandListsToSubmit.size(), m_CommandListsToSubmit.data());
-		m_Device.GetCommandListPool(m_Type)->ReturnCommandList(m_CommandListsToSubmit.size(), m_CommandListsToSubmit.data());
+
+		CommandListPool::PendingCommandLists pending;
+		pending.m_CommandLists.insert(pending.m_CommandLists.end(), m_CommandListsToSubmit.begin(), m_CommandListsToSubmit.end());
+		pending.m_Event = m_LastFlushEvent;
+		m_Device.GetCommandListPool(m_Type)->ReturnCommandList(pending);
+
 		m_CommandListsToSubmit.clear();
 
 		return m_LastFlushEvent;

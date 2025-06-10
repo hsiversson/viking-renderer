@@ -7,6 +7,7 @@
 #include "textureloader_tga.h"
 #include "commandlist.h"
 #include "commandqueue.h"
+#include "d3dconvert.h"
 
 #include "utils/commandline.h"
 #include "utils/hash.h"
@@ -53,6 +54,7 @@ namespace vkr::Render
 		m_Factory->EnumAdapters1(0, &m_Adapter); // Make this smarter?
 
 		D3D12CreateDevice(m_Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_Device));
+		m_Device.As(&m_Device5);
 
 		m_ShaderCompiler = MakeUnique<ShaderCompiler>();
 
@@ -260,6 +262,9 @@ namespace vkr::Render
 
 		m_CommandQueue[CONTEXT_TYPE_COPY] = MakeRef<CommandQueue>(*this, CONTEXT_TYPE_COPY);
 		m_CommandListPool[CONTEXT_TYPE_COPY] = MakeRef<CommandListPool>(*this, CONTEXT_TYPE_COPY);
+
+		m_RaytracingBuildQueue = MakeRef<CommandQueue>(*this, CONTEXT_TYPE_COMPUTE);
+		m_RaytracingBuildPool = MakeRef<CommandListPool>(*this, CONTEXT_TYPE_COMPUTE);
 	}
 
 	ID3D12Device* Device::GetD3DDevice() const
@@ -385,6 +390,78 @@ namespace vkr::Render
 		return descriptor;
 	}
 
+	TempBuffer Device::GetTempBuffer(uint32_t byteSize, uint32_t initialDataSize, const void* initialData)
+	{
+		// TODO
+		assert(false);
+		return TempBuffer();
+	}
+
+	Ref<Buffer> Device::CreateTLAS(uint32_t numRtInstanceDescs, RtInstanceDesc* rtInstanceDescs)
+	{
+		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
+
+		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& inputs = buildDesc.Inputs;
+		inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+		inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+		inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD;
+
+		std::vector<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescs;
+		for (uint32_t i = 0; i < numRtInstanceDescs; ++i)
+		{
+			const RtInstanceDesc& rtInstanceDesc = rtInstanceDescs[i];
+			D3D12_RAYTRACING_INSTANCE_DESC desc = {};
+			desc.AccelerationStructure = rtInstanceDesc.m_BLAS->GetD3DResource()->GetGPUVirtualAddress();
+			desc.InstanceID = rtInstanceDesc.m_InstanceId;
+			desc.InstanceMask = 0xff;
+			// TODO: the other instance desc params
+			instanceDescs.push_back(desc);
+		}
+
+		const uint32_t bufferSize = sizeof(D3D12_RAYTRACING_INSTANCE_DESC) * instanceDescs.size();
+		TempBuffer instanceDescsBuffer = GetTempBuffer(bufferSize, bufferSize, instanceDescs.data());
+		inputs.InstanceDescs = instanceDescsBuffer.m_Buffer->GetD3DResource()->GetGPUVirtualAddress() + instanceDescsBuffer.m_Offset;
+		inputs.NumDescs = instanceDescs.size();
+
+		return CreateRaytracingAccelerationStructure(buildDesc);
+	}
+
+	Ref<Buffer> Device::CreateBLAS(uint32_t numRtGeometryDescs, RtGeometryDesc* rtGeometryDescs)
+	{
+		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
+
+		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& inputs = buildDesc.Inputs;
+		inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+		inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+		inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+
+		std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geometryDescs;
+		for (uint32_t i = 0; i < numRtGeometryDescs; ++i)
+		{
+			const RtGeometryDesc& rtGeometryDesc = rtGeometryDescs[i];
+			D3D12_RAYTRACING_GEOMETRY_DESC desc = {};
+			desc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+
+			const BufferDesc& indexBufferDesc = rtGeometryDesc.m_IndexBuffer->GetDesc();
+			desc.Triangles.IndexBuffer = rtGeometryDesc.m_IndexBuffer->GetD3DResource()->GetGPUVirtualAddress();
+			desc.Triangles.IndexFormat = D3DConvertFormat(indexBufferDesc.m_Format);
+			desc.Triangles.IndexCount = indexBufferDesc.Size;
+
+			const BufferDesc& vertexBufferDesc = rtGeometryDesc.m_VertexBuffer->GetDesc();
+			desc.Triangles.VertexBuffer.StartAddress = rtGeometryDesc.m_VertexBuffer->GetD3DResource()->GetGPUVirtualAddress();
+			desc.Triangles.VertexBuffer.StrideInBytes = vertexBufferDesc.m_ElementSize;
+			desc.Triangles.VertexFormat = D3DConvertFormat(vertexBufferDesc.m_Format);
+			desc.Triangles.IndexCount = vertexBufferDesc.Size;
+
+			geometryDescs.push_back(desc);
+		}
+
+		inputs.pGeometryDescs = geometryDescs.data();
+		inputs.NumDescs = geometryDescs.size();
+
+		return CreateRaytracingAccelerationStructure(buildDesc);
+	}
+
 	void Device::InitDescriptorHeaps()
 	{
 		ID3D12DescriptorHeap* d3dheap = nullptr;
@@ -444,6 +521,37 @@ namespace vkr::Render
 		heap = new DescriptorHeap;
 		heap->Init(d3dheap, 16, descriptorSize);
 		m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV] = heap;
+	}
+
+	Ref<Buffer> Device::CreateRaytracingAccelerationStructure(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC& buildDesc)
+	{
+		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuildInfo = {};
+		m_Device5->GetRaytracingAccelerationStructurePrebuildInfo(&buildDesc.Inputs, &prebuildInfo);
+
+		TempBuffer scratchBuffer = GetTempBuffer(prebuildInfo.ScratchDataSizeInBytes);
+		buildDesc.ScratchAccelerationStructureData = scratchBuffer.m_Buffer->GetD3DResource()->GetGPUVirtualAddress() + scratchBuffer.m_Offset;
+
+		BufferDesc outBufferDesc = {};
+		outBufferDesc.Size = prebuildInfo.ResultDataMaxSizeInBytes;
+
+		Ref<Buffer> outBuffer = CreateBuffer(outBufferDesc);
+		buildDesc.DestAccelerationStructureData = outBuffer->GetD3DResource()->GetGPUVirtualAddress();
+
+		Ref<CommandList> cmdList = m_RaytracingBuildPool->GetCommandList();
+		ID3D12GraphicsCommandList* d3dCmdList = cmdList->GetD3DCommandList();
+		ID3D12GraphicsCommandList4* d3dCmdList4 = nullptr;
+		d3dCmdList->QueryInterface(IID_PPV_ARGS(&d3dCmdList4));
+
+		d3dCmdList4->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
+
+		Event event = m_RaytracingBuildQueue->Submit(cmdList);
+		m_RaytracingBuildPool->ReturnCommandList(cmdList, event);
+
+		// set event on outBuffer to have it track its build status
+		outBuffer->SetGpuPending(event);
+
+		d3dCmdList4->Release();
+		return outBuffer;
 	}
 
 	vkr::Render::Device& GetDevice()

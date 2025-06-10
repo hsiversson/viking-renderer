@@ -26,18 +26,29 @@ namespace vkr::Render
 	class CommandListPool : public DeviceObject
 	{
 	public:
+		struct PendingCommandLists
+		{
+			std::vector<Ref<CommandList>> m_CommandLists;
+			Event m_Event;
+		};
+
+	public:
 		CommandListPool(Device& device, ContextType type);
 		~CommandListPool();
 
 		Ref<CommandList> GetCommandList();
-		void ReturnCommandList(const Ref<CommandList>& commandList);
-		void ReturnCommandList(uint32_t numCommandLists, const Ref<CommandList>* commandLists);
+		void ReturnCommandList(Ref<CommandList> commandList, Event event);
+		void ReturnCommandList(const PendingCommandLists& pendingCommandLists);
 
 		ContextType GetType() const;
 
 	private:
+		void CheckPendingCommandLists();
+
+		std::queue<PendingCommandLists> m_PendingCommandLists;
 		std::vector<Ref<CommandList>> m_FreeCommandLists;
-		std::mutex m_Mutex;
+		std::mutex m_PendingListMutex;
+		std::mutex m_FreeListMutex;
 
 		const ContextType m_Type;
 	};
