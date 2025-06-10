@@ -20,12 +20,6 @@ namespace vkr::Render
 	{
 	}
 
-	void Context::Init(ID3D12GraphicsCommandList* commandList, ID3D12CommandAllocator* commandAllocator)
-	{
-		//m_CommandList = commandList;
-		//m_CommandAllocator = commandAllocator;
-	}
-
 	void Context::Begin()
 	{
 		m_CommandList = m_Device.GetCommandListPool(m_Type)->GetCommandList();
@@ -57,7 +51,7 @@ namespace vkr::Render
 		m_CurrentD3DCommandList->Dispatch(Groups.x, Groups.y, Groups.z);
 	}
 
-	void Context::DispatchThreads(PipelineState* pipelineState, const Vector3u& threads)
+	void Context::DispatchThreads(Ref<PipelineState> pipelineState, const Vector3u& threads)
 	{
 		BindPSO(pipelineState);
 		DispatchThreads(threads);
@@ -76,7 +70,7 @@ namespace vkr::Render
 		Dispatch(threadGroups);
 	}
 
-	void Context::BindPSO(PipelineState* pipelineState)
+	void Context::BindPSO(Ref<PipelineState> pipelineState)
 	{
 		NewState.m_PipelineState = pipelineState;
 		NewState.m_RootSignature = pipelineState->GetRootSignature().get();
@@ -93,6 +87,28 @@ namespace vkr::Render
 	{
 		if (m_StateUpdate)
 		{
+			if (CurrentState.m_VertexBuffers != NewState.m_VertexBuffers)
+			{
+				std::vector<D3D12_VERTEX_BUFFER_VIEW> bufferviews;
+				int idx = 0;
+				for (auto buffer : NewState.m_VertexBuffers)
+				{
+					D3D12_VERTEX_BUFFER_VIEW view;
+					view.BufferLocation = buffer->GetD3DResource()->GetGPUVirtualAddress();
+					view.SizeInBytes = buffer->m_BufferDesc.ElementCount * buffer->m_BufferDesc.ElementSize;
+					view.StrideInBytes = buffer->m_BufferDesc.ElementSize;
+					bufferviews.push_back(view);
+				}
+				m_CurrentD3DCommandList->IASetVertexBuffers(0, bufferviews.size(), bufferviews.data());
+			}
+			if (CurrentState.m_IndexBuffer != NewState.m_IndexBuffer)
+			{
+				D3D12_INDEX_BUFFER_VIEW view;
+				view.BufferLocation = NewState.m_IndexBuffer->GetD3DResource()->GetGPUVirtualAddress();
+				view.SizeInBytes = NewState.m_IndexBuffer->m_BufferDesc.ElementSize * NewState.m_IndexBuffer->m_BufferDesc.ElementCount;
+				view.Format = NewState.m_IndexBuffer->m_BufferDesc.ElementSize == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+				m_CurrentD3DCommandList->IASetIndexBuffer(&view);
+			}
 			if (CurrentState.m_PipelineState != NewState.m_PipelineState)
 			{
 				m_CurrentD3DCommandList->SetPipelineState(NewState.m_PipelineState->GetD3DPipelineState());
@@ -112,6 +128,20 @@ namespace vkr::Render
 				}
 			}
 
+			if (m_RenderTargetUpdate)
+			{
+				//Assemble final list of render targets removing null ones
+				std::vector<D3D12_CPU_DESCRIPTOR_HANDLE*> FinalRT;
+				for (auto Descriptor : NewState.m_RenderTargets)
+				{
+					FinalRT.push_back(&Descriptor->GetHandle());
+				}
+				
+				m_CurrentD3DCommandList->OMSetRenderTargets(FinalRT.size(),*FinalRT.data(),false,&NewState.m_DepthStencil->GetHandle());
+				m_RenderTargetUpdate = false;
+			}
+			
+
 			CurrentState = NewState;
 			m_StateUpdate = false;
 		}
@@ -120,5 +150,43 @@ namespace vkr::Render
 	ContextType Context::GetType() const
 	{
 		return m_Type;
+	}
+
+	void Context::BindRenderTargets(std::vector<Ref<ResourceDescriptor>> rtdescriptors)
+	{
+		if (NewState.m_RenderTargets != rtdescriptors)
+		{
+			NewState.m_RenderTargets = rtdescriptors;
+			m_StateUpdate = true;
+			m_RenderTargetUpdate = true;
+		}
+	}
+
+	void Context::SetDepthStencil(Ref<ResourceDescriptor> dsdescriptor)
+	{
+		if (NewState.m_DepthStencil != dsdescriptor)
+		{
+			NewState.m_DepthStencil = dsdescriptor;
+			m_StateUpdate = true;
+			m_RenderTargetUpdate = true;
+		}
+	}
+
+	void Context::BindVertexBuffers(std::vector<Ref<Buffer>> vertexbuffers)
+	{
+		if (NewState.m_VertexBuffers != vertexbuffers)
+		{
+			NewState.m_VertexBuffers = vertexbuffers;
+			m_StateUpdate = true;
+		}
+	}
+
+	void Context::BindIndexBuffer(Ref<Buffer> indexbuffer)
+	{
+		if (NewState.m_IndexBuffer != indexbuffer)
+		{
+			NewState.m_IndexBuffer = indexbuffer;
+			m_StateUpdate = true;
+		}
 	}
 }

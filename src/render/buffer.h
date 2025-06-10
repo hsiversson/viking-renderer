@@ -6,7 +6,8 @@ namespace vkr::Render
 {
 	struct BufferDesc
 	{
-		unsigned int Size;
+		unsigned int ElementCount;
+		unsigned int ElementSize;
 		bool bWriteOnCPU = true;
 		bool bWriteOnGPU = false;
 	};
@@ -18,5 +19,7 @@ namespace vkr::Render
 		~Buffer();
 
 		bool InitWithData(uint8_t* Data, size_t size);
+
+		BufferDesc m_BufferDesc;
 	};
 }

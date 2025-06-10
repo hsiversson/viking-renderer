@@ -6,6 +6,36 @@ namespace vkr
 	const Mat43 Mat43::Identity = { 1,0,0,0,1,0,0,0,1,0,0,0 };
 	const Mat33 Mat33::Identity = { 1,0,0,0,1,0,0,0,1 };
 
+	Mat43::Mat43(const Mat33& rot, const Vector3f& translation)
+	{
+		std::copy(rot.m, rot.m + 9, m);
+		m[9] = translation.x; m[10] = translation.y; m[11] = translation.z;
+	}
+
+	Mat43::Mat43(float m00, float m01, float m02, float m10, float m11, float m12, float m20, float m21, float m22, float m30, float m31, float m32)
+	{
+		m[0] = m00; m[1] = m01; m[2] = m02;
+		m[3] = m10; m[4] = m11; m[5] = m12;
+		m[6] = m20; m[7] = m21; m[8] = m22;
+		m[9] = m30; m[10] = m31; m[11] = m32;
+	}
+
+	Mat33::Mat33(float m00, float m01, float m02, float m10, float m11, float m12, float m20, float m21, float m22)
+	{
+		m[0] = m00; m[1] = m01; m[2] = m02;
+		m[3] = m10; m[4] = m11; m[5] = m12;
+		m[6] = m20; m[7] = m21; m[8] = m22;
+	}
+
+	vkr::Mat33 Mat33::CreateRotationZ(float angleradians)
+	{
+		return Mat33(
+			cosf(angleradians), sinf(angleradians), 0,
+			-sinf(angleradians), cosf(angleradians), 0,
+			0,0,1
+		);
+	}
+
 	vkr::Mat43 Mat43::operator*(const Mat43& other)
 	{
 		Mat43 result;

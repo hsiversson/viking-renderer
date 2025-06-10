@@ -16,15 +16,17 @@ namespace vkr
 	{
 		BufferDesc vtxbufferdesc;
 		vtxbufferdesc.bWriteOnCPU = true;
-		vtxbufferdesc.Size = sizeof(cubeVtx);
+		vtxbufferdesc.ElementCount = sizeof(cubeVtx) / sizeof(cubeVtx[0]);
+		vtxbufferdesc.ElementSize = sizeof(float);
 		Ref<Buffer> vtxbuffer = device->CreateBuffer(vtxbufferdesc);
-		if (!vtxbuffer || !vtxbuffer->InitWithData((uint8_t*)(&cubeVtx), vtxbufferdesc.Size))
+		if (!vtxbuffer || !vtxbuffer->InitWithData((uint8_t*)(&cubeVtx), sizeof(cubeVtx)))
 			return nullptr;
 		BufferDesc idxbufferdesc;
 		idxbufferdesc.bWriteOnCPU = true;
-		idxbufferdesc.Size = sizeof(cubeIdx);
+		idxbufferdesc.ElementCount = sizeof(cubeIdx) / sizeof(cubeIdx[0]);
+		idxbufferdesc.ElementSize = sizeof(short);
 		Ref<Buffer> idxbuffer = device->CreateBuffer(idxbufferdesc);
-		if (!idxbuffer || !idxbuffer->InitWithData((uint8_t*)&cubeIdx, idxbufferdesc.Size))
+		if (!idxbuffer || !idxbuffer->InitWithData((uint8_t*)&cubeIdx, sizeof(cubeIdx)))
 			return nullptr;
 		auto mesh = MakeRef<Graphics::Mesh>();
 		mesh->SetVertexBuffer(vtxbuffer);

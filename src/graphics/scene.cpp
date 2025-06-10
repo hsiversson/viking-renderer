@@ -43,11 +43,7 @@ namespace vkr::Graphics
 
 		for (const auto& object : m_SceneObjects)
 		{
-			//RenderObject renderObj;
-			//renderObj.m_Mesh = object->GetMesh();
-			//renderObj.m_Material = object->GetMaterial();
-			//renderObj.m_Transform = object->GetWorldTransform();
-			//prepareData.m_VisibleMeshes.push_back(renderObj);
+			object->CollectRenderObjects(prepareData);
 		}
 
 		std::sort(prepareData.m_VisibleMeshes.begin(), prepareData.m_VisibleMeshes.end());

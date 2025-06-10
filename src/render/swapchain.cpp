@@ -89,11 +89,23 @@ namespace vkr::Render
 
 	void SwapChain::CreateResources()
 	{
+		for (int i = 0; i < NumBackBuffers; i++)
+		{
+			m_BackBuffers[i].m_Texture = MakeRef<Texture>(m_Device);
+			ComPtr<ID3D12Resource> RT;
+			m_SwapChain->GetBuffer(i, IID_PPV_ARGS(&RT));
+			m_BackBuffers[i].m_Texture->Init(RT.Get());
+		}
 	}
 
 	void SwapChain::ReleaseResources()
 	{
 		// Wait for GPU
+	}
+
+	vkr::Ref<vkr::Render::Texture> SwapChain::GetOutputTexture()
+	{
+		return m_BackBuffers[m_CurrentBackBufferIndex].m_Texture;
 	}
 
 }

@@ -2,6 +2,8 @@
 
 #include "utils/types.h"
 
+#include "viewrenderdata.h"
+
 namespace vkr::Graphics
 {
 	class SceneObject : public std::enable_shared_from_this<SceneObject>
@@ -12,6 +14,9 @@ namespace vkr::Graphics
 		const Mat43& GetLocalTransform() const;
 		void AddChild(Ref<SceneObject> child);
 		void RemoveChild(Ref<SceneObject> child);
+
+		//Temporal render mechanism
+		virtual void CollectRenderObjects(ViewRenderData& renderdata) {}
 	private:
 		void ComputeTransform();
 

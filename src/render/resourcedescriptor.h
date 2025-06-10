@@ -8,6 +8,8 @@ namespace vkr::Render
 	{
 		UAV = 0,
 		SRV = 1,
+		RTV = 2,
+		DSV = 3,
 		NumTypes
 	};
 
@@ -26,6 +28,8 @@ namespace vkr::Render
 
 	struct ResourceDescriptorDesc
 	{
+		ResourceDescriptorDesc() {}
+
 		ResourceDescriptorType Type = ResourceDescriptorType::NumTypes;
 		union
 		{

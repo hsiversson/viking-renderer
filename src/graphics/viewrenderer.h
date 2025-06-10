@@ -1,5 +1,12 @@
 #pragma once
 
+#include "utils/types.h"
+
+namespace vkr::Render
+{
+	class Device;
+}
+
 namespace vkr::Graphics
 {
 	class View;
@@ -9,11 +16,12 @@ namespace vkr::Graphics
 		ViewRenderer();
 		~ViewRenderer();
 
-		bool Init();
+		bool Init(Ref<vkr::Render::Device> device);
 
 		void RenderView(View& view);
 
 	private:
+		void ForwardPass(View& view);
 		void UpdateRtScene(View& view);
 		void UpdateParticles(View& view);
 
@@ -26,6 +34,7 @@ namespace vkr::Graphics
 		void FinalizeFrame(View& view);
 
 	private:
+		Ref<vkr::Render::Device> m_Device;
 		// example sub systems
 		// UniquePtr<Environment> m_Environment;
 		// UniquePtr<VegetationSystem> m_VegetationSystem;

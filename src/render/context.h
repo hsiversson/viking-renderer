@@ -7,6 +7,7 @@ namespace vkr::Render
 {
 	class Buffer;
 	class PipelineState;
+	class ResourceDescriptor;
 	class RootSignature;
 	class CommandList;
 
@@ -26,26 +27,32 @@ namespace vkr::Render
 		Context(Device& device, ContextType type);
 		~Context();
 
-		void Init(ID3D12GraphicsCommandList* commandList, ID3D12CommandAllocator* commandAllocator);
-
 		void Begin();
 		void End();
 		Event Flush();
 
 		void Dispatch(const Vector3u& Groups);
 		void DispatchThreads(const Vector3u& threads);
-		void DispatchThreads(PipelineState* pipelineState, const Vector3u& threads);
-		void BindPSO(PipelineState* pipelineState);
+		void DispatchThreads(Ref<PipelineState> pipelineState, const Vector3u& threads);
+		void BindPSO(Ref<PipelineState> pipelineState);
 		void BindRootConstantBuffers(std::vector<Buffer*> buffers);
+		void BindVertexBuffers(std::vector<Ref<Buffer>> vertexbuffers);
+		void BindIndexBuffer(Ref<Buffer> indexbuffer);
+		void BindRenderTargets(std::vector<Ref<ResourceDescriptor>> rtdescriptors);
+		void SetDepthStencil(Ref<ResourceDescriptor> dsdescriptor);
 
 		ContextType GetType() const;
 
 	private:
 		struct DrawState
 		{
+			std::vector<Ref<Buffer>> m_VertexBuffers;
+			Ref<Buffer> m_IndexBuffer;
 			RootSignature* m_RootSignature = nullptr;
-			PipelineState* m_PipelineState = nullptr;
+			Ref<PipelineState> m_PipelineState = nullptr;
 			std::vector<Buffer*> m_RootCB;
+			std::vector<Ref<ResourceDescriptor>> m_RenderTargets;
+			Ref<ResourceDescriptor> m_DepthStencil;
 		};
 
 		void UpdateState();
@@ -59,6 +66,7 @@ namespace vkr::Render
 		DrawState CurrentState;
 		DrawState NewState;
 		bool m_StateUpdate = false;
+		bool m_RenderTargetUpdate = false;
 
 		const ContextType m_Type;
 	};

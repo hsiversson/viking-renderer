@@ -21,6 +21,8 @@ namespace vkr::Render
 		void SetHdrEnabled(bool hdr);
 		bool IsHdrEnabled() const;
 
+		Ref<Texture> GetOutputTexture();
+
 		void Present();
 
 	private:
@@ -31,14 +33,12 @@ namespace vkr::Render
 		ComPtr<IDXGISwapChain1> m_SwapChain;
 		ComPtr<IDXGISwapChain4> m_SwapChain4;
 		ComPtr<IDXGIOutput6> m_Output;
-		Ref<CommandQueue> m_CommandQueue;
+		Ref<CommandQueue> m_CommandQueue; //Graphics queue ref. Needed to insert fences during present
 
 		struct BackBufferResource
 		{
 			Event m_LastFrameEvent;
-			Texture* m_Texture;
-			// SRV?
-			// RTV?
+			Ref<Texture> m_Texture;
 		};
 		std::array<BackBufferResource, NumBackBuffers> m_BackBuffers;
 		uint32_t m_CurrentBackBufferIndex;

@@ -2,6 +2,8 @@
 #include "viewrenderdata.h"
 #include "camera.h"
 
+#include "render/resourcedescriptor.h"
+
 namespace vkr::Graphics
 {
 	class View
@@ -25,6 +27,9 @@ namespace vkr::Graphics
 		// We consume the render data at render stage.
 		const ViewRenderData& GetRenderData();
 
+		void SetOutputTarget(Ref<vkr::Render::ResourceDescriptor> outputdescriptor) { m_OutputDescriptor = outputdescriptor; }
+		Ref<vkr::Render::ResourceDescriptor> GetOutputTarget() { return m_OutputDescriptor; }
+
 		void SetPrimary(bool value);
 
 		bool IsPrimary() const;
@@ -36,6 +41,7 @@ namespace vkr::Graphics
 		uint32_t m_RenderDataIndex;
 
 		Camera m_Camera;
+		Ref<vkr::Render::ResourceDescriptor> m_OutputDescriptor;
 
 		bool m_IsRendering;
 		bool m_IsPrimary;

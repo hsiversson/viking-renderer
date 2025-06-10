@@ -10,6 +10,7 @@
 #include <map>
 #include <unordered_set>
 #include <set>
+#include <numbers>
 #include <algorithm>
 #include <cassert>
 #include <memory>
@@ -85,6 +86,12 @@ namespace vkr
 	struct Mat43 : public Mat<4, 3>
 	{
 		static const Mat43 Identity;
+		Mat43() {};
+		Mat43(float m00, float m01, float m02,
+			float m10, float m11, float m12,
+			float m20, float m21, float m22,
+			float m30, float m31, float m32);
+		Mat43(const struct Mat33& rot, const Vector3f& translation);
 		Mat43 operator*(const Mat43& other);
 	};
 
@@ -110,7 +117,10 @@ namespace vkr
 	{
 		static const Mat33 Identity;
 
-		
+		Mat33(float m00, float m01, float m02,
+			float m10, float m11, float m12,
+			float m20, float m21, float m22);
+		static Mat33 CreateRotationZ(float angleradians);
 	};
 	
 }

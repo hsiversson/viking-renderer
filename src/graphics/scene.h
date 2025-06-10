@@ -27,6 +27,8 @@ namespace vkr::Graphics
 		// I.e extract renderable information and store in list to be picked up by render tasks later
 		void PrepareView(View& view);
 
+		void AddObject(Ref<SceneObject> object) { m_SceneObjects.push_back(object); }
+
 	private:
 		// For now only a simple list of scene objects, 
 		// but later maybe a spatial partitioning structure of scene objects?

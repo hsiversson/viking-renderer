@@ -42,6 +42,7 @@ namespace vkr::Render
 		IDXGIAdapter1* GetDXGIAdapter() const;
 		const Ref<CommandQueue>& GetCommandQueue(ContextType contextType) const;
 		const Ref<CommandListPool>& GetCommandListPool(ContextType contextType) const;
+		Ref<Context> GetContext(ContextType contextType) const;
 
 	private:
 		void InitRootSignatures();
@@ -54,6 +55,7 @@ namespace vkr::Render
 		ComPtr<IDXGIAdapter1> m_Adapter;
 		ComPtr<ID3D12Device> m_Device;
 
+		Ref<Context> m_Contexts[CONTEXT_TYPE_COUNT];//For now lets keep just a single context of every type on the device itself (prone to change)
 		Ref<CommandQueue> m_CommandQueue[CONTEXT_TYPE_COUNT];
 		Ref<CommandListPool> m_CommandListPool[CONTEXT_TYPE_COUNT];
 

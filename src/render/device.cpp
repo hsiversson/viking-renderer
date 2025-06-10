@@ -73,44 +73,7 @@ namespace vkr::Render
 
 	Ref<Context> Device::CreateContext(ContextType contextType)
 	{
-		// Should we move this into the context itself.
-		// Potentially each context would need several command lists, 
-		// so we might need some form of functionality to "reset" a context with a new command list.
-		// Maybe Context::Begin & Context::End functions?
-
-		D3D12_COMMAND_LIST_TYPE type;
-		switch (contextType)
-		{
-		case vkr::Render::CONTEXT_TYPE_GRAPHICS:
-			type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-			break;
-		case vkr::Render::CONTEXT_TYPE_COMPUTE:
-			type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
-			break;
-		case vkr::Render::CONTEXT_TYPE_COPY:
-			type = D3D12_COMMAND_LIST_TYPE_COPY;
-			break;
-		default:
-			assert(false);
-			return nullptr;
-		}
-
-		ID3D12CommandAllocator* commandAllocator = nullptr;
-		if (FAILED(m_Device->CreateCommandAllocator(type, IID_PPV_ARGS(&commandAllocator))))
-		{
-			return nullptr;
-		}
-		ID3D12GraphicsCommandList* commandList = nullptr;
-		if (FAILED(m_Device->CreateCommandList(0, type, commandAllocator, nullptr, IID_PPV_ARGS(&commandList))))
-		{
-			commandAllocator->Release();
-			commandAllocator = nullptr;
-			return nullptr;
-		}
-		commandList->Close();
-
 		Ref<Context> context = MakeRef<Context>(*this, contextType);
-		context->Init(commandList, commandAllocator);
 		return context;
 	}
 
@@ -186,6 +149,7 @@ namespace vkr::Render
 	Ref<Buffer> Device::CreateBuffer(const BufferDesc& desc)
 	{
 		Ref<Buffer> buffer = MakeRef<Buffer>(*this);
+		buffer->m_BufferDesc = desc;
 
 		//For now allocate resource in place. Later well see how we do pooling
 
@@ -193,7 +157,7 @@ namespace vkr::Render
 		D3D12_RESOURCE_DESC bufferDesc = {};
 		bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
 		bufferDesc.Alignment = 0;
-		bufferDesc.Width = desc.Size;
+		bufferDesc.Width = desc.ElementCount * desc.ElementSize;
 		bufferDesc.Height = 1;
 		bufferDesc.DepthOrArraySize = 1;
 		bufferDesc.MipLevels = 1;
@@ -251,12 +215,15 @@ namespace vkr::Render
 	{
 		m_CommandQueue[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandQueue>(*this, CONTEXT_TYPE_GRAPHICS);
 		m_CommandListPool[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandListPool>(*this, CONTEXT_TYPE_GRAPHICS);
+		m_Contexts[CONTEXT_TYPE_GRAPHICS] = MakeRef<Context>(*this, CONTEXT_TYPE_GRAPHICS);
 
 		m_CommandQueue[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandQueue>(*this, CONTEXT_TYPE_COMPUTE);
 		m_CommandListPool[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandListPool>(*this, CONTEXT_TYPE_COMPUTE);
+		m_Contexts[CONTEXT_TYPE_COMPUTE] = MakeRef<Context>(*this, CONTEXT_TYPE_COMPUTE);
 
 		m_CommandQueue[CONTEXT_TYPE_COPY] = MakeRef<CommandQueue>(*this, CONTEXT_TYPE_COPY);
 		m_CommandListPool[CONTEXT_TYPE_COPY] = MakeRef<CommandListPool>(*this, CONTEXT_TYPE_COPY);
+		m_Contexts[CONTEXT_TYPE_COPY] = MakeRef<Context>(*this, CONTEXT_TYPE_COPY);
 	}
 
 	ID3D12Device* Device::GetD3DDevice() const
@@ -331,6 +298,24 @@ namespace vkr::Render
 						srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 					}
 					m_Device->CreateShaderResourceView(tex->GetD3DResource(), &srvDesc, descriptor->GetHandle());
+				}
+				break;
+				case ResourceDescriptorType::RTV:
+				{
+					descriptor = m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_RTV]->Allocate();
+					//Keep it simple and use nullptr desc
+					m_Device->CreateRenderTargetView(tex->GetD3DResource(), nullptr, descriptor->GetHandle());
+				}
+				break;
+				case ResourceDescriptorType::DSV:
+				{
+					descriptor = m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV]->Allocate();
+					D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+					dsvDesc.Format = tex->m_TextureDesc.Format;
+					dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+					dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+					
+					m_Device->CreateDepthStencilView(tex->GetD3DResource(), &dsvDesc, descriptor->GetHandle());
 				}
 				break;
 			}
@@ -442,4 +427,10 @@ namespace vkr::Render
 		heap->Init(d3dheap, 16, descriptorSize);
 		m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV] = heap;
 	}
+
+	vkr::Ref<vkr::Render::Context> Device::GetContext(ContextType contextType) const
+	{
+		return m_Contexts[contextType];
+	}
+
 }
