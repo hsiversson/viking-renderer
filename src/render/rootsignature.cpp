@@ -5,8 +5,7 @@
 
 namespace vkr::Render
 {
-	RootSignature::RootSignature(Device& device)
-		: DeviceObject(device)
+	RootSignature::RootSignature()
 	{
 
 	}
@@ -66,7 +65,7 @@ namespace vkr::Render
 			return false;
 		}
 
-		hr = m_Device.GetD3DDevice()->CreateRootSignature(0, SerializedRootSignature->GetBufferPointer(), SerializedRootSignature->GetBufferSize(), IID_PPV_ARGS(&m_RootSignature));
+		hr = GetDevice().GetD3DDevice()->CreateRootSignature(0, SerializedRootSignature->GetBufferPointer(), SerializedRootSignature->GetBufferSize(), IID_PPV_ARGS(&m_RootSignature));
 		if (FAILED(hr))
 		{
 			return false;

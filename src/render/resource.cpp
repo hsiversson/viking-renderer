@@ -23,8 +23,7 @@ namespace vkr::Render
 		return it == m_Descriptors.end() ? nullptr : it->second;
 	}
 
-	Resource::Resource(Device& device) :
-		DeviceObject(device)
+	Resource::Resource()
 	{
 
 	}

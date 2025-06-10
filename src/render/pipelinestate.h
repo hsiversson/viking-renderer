@@ -1,6 +1,5 @@
 #pragma once
 
-#include "render/deviceobject.h"
 #include "render/rendercommon.h"
 #include "render/shader.h"
 #include "render/renderstates.h"
@@ -88,10 +87,10 @@ namespace vkr::Render
 		~PipelineStateMetaData() {}
 	};
 
-	class PipelineState : public DeviceObject
+	class PipelineState
 	{
 	public:
-		PipelineState(Device& device);
+		PipelineState();
 		~PipelineState();
 
 		bool Init(const PipelineStateDesc& desc, Ref<RootSignature> rootSignature);

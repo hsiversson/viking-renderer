@@ -1,13 +1,12 @@
 #pragma once
-#include "deviceobject.h"
 #include "rendercommon.h"
 
 namespace vkr::Render
 {
-	class Fence : public DeviceObject
+	class Fence 
 	{
 	public:
-		Fence(Device& device);
+		Fence();
 		~Fence();
 
 		uint64_t Increment();

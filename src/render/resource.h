@@ -1,6 +1,5 @@
 #pragma once
 
-#include "deviceobject.h"
 #include "rendercommon.h"
 #include "resourcedescriptor.h"
 #include <unordered_map>
@@ -15,10 +14,10 @@ namespace vkr::Render
 		ResourceStateLayout m_CurrentLayout;
 	};
 
-	class Resource : public DeviceObject
+	class Resource
 	{
 	public:
-		Resource(Device& device);
+		Resource();
 		bool InitWithResource(ID3D12Resource* Resource);
 
 		ID3D12Resource* GetD3DResource() { return m_Resource.Get(); }

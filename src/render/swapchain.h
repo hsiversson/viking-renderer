@@ -1,5 +1,4 @@
 #pragma once
-#include "render/deviceobject.h"
 #include "render/rendercommon.h"
 #include "render/event.h"
 
@@ -7,12 +6,12 @@ namespace vkr::Render
 {
 	class Texture;
 	class CommandQueue;
-	class SwapChain : public DeviceObject
+	class SwapChain
 	{
 		static constexpr uint32_t NumBackBuffers = 2;
 
 	public:
-		SwapChain(Device& device);
+		SwapChain();
 		~SwapChain();
 
 		bool Init(void* nativeWindowHandle, const Vector2u& size);

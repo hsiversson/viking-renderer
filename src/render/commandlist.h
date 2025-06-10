@@ -1,14 +1,13 @@
 #pragma once
-#include "render/deviceobject.h"
 #include "render/rendercommon.h"
 #include "render/context.h"
 
 namespace vkr::Render
 {
-	class CommandList : public DeviceObject
+	class CommandList
 	{
 	public:
-		CommandList(Device& device, ContextType type);
+		CommandList(ContextType type);
 
 		void Open();
 		void Close();
@@ -23,7 +22,7 @@ namespace vkr::Render
 		const ContextType m_Type;
 	};
 
-	class CommandListPool : public DeviceObject
+	class CommandListPool
 	{
 	public:
 		struct PendingCommandLists
@@ -33,7 +32,7 @@ namespace vkr::Render
 		};
 
 	public:
-		CommandListPool(Device& device, ContextType type);
+		CommandListPool(ContextType type);
 		~CommandListPool();
 
 		Ref<CommandList> GetCommandList();

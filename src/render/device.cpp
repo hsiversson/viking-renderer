@@ -69,7 +69,7 @@ namespace vkr::Render
 	{
 		for (int i = 0; i < PipelineStateType::PIPELINE_STATE_TYPE_COUNT; i++)
 		{
-			auto Signature = MakeRef<RootSignature>(*this);
+			auto Signature = MakeRef<RootSignature>();
 			// For now just consider one unique constant buffer?
 			Signature->Init({ PipelineStateType(i), 1 });
 			m_RootSignatures[i] = Signature;
@@ -114,14 +114,14 @@ namespace vkr::Render
 		}
 		commandList->Close();
 
-		Ref<Context> context = MakeRef<Context>(*this, contextType);
+		Ref<Context> context = MakeRef<Context>(contextType);
 		context->Init(commandList, commandAllocator);
 		return context;
 	}
 
 	Ref<SwapChain> Device::CreateSwapChain(void* windowHandle, const Vector2u& size)
 	{
-		Ref<SwapChain> swapChain = MakeRef<SwapChain>(*this);
+		Ref<SwapChain> swapChain = MakeRef<SwapChain>();
 		if (!swapChain->Init(windowHandle, size))
 		{
 			return nullptr;
@@ -141,7 +141,7 @@ namespace vkr::Render
 
 	Ref<PipelineState> Device::CreatePipelineState(const PipelineStateDesc& desc)
 	{
-		Ref<PipelineState> pipelineState = MakeRef<PipelineState>(*this);
+		Ref<PipelineState> pipelineState = MakeRef<PipelineState>();
 		if (!pipelineState->Init(desc, m_RootSignatures[desc.m_Type]))
 		{
 			return nullptr;
@@ -151,7 +151,7 @@ namespace vkr::Render
 
 	Ref<Texture> Device::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
 	{
-		Ref<Texture> texture = MakeRef<Texture>(*this);
+		Ref<Texture> texture = MakeRef<Texture>();
 		texture->m_TextureDesc = desc;
 
 		//For now allocate resource in place. Later well see how we do pooling
@@ -190,7 +190,7 @@ namespace vkr::Render
 
 	Ref<Buffer> Device::CreateBuffer(const BufferDesc& desc)
 	{
-		Ref<Buffer> buffer = MakeRef<Buffer>(*this);
+		Ref<Buffer> buffer = MakeRef<Buffer>();
 
 		//For now allocate resource in place. Later well see how we do pooling
 
@@ -254,17 +254,17 @@ namespace vkr::Render
 
 	void Device::InitCommandQueues()
 	{
-		m_CommandQueue[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandQueue>(*this, CONTEXT_TYPE_GRAPHICS);
-		m_CommandListPool[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandListPool>(*this, CONTEXT_TYPE_GRAPHICS);
+		m_CommandQueue[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandQueue>(CONTEXT_TYPE_GRAPHICS);
+		m_CommandListPool[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandListPool>(CONTEXT_TYPE_GRAPHICS);
 
-		m_CommandQueue[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandQueue>(*this, CONTEXT_TYPE_COMPUTE);
-		m_CommandListPool[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandListPool>(*this, CONTEXT_TYPE_COMPUTE);
+		m_CommandQueue[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandQueue>(CONTEXT_TYPE_COMPUTE);
+		m_CommandListPool[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandListPool>(CONTEXT_TYPE_COMPUTE);
 
-		m_CommandQueue[CONTEXT_TYPE_COPY] = MakeRef<CommandQueue>(*this, CONTEXT_TYPE_COPY);
-		m_CommandListPool[CONTEXT_TYPE_COPY] = MakeRef<CommandListPool>(*this, CONTEXT_TYPE_COPY);
+		m_CommandQueue[CONTEXT_TYPE_COPY] = MakeRef<CommandQueue>(CONTEXT_TYPE_COPY);
+		m_CommandListPool[CONTEXT_TYPE_COPY] = MakeRef<CommandListPool>(CONTEXT_TYPE_COPY);
 
-		m_RaytracingBuildQueue = MakeRef<CommandQueue>(*this, CONTEXT_TYPE_COMPUTE);
-		m_RaytracingBuildPool = MakeRef<CommandListPool>(*this, CONTEXT_TYPE_COMPUTE);
+		m_RaytracingBuildQueue = MakeRef<CommandQueue>(CONTEXT_TYPE_COMPUTE);
+		m_RaytracingBuildPool = MakeRef<CommandListPool>(CONTEXT_TYPE_COMPUTE);
 	}
 
 	ID3D12Device* Device::GetD3DDevice() const
@@ -553,10 +553,4 @@ namespace vkr::Render
 		d3dCmdList4->Release();
 		return outBuffer;
 	}
-
-	vkr::Render::Device& GetDevice()
-	{
-		return *Device::g_Instance;
-	}
-
 }

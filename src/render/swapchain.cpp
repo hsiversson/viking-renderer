@@ -4,9 +4,8 @@
 
 namespace vkr::Render
 {
-	SwapChain::SwapChain(Device& device)
-		: DeviceObject(device)
-		, m_CurrentBackBufferIndex(0)
+	SwapChain::SwapChain()
+		: m_CurrentBackBufferIndex(0)
 		, m_IsHdrEnabled(false)
 		, m_HdrSupported(false)
 	{
@@ -19,7 +18,7 @@ namespace vkr::Render
 
 	bool SwapChain::Init(void* nativeWindowHandle, const Vector2u& size)
 	{
-		m_CommandQueue = m_Device.GetCommandQueue(CONTEXT_TYPE_PRESENT);
+		m_CommandQueue = GetDevice().GetCommandQueue(CONTEXT_TYPE_PRESENT);
 
 		DXGI_SWAP_CHAIN_DESC1 desc = {};
 		desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -34,7 +33,7 @@ namespace vkr::Render
 		DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc = {};
 		fullscreenDesc.Windowed = true;
 
-		m_Device.GetDXGIFactory()->CreateSwapChainForHwnd(m_CommandQueue->GetD3DCommandQueue(), (HWND)nativeWindowHandle, &desc, &fullscreenDesc, nullptr, &m_SwapChain);
+		GetDevice().GetDXGIFactory()->CreateSwapChainForHwnd(m_CommandQueue->GetD3DCommandQueue(), (HWND)nativeWindowHandle, &desc, &fullscreenDesc, nullptr, &m_SwapChain);
 		m_SwapChain.As(&m_SwapChain4);
 
 		ComPtr<IDXGIOutput> output;

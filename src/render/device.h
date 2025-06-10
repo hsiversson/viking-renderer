@@ -92,6 +92,6 @@ namespace vkr::Render
 		static Device* g_Instance;
 	};
 
-	static Device& GetDevice();
+	inline Device& GetDevice() { return *Device::g_Instance; }
 }
 

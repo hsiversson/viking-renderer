@@ -3,9 +3,8 @@
 
 namespace vkr::Render
 {
-	CommandList::CommandList(Device& device, ContextType type)
-		: DeviceObject(device)
-		, m_Type(type)
+	CommandList::CommandList(ContextType type)
+		: m_Type(type)
 	{
 		D3D12_COMMAND_LIST_TYPE cmdListType;
 		switch (type)
@@ -22,8 +21,9 @@ namespace vkr::Render
 			break;
 		}
 
-		m_Device.GetD3DDevice()->CreateCommandAllocator(cmdListType, IID_PPV_ARGS(&m_Allocator));
-		m_Device.GetD3DDevice()->CreateCommandList(0, cmdListType, m_Allocator.Get(), nullptr, IID_PPV_ARGS(&m_CommandList));
+		ID3D12Device* device = GetDevice().GetD3DDevice();
+		device->CreateCommandAllocator(cmdListType, IID_PPV_ARGS(&m_Allocator));
+		device->CreateCommandList(0, cmdListType, m_Allocator.Get(), nullptr, IID_PPV_ARGS(&m_CommandList));
 		m_CommandList->Close();
 	}
 
@@ -47,9 +47,8 @@ namespace vkr::Render
 		return m_CommandList.Get();
 	}
 
-	CommandListPool::CommandListPool(Device& device, ContextType type)
-		: DeviceObject(device)
-		, m_Type(type)
+	CommandListPool::CommandListPool(ContextType type)
+		: m_Type(type)
 	{
 
 	}
@@ -70,7 +69,7 @@ namespace vkr::Render
 		}
 		else
 		{
-			cmdList = MakeRef<CommandList>(m_Device, m_Type);
+			cmdList = MakeRef<CommandList>(m_Type);
 		}
 		return cmdList;
 	}

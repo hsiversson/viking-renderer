@@ -17,7 +17,7 @@ namespace vkr::Render
 	class Buffer : public Resource
 	{
 	public:
-		Buffer(Device& device);
+		Buffer();
 		~Buffer();
 
 		bool Init(const BufferDesc& desc, uint32_t initialDataSize = 0, const void* initialData = nullptr);

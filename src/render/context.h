@@ -1,5 +1,4 @@
 #pragma once
-#include "render/deviceobject.h"
 #include "render/rendercommon.h"
 #include "render/event.h"
 
@@ -45,10 +44,10 @@ namespace vkr::Render
 		ResourceStateSync m_TargetSync;
 	};
 
-	class Context : public DeviceObject
+	class Context
 	{
 	public:
-		Context(Device& device, ContextType type);
+		Context(ContextType type);
 		~Context();
 
 		void Init(ID3D12GraphicsCommandList* commandList, ID3D12CommandAllocator* commandAllocator);

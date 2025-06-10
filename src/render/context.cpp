@@ -10,9 +10,8 @@
 
 namespace vkr::Render
 {
-	Context::Context(Device& device, ContextType type)
-		: DeviceObject(device)
-		, m_CurrentD3DCommandList(nullptr)
+	Context::Context(ContextType type)
+		: m_CurrentD3DCommandList(nullptr)
 		, m_CurrentD3DCommandList7(nullptr)
 		, m_Type(type)
 	{
@@ -30,7 +29,7 @@ namespace vkr::Render
 
 	void Context::Begin()
 	{
-		m_CommandList = m_Device.GetCommandListPool(m_Type)->GetCommandList();
+		m_CommandList = GetDevice().GetCommandListPool(m_Type)->GetCommandList();
 		m_CurrentD3DCommandList = m_CommandList->GetD3DCommandList();
 		m_CurrentD3DCommandList->QueryInterface(IID_PPV_ARGS(&m_CurrentD3DCommandList7));
 		m_CommandList->Open();
@@ -50,12 +49,13 @@ namespace vkr::Render
 
 	Event Context::Flush()
 	{
-		m_LastFlushEvent = m_Device.GetCommandQueue(m_Type)->Submit(m_CommandListsToSubmit.size(), m_CommandListsToSubmit.data());
+		Device& device = GetDevice();
+		m_LastFlushEvent = device.GetCommandQueue(m_Type)->Submit(m_CommandListsToSubmit.size(), m_CommandListsToSubmit.data());
 
 		CommandListPool::PendingCommandLists pending;
 		pending.m_CommandLists.insert(pending.m_CommandLists.end(), m_CommandListsToSubmit.begin(), m_CommandListsToSubmit.end());
 		pending.m_Event = m_LastFlushEvent;
-		m_Device.GetCommandListPool(m_Type)->ReturnCommandList(pending);
+		device.GetCommandListPool(m_Type)->ReturnCommandList(pending);
 
 		m_CommandListsToSubmit.clear();
 
