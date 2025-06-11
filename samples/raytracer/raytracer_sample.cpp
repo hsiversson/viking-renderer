@@ -68,7 +68,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 	//Init cube resources: shaders, root signature, pso, material, mesh, model... (probably we can move all this later to the "app")
 	Ref<Render::Shader> VS = device->CreateShader("content/shaders/simpleforwardtestVS.hlsl", L"MainVS", vkr::Render::SHADER_STAGE_VERTEX, vkr::Render::ShaderModel::SM_6_0);
 	Ref<Render::Shader> PS = device->CreateShader("content/shaders/simpleforwardtestPS.hlsl", L"MainPS", vkr::Render::SHADER_STAGE_PIXEL, vkr::Render::ShaderModel::SM_6_0);
-
+	
 	Render::PipelineStateDesc psodesc;
 	psodesc.m_Type = vkr::Render::PIPELINE_STATE_TYPE_DEFAULT;
 	psodesc.Default.m_PrimitiveType = vkr::Render::PRIMITIVE_TYPE_TRIANGLE;

@@ -59,6 +59,7 @@ namespace vkr::Render
 		InitRootSignatures();
 		InitTextureLoaders();
 		InitCommandQueues();
+		InitTempBuffer();
 		return true;
 	}
 
@@ -124,7 +125,8 @@ namespace vkr::Render
 	Ref<Buffer> Device::CreateBuffer(const BufferDesc& desc)
 	{
 		Ref<Buffer> buffer = MakeRef<Buffer>();
-		buffer->Init(desc);
+		if (!buffer->Init(desc))
+			return nullptr;
 		
 		return buffer;
 	}

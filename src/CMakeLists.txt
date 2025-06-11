@@ -22,8 +22,9 @@ add_library(VikingRenderer
 find_package(directx-dxc CONFIG REQUIRED)
 target_link_libraries(VikingRenderer PRIVATE Microsoft::DirectXShaderCompiler)
 
+find_package(directx-headers CONFIG REQUIRED)
 find_package(directx12-agility CONFIG REQUIRED)
-target_link_libraries(VikingRenderer PRIVATE Microsoft::DirectX12-Agility)
+target_link_libraries(VikingRenderer PRIVATE Microsoft::DirectX-Headers Microsoft::DirectX-Guids Microsoft::DirectX12-Agility)
 
 find_package(directxtex CONFIG REQUIRED)
 target_link_libraries(VikingRenderer PRIVATE Microsoft::DirectXTex)

@@ -48,6 +48,7 @@ namespace vkr::Render
 		{
 		case WM_DESTROY:
 			PostQuitMessage(0);
+			break;
 		default:
 			return DefWindowProc(hwnd, Msg, wParam, lParam);
 		}

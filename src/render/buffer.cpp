@@ -38,7 +38,7 @@ namespace vkr::Render
 		bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 		bufferDesc.Flags = desc.bWriteOnGPU ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
 
-		HRESULT hr = GetDevice().GetD3DDevice()->CreateCommittedResource(desc.bWriteOnCPU ? &UploadHeapProps : &DefHeapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&resource));
+		HRESULT hr = GetDevice().GetD3DDevice()->CreateCommittedResource(desc.bWriteOnCPU ? &UploadHeapProps : &DefHeapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&resource));
 		if (FAILED(hr))
 		{
 			return false;

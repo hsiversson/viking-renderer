@@ -17,6 +17,9 @@ namespace vkr::Graphics
 
 	void ModelObject::CollectRenderObjects(ViewRenderData& renderdata)
 	{
+		if (!m_Model)
+			return;
+
 		for (const auto& part : m_Model->GetParts())
 		{
 			Graphics::RenderObject obj;

@@ -16,3 +16,9 @@ add_custom_command(TARGET Raytracer POST_BUILD
     "${VCPKG_DLL_DIR}"
     $<TARGET_FILE_DIR:Raytracer>
 )
+
+find_package(directx12-agility CONFIG REQUIRED)
+add_custom_command(TARGET Raytracer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PROPERTY:Microsoft::DirectX12-Layers,IMPORTED_LOCATION_DEBUG> 
+    $<TARGET_FILE_DIR:Raytracer>
+)

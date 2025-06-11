@@ -18,6 +18,7 @@ if not exist "vcpkg" (
 	cd ..
 )
 :: INSTALL_DEPENDENCIES
+vcpkg\vcpkg.exe install directx-headers
 vcpkg\vcpkg.exe install directx12-agility
 vcpkg\vcpkg.exe install directx-dxc
 vcpkg\vcpkg.exe install directxtex
