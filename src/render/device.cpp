@@ -317,9 +317,24 @@ namespace vkr::Render
 
 	TempBuffer Device::GetTempBuffer(uint32_t byteSize, uint32_t initialDataSize, const void* initialData)
 	{
-		// TODO
-		assert(false);
-		return TempBuffer();
+		auto Align = [](uint32_t value, uint32_t alignment)
+		{
+			return ((value + alignment - 1) / alignment) * alignment;
+		};
+
+		// 256 is mainly for constant buffers though. We should align differently based on buffer usage
+		const uint32_t size = Align(byteSize, 256);
+		assert("TempBuffer is full" && (m_TempBufferCurrentOffset + size) <= m_TempBuffer->GetDesc().ByteSize());
+
+		TempBuffer outTempBuffer;
+		outTempBuffer.m_Buffer = m_TempBuffer.get();		
+		outTempBuffer.m_Offset = m_TempBufferCurrentOffset.fetch_add(size);
+
+		if (initialData)
+		{
+			outTempBuffer.m_Buffer->UploadData(outTempBuffer.m_Offset, initialDataSize, initialData);
+		}
+		return outTempBuffer;
 	}
 
 	Ref<Buffer> Device::CreateTLAS(uint32_t numRtInstanceDescs, RtInstanceDesc* rtInstanceDescs)
@@ -481,6 +496,23 @@ namespace vkr::Render
 	vkr::Ref<vkr::Render::Context> Device::GetContext(ContextType contextType) const
 	{
 		return m_Contexts[contextType];
+	}
+
+	void Device::GarbageCollect()
+	{
+		m_TempBufferCurrentOffset = 0;
+	}
+
+	void Device::InitTempBuffer()
+	{
+		BufferDesc tempBufferDesc = {};
+		tempBufferDesc.bWriteOnCPU = true;
+		tempBufferDesc.bWriteOnGPU = false;
+		tempBufferDesc.m_ElementCount = 8 * 1024 * 1024; // 8MB should be enough for now
+		tempBufferDesc.m_ElementSize = 1;
+		tempBufferDesc.m_Format = FORMAT_UNKNOWN;
+		m_TempBuffer = CreateBuffer(tempBufferDesc);
+		m_TempBufferCurrentOffset = 0;
 	}
 
 }

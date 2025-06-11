@@ -131,6 +131,8 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 		scene.PrepareView(*view);
 		viewRenderer.RenderView(*view);
 		swapChain->Present();
+
+		device->GarbageCollect();
 		//////////////////////////////////////////////////////////////////////
 	}
 	return 0;

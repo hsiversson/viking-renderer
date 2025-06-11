@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 file(GLOB_RECURSE VKR_GRAPHICS_SOURCES ${VKR_SRC_DIR}/graphics/*.cpp ${VKR_SRC_DIR}/graphics/*.h)
 source_group(Graphics FILES ${VKR_GRAPHICS_SOURCES})
 
-file(GLOB_RECURSE VKR_SHADER_SOURCES ${VKR_SRC_DIR}/../data/shaders/*.hlsl)
+file(GLOB_RECURSE VKR_SHADER_SOURCES ${VKR_SRC_DIR}/../content/shaders/*.hlsl)
 source_group(Shaders FILES ${VKR_SHADER_SOURCES})
 set_source_files_properties(${VKR_SHADER_SOURCES} PROPERTIES HEADER_FILE_ONLY 1)
 

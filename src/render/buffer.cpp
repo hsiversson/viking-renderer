@@ -65,4 +65,25 @@ namespace vkr::Render
 		return m_Desc;
 	}
 
+	void Buffer::UploadData(uint64_t offset, uint32_t byteSize, const void* data)
+	{
+		static constexpr D3D12_RANGE readRange = { 0 };
+		if (m_Desc.bWriteOnCPU)
+		{
+			// should we keep the resource mapped always if write on cpu is true?
+
+			uint8_t* dataPtr;
+			m_Resource->Map(0, &readRange, (void**)&dataPtr);
+			memcpy(dataPtr + offset, data, byteSize);
+			m_Resource->Unmap(0, nullptr);
+		}
+		else
+		{
+			// Create staging buffer
+			// map staging buffer and memcpy data
+			// run copy operation on a Context and execute (potentially wait as well)
+			// discard staging buffer
+		}
+	}
+
 }

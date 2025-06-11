@@ -39,6 +39,8 @@ namespace vkr::Render
 
 		bool Init();
 
+		void GarbageCollect();
+
 		Ref<Context> CreateContext(ContextType contextType);
 		
 		Ref<SwapChain> CreateSwapChain(void* windowHandle, const Vector2u& size);
@@ -69,6 +71,7 @@ namespace vkr::Render
 		void InitTextureLoaders();
 		void InitCommandQueues();
 		void InitDescriptorHeaps();
+		void InitTempBuffer();
 
 		Ref<Buffer> CreateRaytracingAccelerationStructure(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC& buildDesc);
 
@@ -90,6 +93,10 @@ namespace vkr::Render
 
 		std::unordered_map<std::filesystem::path, UniquePtr<TextureLoader>> m_TextureLoaderByExtension;
 		DescriptorHeap* m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+
+		// Temp buffers
+		Ref<Buffer> m_TempBuffer;
+		std::atomic<uint64_t> m_TempBufferCurrentOffset;
 
 		static Device* g_Instance;
 	};

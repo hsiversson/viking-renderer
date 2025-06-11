@@ -8,9 +8,11 @@ namespace vkr::Render
 	{
 		Format m_Format;
 		uint32_t m_ElementSize;
-		unsigned int m_ElementCount;
+		uint32_t m_ElementCount;
 		bool bWriteOnCPU = true;
 		bool bWriteOnGPU = false;
+
+		inline uint32_t ByteSize() const { return m_ElementCount * m_ElementSize; }
 	};
 
 	class Buffer : public Resource
@@ -21,7 +23,7 @@ namespace vkr::Render
 
 		bool Init(const BufferDesc& desc, uint32_t initialDataSize = 0, const void* initialData = nullptr);
 
-		void UploadData(uint32_t byteSize, const void* data);
+		void UploadData(uint64_t offset, uint32_t byteSize, const void* data);
 		void DownloadData();
 
 		bool InitWithData(const void* Data, size_t size);
