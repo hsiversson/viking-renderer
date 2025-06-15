@@ -62,14 +62,14 @@ namespace vkr::Render
 
 	bool ShaderCompiler::CompileFromFile(Shader& outShader, const std::filesystem::path& filepath, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel /*= ShaderModel::SM_6_6*/)
 	{
-		std::wstring shaderSource = UTF8ToUTF16(ReadFileToString(filepath));
+		std::string shaderSource = ReadFileToString(filepath);
 		return CompileFromMemory(outShader, shaderSource, entryPoint, stage, shaderModel);
 	}
 
-	bool ShaderCompiler::CompileFromMemory(Shader& outShader, const std::wstring& shaderSource, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel /*= ShaderModel::SM_6_6*/)
+	bool ShaderCompiler::CompileFromMemory(Shader& outShader, const std::string& shaderSource, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel /*= ShaderModel::SM_6_6*/)
 	{
 		ComPtr<IDxcBlobEncoding> sourceBlob;
-		HRESULT hr = m_Utils->CreateBlob((LPBYTE)shaderSource.data(), static_cast<UINT32>(shaderSource.size() * sizeof(wchar_t)), DXC_CP_UTF16, sourceBlob.GetAddressOf());
+		HRESULT hr = m_Utils->CreateBlob((LPBYTE)shaderSource.data(), static_cast<UINT32>(shaderSource.size()), DXC_CP_UTF8, sourceBlob.GetAddressOf());
 		if (FAILED(hr)) 
 		{
 			// Create blob failed

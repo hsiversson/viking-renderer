@@ -59,10 +59,10 @@ namespace vkr::Render
 		void DispatchThreads(const Vector3u& threads);
 		void DispatchThreads(Ref<PipelineState> pipelineState, const Vector3u& threads);
 		void BindPSO(Ref<PipelineState> pipelineState);
-		void BindRootConstantBuffers(std::vector<Buffer*> buffers);
-		void BindVertexBuffers(std::vector<Ref<Buffer>> vertexbuffers);
+		void BindRootConstantBuffers(Buffer** buffers, size_t bufferCount, uint64_t* offsets = nullptr);
+		void BindVertexBuffers(Ref<Buffer>* vertexbuffers, size_t vertexbuffercount);
 		void BindIndexBuffer(Ref<Buffer> indexbuffer);
-		void BindRenderTargets(std::vector<Ref<ResourceDescriptor>> rtdescriptors);
+		void BindRenderTargets(Ref<ResourceDescriptor>* rtdescriptors, size_t descriptorCount);
 		void SetDepthStencil(Ref<ResourceDescriptor> dsdescriptor);
 
 		void TextureBarrier(uint32_t numBarriers, const TextureBarrierDesc* barrierDescs);
@@ -82,6 +82,7 @@ namespace vkr::Render
 			RootSignature* m_RootSignature = nullptr;
 			Ref<PipelineState> m_PipelineState = nullptr;
 			std::vector<Buffer*> m_RootCB;
+			std::vector<uint64_t> m_RootCBOffsets;
 			std::vector<Ref<ResourceDescriptor>> m_RenderTargets;
 			Ref<ResourceDescriptor> m_DepthStencil;
 		};

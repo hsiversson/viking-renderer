@@ -40,7 +40,7 @@ namespace vkr::Render
 		break;
 		case PIPELINE_STATE_TYPE_DEFAULT:
 		{
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsDesc;
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsDesc = {};
 
 			std::vector<D3D12_INPUT_ELEMENT_DESC> inputElements;
 			for (auto& attrib : desc.Default.m_VertexLayout.m_Attributes)
@@ -94,11 +94,12 @@ namespace vkr::Render
 			graphicsDesc.SampleMask = UINT_MAX;
 			graphicsDesc.PrimitiveTopologyType = D3DConvertPrimitiveType(desc.Default.m_PrimitiveType);
 			
+			graphicsDesc.NumRenderTargets = 0;
 			for (uint32_t i = 0; i < MAX_NUM_RENDER_TARGETS; i++)
 			{
 				if (desc.Default.m_RenderTargetState.m_Formats[i] != FORMAT_UNKNOWN)
 				{
-					graphicsDesc.RTVFormats[0] = D3DConvertFormat(desc.Default.m_RenderTargetState.m_Formats[i]);
+					graphicsDesc.RTVFormats[i] = D3DConvertFormat(desc.Default.m_RenderTargetState.m_Formats[i]);
 					++graphicsDesc.NumRenderTargets;
 
 				}
@@ -108,6 +109,8 @@ namespace vkr::Render
 			hr = device->CreateGraphicsPipelineState(&graphicsDesc, IID_PPV_ARGS(&m_PipelineState));
 			if (FAILED(hr))
 			{
+				_com_error err(hr);
+				OutputDebugString(err.ErrorMessage());
 				return false;
 			}
 		}

@@ -46,4 +46,34 @@ namespace vkr::Graphics
 		bool m_IsRendering;
 		bool m_IsPrimary;
 	};
+
+	struct PrepareViewContext
+	{
+		PrepareViewContext(View& view) : m_View(view)
+		{
+			m_View.BeginPrepare();
+		}
+
+		~PrepareViewContext()
+		{
+			m_View.EndPrepare();
+		}
+
+		View& m_View;
+	};
+
+	struct RenderViewContext
+	{
+		RenderViewContext(View& view) : m_View(view)
+		{
+			m_View.BeginRender();
+		}
+
+		~RenderViewContext()
+		{
+			m_View.EndRender();
+		}
+
+		View& m_View;
+	};
 }

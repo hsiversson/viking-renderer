@@ -88,9 +88,14 @@ namespace vkr::Render
 		m_StateUpdate = true;
 	}
 
-	void Context::BindRootConstantBuffers(std::vector<Buffer*> buffers)
+	void Context::BindRootConstantBuffers(Buffer** buffers, size_t bufferCount, uint64_t* offsets)
 	{
-		NewState.m_RootCB = buffers;
+		NewState.m_RootCB = std::vector<Buffer*>(buffers, buffers+bufferCount);
+		NewState.m_RootCBOffsets.empty();
+		if (offsets)
+		{
+			NewState.m_RootCBOffsets = std::vector<uint64_t>(offsets, offsets + bufferCount);
+		}
 		m_StateUpdate = true;
 	}
 
@@ -245,8 +250,15 @@ namespace vkr::Render
 				auto buffer = NewState.m_RootCB[i];
 				if ((CurrentState.m_RootCB.size() <= i) || (CurrentState.m_RootCB[i] != buffer))
 				{
+					bool bIsCompute = NewState.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE;
+					D3D12_GPU_VIRTUAL_ADDRESS addr = buffer->GetD3DResource()->GetGPUVirtualAddress();
+					if (!NewState.m_RootCBOffsets.empty())
+						addr += NewState.m_RootCBOffsets[i];
 					//Aditional buffer bound or different buffer bound at a previously bound slot
-					m_CurrentD3DCommandList->SetComputeRootConstantBufferView(i, buffer->GetD3DResource()->GetGPUVirtualAddress());
+					if (bIsCompute)
+						m_CurrentD3DCommandList->SetComputeRootConstantBufferView(i, addr);
+					else
+						m_CurrentD3DCommandList->SetGraphicsRootConstantBufferView(i, addr);
 				}
 			}
 
@@ -274,8 +286,9 @@ namespace vkr::Render
 		return m_Type;
 	}
 
-	void Context::BindRenderTargets(std::vector<Ref<ResourceDescriptor>> rtdescriptors)
+	void Context::BindRenderTargets(Ref<ResourceDescriptor>* descriptors, size_t descriptorsCount)
 	{
+		std::vector<Ref<ResourceDescriptor>> rtdescriptors(descriptors, descriptors + descriptorsCount);
 		if (NewState.m_RenderTargets != rtdescriptors)
 		{
 			NewState.m_RenderTargets = rtdescriptors;
@@ -294,8 +307,9 @@ namespace vkr::Render
 		}
 	}
 
-	void Context::BindVertexBuffers(std::vector<Ref<Buffer>> vertexbuffers)
+	void Context::BindVertexBuffers(Ref<Buffer>* buffers, size_t buffercount)
 	{
+		std::vector<Ref<Buffer>> vertexbuffers(buffers, buffers + buffercount);
 		if (NewState.m_VertexBuffers != vertexbuffers)
 		{
 			NewState.m_VertexBuffers = vertexbuffers;

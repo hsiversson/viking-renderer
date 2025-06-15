@@ -66,8 +66,8 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 		return 1;
 
 	//Init cube resources: shaders, root signature, pso, material, mesh, model... (probably we can move all this later to the "app")
-	Ref<Render::Shader> VS = device->CreateShader("content/shaders/simpleforwardtestVS.hlsl", L"MainVS", vkr::Render::SHADER_STAGE_VERTEX, vkr::Render::ShaderModel::SM_6_0);
-	Ref<Render::Shader> PS = device->CreateShader("content/shaders/simpleforwardtestPS.hlsl", L"MainPS", vkr::Render::SHADER_STAGE_PIXEL, vkr::Render::ShaderModel::SM_6_0);
+	Ref<Render::Shader> VS = device->CreateShader("../../../content/shaders/simpleforwardtestVS.hlsl", L"MainVS", vkr::Render::SHADER_STAGE_VERTEX, vkr::Render::ShaderModel::SM_6_0);
+	Ref<Render::Shader> PS = device->CreateShader("../../../content/shaders/simpleforwardtestPS.hlsl", L"MainPS", vkr::Render::SHADER_STAGE_PIXEL, vkr::Render::ShaderModel::SM_6_0);
 	
 	Render::PipelineStateDesc psodesc;
 	psodesc.m_Type = vkr::Render::PIPELINE_STATE_TYPE_DEFAULT;
@@ -94,6 +94,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 	camera->SetupPerspective(std::numbers::pi / 2.0f, 1280/720, 1, 2000);
 	Graphics::Scene scene;
 	Ref<Graphics::ModelObject> modelinst = MakeRef<Graphics::ModelObject>();
+	modelinst->SetModel(cube);
 	scene.AddObject(modelinst);
 	Ref<Graphics::View> view = scene.CreateView();
 	/////////////////////////////////////////////////////////////////////////////////////////////

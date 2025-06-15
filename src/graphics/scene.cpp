@@ -38,7 +38,7 @@ namespace vkr::Graphics
 	void Scene::PrepareView(View& view)
 	{
 		// traverse all objects in Scene, add relevant ones to view.PrepareData()
-
+		PrepareViewContext prepareViewCtx(view);
 		ViewRenderData& prepareData = view.GetPrepareData();
 
 		for (const auto& object : m_SceneObjects)

@@ -28,6 +28,7 @@ namespace vkr::Graphics
 
 	void ViewRenderer::RenderView(View& view)
 	{
+		RenderViewContext renderViewCtx(view);
 		//Lets just do a simple forward render for now
 		ForwardPass(view);
 		//
@@ -45,21 +46,39 @@ namespace vkr::Graphics
 	{
 		const ViewRenderData& renderData = view.GetRenderData();
 		Ref<vkr::Render::Context> ctx = m_Device->GetContext(vkr::Render::CONTEXT_TYPE_GRAPHICS);
+		ctx->Begin();
 		std::vector<vkr::Ref<vkr::Render::ResourceDescriptor>> rendertargets;
 
 		rendertargets.push_back(view.GetOutputTarget());
-		ctx->BindRenderTargets(rendertargets);
+		ctx->BindRenderTargets(rendertargets.data(), rendertargets.size());
 
 		for (auto& mesh : renderData.m_VisibleMeshes)
 		{
 			std::vector<vkr::Ref<vkr::Render::Buffer>> vertexbuffers;
 			vertexbuffers.push_back(mesh.m_Mesh->GetVertexBuffer());
-			ctx->BindVertexBuffers(vertexbuffers);
+			ctx->BindVertexBuffers(vertexbuffers.data(), vertexbuffers.size());
 			ctx->BindIndexBuffer(mesh.m_Mesh->GetIndexBuffer());
 			ctx->BindPSO(mesh.m_Material->GetPipelineState());
-			//ctx->BindRootConstantBuffers();  //Where do we get the constant buffers from?
-		}
 
+			struct alignas(16) ConstantData 
+			{
+				Mat44 ViewProjection; // 64 bytes
+				Mat44 World; // 64 bytes
+				Vector4f Color; // 16 bytes
+			};
+			ConstantData data;
+			data.ViewProjection = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
+			data.World = mesh.m_Transform;
+			data.Color = Vector4f(1, 0, 0, 0);
+
+			auto cbuffer = m_Device->GetTempBuffer(sizeof(ConstantData),sizeof(data), (void*)&data);
+			std::vector<vkr::Render::Buffer*> buffers;
+			std::vector<uint64_t> offsets;
+			buffers.push_back(cbuffer.m_Buffer);
+			offsets.push_back(cbuffer.m_Offset);
+			ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
+		}
+		ctx->End();
 		ctx->Flush();
 	}
 
