@@ -55,9 +55,15 @@ namespace vkr::Render
 		void End();
 		Event Flush();
 
+		// Compute
 		void Dispatch(const Vector3u& Groups);
 		void DispatchThreads(const Vector3u& threads);
 		void DispatchThreads(Ref<PipelineState> pipelineState, const Vector3u& threads);
+
+		//Draw
+		void DrawIndexed(uint32_t StartIndex, uint32_t StartVertex);
+
+		//Render state
 		void BindPSO(Ref<PipelineState> pipelineState);
 		void BindRootConstantBuffers(Buffer** buffers, size_t bufferCount, uint64_t* offsets = nullptr);
 		void BindVertexBuffers(Ref<Buffer>* vertexbuffers, size_t vertexbuffercount);
@@ -65,6 +71,7 @@ namespace vkr::Render
 		void BindRenderTargets(Ref<ResourceDescriptor>* rtdescriptors, size_t descriptorCount);
 		void SetDepthStencil(Ref<ResourceDescriptor> dsdescriptor);
 
+		//Barrier
 		void TextureBarrier(uint32_t numBarriers, const TextureBarrierDesc* barrierDescs);
 		void TextureBarrier(const TextureBarrierDesc& barrierDesc);
 		void BufferBarrier(uint32_t numBarriers, const BufferBarrierDesc* barrierDescs);

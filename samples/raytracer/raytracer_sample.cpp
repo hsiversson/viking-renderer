@@ -61,6 +61,17 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	// These things should probably be encapsulated in some form of "application" class
 	Ref<Render::SwapChain> swapChain = device->CreateSwapChain(window.GetNativeHandle(), { 1280, 720 });
+	Render::TextureDesc depthStencilDesc;
+	depthStencilDesc.Dimension = 2;
+	depthStencilDesc.Size = { 1280,720,0 };
+	depthStencilDesc.bUseMips = false;
+	depthStencilDesc.bDepthStencil = true;
+	depthStencilDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	Ref<Render::Texture> depthStencil = device->CreateTexture(depthStencilDesc);
+	Render::ResourceDescriptorDesc dsDesc;
+	dsDesc.Type = Render::ResourceDescriptorType::DSV;
+	dsDesc.TextureDesc.Mip = 0;
+	Ref<Render::ResourceDescriptor> dsDescriptor = device->GetOrCreateDescriptor(depthStencil.get(), dsDesc);
 	Graphics::ViewRenderer viewRenderer;
 	if (!viewRenderer.Init(device))
 		return 1;
@@ -97,6 +108,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 	modelinst->SetModel(cube);
 	scene.AddObject(modelinst);
 	Ref<Graphics::View> view = scene.CreateView();
+	view->SetDepthStencil(dsDescriptor);
 	/////////////////////////////////////////////////////////////////////////////////////////////
 
 	// Should we encapsulate this loop to accommodate different sample apps?

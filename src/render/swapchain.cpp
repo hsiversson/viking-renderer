@@ -33,7 +33,13 @@ namespace vkr::Render
 		DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc = {};
 		fullscreenDesc.Windowed = true;
 
-		GetDevice().GetDXGIFactory()->CreateSwapChainForHwnd(m_CommandQueue->GetD3DCommandQueue(), (HWND)nativeWindowHandle, &desc, &fullscreenDesc, nullptr, &m_SwapChain);
+		HRESULT hr = GetDevice().GetDXGIFactory()->CreateSwapChainForHwnd(m_CommandQueue->GetD3DCommandQueue(), (HWND)nativeWindowHandle, &desc, &fullscreenDesc, nullptr, &m_SwapChain);
+		if (FAILED(hr))
+		{
+			OutputDebugStringW(L"SwapChain creation failed.");
+			return false;
+		}
+
 		m_SwapChain.As(&m_SwapChain4);
 
 		ComPtr<IDXGIOutput> output;

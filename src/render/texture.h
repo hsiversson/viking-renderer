@@ -6,12 +6,13 @@ namespace vkr::Render
 {
 	struct TextureDesc
 	{
-		int Dimension;
-		Vector3i Size;
-		int ArraySize;
-		DXGI_FORMAT Format;
+		int Dimension = 2;
+		Vector3i Size = {1,1,0};
+		int ArraySize = 1;
+		DXGI_FORMAT Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		bool bWriteable = false;
-		bool bUseMips;
+		bool bUseMips = true;
+		bool bDepthStencil = false;
 	};
 
 	struct TextureData

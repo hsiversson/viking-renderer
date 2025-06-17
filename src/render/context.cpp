@@ -214,6 +214,22 @@ namespace vkr::Render
 	{
 		if (m_StateUpdate)
 		{
+			if (CurrentState.m_PipelineState != NewState.m_PipelineState)
+			{
+				m_CurrentD3DCommandList->SetPipelineState(NewState.m_PipelineState->GetD3DPipelineState());
+			}
+			if (CurrentState.m_RootSignature != NewState.m_RootSignature)
+			{
+				if (NewState.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE)
+				{
+					m_CurrentD3DCommandList->SetComputeRootSignature(NewState.m_RootSignature->GetD3DRootSignature());
+				}
+				else if (NewState.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_DEFAULT)
+				{
+					m_CurrentD3DCommandList->SetGraphicsRootSignature(NewState.m_RootSignature->GetD3DRootSignature());
+				}
+			}
+
 			if (CurrentState.m_VertexBuffers != NewState.m_VertexBuffers)
 			{
 				std::vector<D3D12_VERTEX_BUFFER_VIEW> bufferviews;
@@ -236,14 +252,7 @@ namespace vkr::Render
 				view.Format = NewState.m_IndexBuffer->GetDesc().m_ElementSize == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
 				m_CurrentD3DCommandList->IASetIndexBuffer(&view);
 			}
-			if (CurrentState.m_PipelineState != NewState.m_PipelineState)
-			{
-				m_CurrentD3DCommandList->SetPipelineState(NewState.m_PipelineState->GetD3DPipelineState());
-			}
-			if (CurrentState.m_RootSignature != NewState.m_RootSignature)
-			{
-				m_CurrentD3DCommandList->SetComputeRootSignature(NewState.m_RootSignature->GetD3DRootSignature());
-			}
+			
 
 			for (int i = 0; i < NewState.m_RootCB.size(); i++)
 			{
@@ -325,4 +334,11 @@ namespace vkr::Render
 			m_StateUpdate = true;
 		}
 	}
+
+	void Context::DrawIndexed(uint32_t StartIndex, uint32_t StartVertex)
+	{
+		UpdateState();
+		m_CurrentD3DCommandList->DrawIndexedInstanced(CurrentState.m_IndexBuffer->GetDesc().m_ElementCount, 1, StartIndex, StartVertex, 0);
+	}
+
 }

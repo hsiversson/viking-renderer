@@ -32,10 +32,17 @@ namespace vkr::Render
 		D3D12_RESOURCE_DESC TextureDesc;
 		TextureDesc.Dimension = desc.Dimension == 1 ? D3D12_RESOURCE_DIMENSION_TEXTURE1D : (desc.Dimension == 2 ? D3D12_RESOURCE_DIMENSION_TEXTURE2D : D3D12_RESOURCE_DIMENSION_TEXTURE3D);
 		TextureDesc.Format = desc.Format;
+		TextureDesc.Width = desc.Size.x;
+		TextureDesc.Height = desc.Size.y;
+		TextureDesc.DepthOrArraySize = desc.Dimension > 2 ? desc.Size.z : desc.ArraySize;
 		TextureDesc.MipLevels = MipLevels;
 		TextureDesc.Alignment = 0;
-		TextureDesc.DepthOrArraySize = desc.ArraySize;
-		TextureDesc.Flags = desc.bWriteable ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
+		D3D12_RESOURCE_FLAGS Flags = D3D12_RESOURCE_FLAG_NONE;
+		if (desc.bWriteable)
+			Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+		if (desc.bDepthStencil)
+			Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+		TextureDesc.Flags = Flags;
 		TextureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 		TextureDesc.SampleDesc.Count = 1;
 		TextureDesc.SampleDesc.Quality = 0;

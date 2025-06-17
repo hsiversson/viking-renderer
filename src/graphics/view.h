@@ -30,6 +30,9 @@ namespace vkr::Graphics
 		void SetOutputTarget(Ref<vkr::Render::ResourceDescriptor> outputdescriptor) { m_OutputDescriptor = outputdescriptor; }
 		Ref<vkr::Render::ResourceDescriptor> GetOutputTarget() { return m_OutputDescriptor; }
 
+		void SetDepthStencil(Ref<Render::ResourceDescriptor> dsDescriptor) { m_DSDescriptor = dsDescriptor; }
+		Ref<vkr::Render::ResourceDescriptor> GetDepthStencil() { return m_DSDescriptor; }
+
 		void SetPrimary(bool value);
 
 		bool IsPrimary() const;
@@ -42,6 +45,7 @@ namespace vkr::Graphics
 
 		Camera m_Camera;
 		Ref<vkr::Render::ResourceDescriptor> m_OutputDescriptor;
+		Ref<vkr::Render::ResourceDescriptor> m_DSDescriptor;
 
 		bool m_IsRendering;
 		bool m_IsPrimary;

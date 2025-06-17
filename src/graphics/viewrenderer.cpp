@@ -51,6 +51,7 @@ namespace vkr::Graphics
 
 		rendertargets.push_back(view.GetOutputTarget());
 		ctx->BindRenderTargets(rendertargets.data(), rendertargets.size());
+		ctx->SetDepthStencil(view.GetDepthStencil());
 
 		for (auto& mesh : renderData.m_VisibleMeshes)
 		{
@@ -77,6 +78,7 @@ namespace vkr::Graphics
 			buffers.push_back(cbuffer.m_Buffer);
 			offsets.push_back(cbuffer.m_Offset);
 			ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
+			ctx->DrawIndexed(0, 0);
 		}
 		ctx->End();
 		ctx->Flush();
