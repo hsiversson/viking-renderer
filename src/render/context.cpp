@@ -92,7 +92,7 @@ namespace vkr::Render
 	void Context::BindRootConstantBuffers(Buffer** buffers, size_t bufferCount, uint64_t* offsets)
 	{
 		NewState.m_RootCB = std::vector<Buffer*>(buffers, buffers+bufferCount);
-		NewState.m_RootCBOffsets.empty();
+		NewState.m_RootCBOffsets.clear();
 		if (offsets)
 		{
 			NewState.m_RootCBOffsets = std::vector<uint64_t>(offsets, offsets + bufferCount);

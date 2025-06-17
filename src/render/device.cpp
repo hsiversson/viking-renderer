@@ -269,7 +269,7 @@ namespace vkr::Render
 				}
 				break;
 			}
-
+			descriptor->SetResource(tex);
 			tex->AddDescriptor(hashvalue, descriptor);
 		}
 		return descriptor;
@@ -311,7 +311,7 @@ namespace vkr::Render
 			}
 			break;
 			}
-
+			descriptor->SetResource(buf);
 			buf->AddDescriptor(hashvalue, descriptor);
 		}
 		return descriptor;
