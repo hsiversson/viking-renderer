@@ -51,7 +51,7 @@ namespace vkr::Graphics
 
 		rendertargets.push_back(view.GetOutputTarget());
 		ctx->BindRenderTargets(rendertargets.data(), rendertargets.size());
-		ctx->SetDepthStencil(view.GetDepthStencil());
+		ctx->BindDepthStencil(view.GetDepthStencil());
 
 		for (auto& mesh : renderData.m_VisibleMeshes)
 		{
@@ -59,6 +59,7 @@ namespace vkr::Graphics
 			vertexbuffers.push_back(mesh.m_Mesh->GetVertexBuffer());
 			ctx->BindVertexBuffers(vertexbuffers.data(), vertexbuffers.size());
 			ctx->BindIndexBuffer(mesh.m_Mesh->GetIndexBuffer());
+			ctx->SetPrimitiveTopology(mesh.m_Mesh->GetTopology());
 			ctx->BindPSO(mesh.m_Material->GetPipelineState());
 
 			struct alignas(16) ConstantData 

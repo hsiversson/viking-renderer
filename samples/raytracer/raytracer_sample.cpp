@@ -87,8 +87,8 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 	psodesc.Default.m_VertexShader = VS.get();
 	psodesc.Default.m_PixelShader = PS.get();
 	psodesc.Default.m_RasterizerState = { vkr::Render::FACE_CULL_MODE_BACK, true, false, false};
-	psodesc.Default.m_RenderTargetState = { {vkr::Render::Format::FORMAT_RGBA8_UNORM_SRGB} };
-	psodesc.Default.m_DepthStencilState = { true, true, vkr::Render::COMPARISON_FUNC_LESS };
+	psodesc.Default.m_RenderTargetState = { {vkr::Render::Format::FORMAT_RGB10A2_UNORM} };
+	psodesc.Default.m_DepthStencilState = { true, true, vkr::Render::COMPARISON_FUNC_LESS, Render::Format::FORMAT_D32_FLOAT };
 	psodesc.Default.m_BlendState.m_D3DBlendDesc = CreateDefaultBlendDesc();
 	Ref<vkr::Render::PipelineState> cubemainpso = device->CreatePipelineState(psodesc);
 	Ref<Graphics::Material> cubematerial = MakeRef<Graphics::Material>();

@@ -24,9 +24,11 @@ namespace vkr::Graphics
 
 		bool Init(const MeshDesc& desc);
 		void SetVertexBuffer(Ref<Render::Buffer> vtxbuffer) { m_VertexBuffer = vtxbuffer; }
-		void SetIndexBuffer(Ref<Render::Buffer> idxbuffer) { m_VertexBuffer = idxbuffer; }
+		void SetIndexBuffer(Ref<Render::Buffer> idxbuffer) { m_IndexBuffer = idxbuffer; }
+		void SetTopology(Render::PrimitiveTopology topologyType) { m_Topology = topologyType; }
 		Ref<Render::Buffer> GetVertexBuffer() const { return m_VertexBuffer; }
 		Ref<Render::Buffer>  GetIndexBuffer() const { return m_IndexBuffer; }
+		Render::PrimitiveTopology GetTopology() const { return m_Topology; }
 
 	private:
 		bool InitVertexBuffer(const MeshDesc& desc);
@@ -34,6 +36,7 @@ namespace vkr::Graphics
 
 		Ref<Render::Buffer> m_VertexBuffer;
 		Ref<Render::Buffer> m_IndexBuffer;
+		Render::PrimitiveTopology m_Topology;
 
 		//Ref<Render::Buffer> m_BLAS;
 	};

@@ -90,6 +90,7 @@ namespace vkr::Render
 				graphicsDesc.DepthStencilState.DepthWriteMask = depthStencilState.m_WriteDepth ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
 				graphicsDesc.DepthStencilState.DepthFunc = D3DConvertComparisonFunc(depthStencilState.m_ComparisonFunc);
 				graphicsDesc.DepthStencilState.StencilEnable = false;
+				graphicsDesc.DSVFormat = D3DConvertFormat(desc.Default.m_DepthStencilState.m_DSFormat);
 			}
 			graphicsDesc.SampleMask = UINT_MAX;
 			graphicsDesc.PrimitiveTopologyType = D3DConvertPrimitiveType(desc.Default.m_PrimitiveType);

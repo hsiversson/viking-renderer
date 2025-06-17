@@ -12,6 +12,9 @@ namespace vkr::Render
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE D3DConvertPrimitiveType(PrimitiveType primitiveType);
 	PrimitiveType D3DConvertPrimitiveType(D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveType);
 
+	D3D12_PRIMITIVE_TOPOLOGY D3DConvertPrimitiveTopology(PrimitiveTopology topologyType);
+	PrimitiveTopology D3DConvertPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY topologyType);
+
 	D3D12_BARRIER_ACCESS D3DConvertResourceStateAccess(ResourceStateAccess access);
 	ResourceStateAccess D3DConvertResourceStateAccess(D3D12_BARRIER_ACCESS access);
 

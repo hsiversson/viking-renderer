@@ -69,7 +69,8 @@ namespace vkr::Render
 		void BindVertexBuffers(Ref<Buffer>* vertexbuffers, size_t vertexbuffercount);
 		void BindIndexBuffer(Ref<Buffer> indexbuffer);
 		void BindRenderTargets(Ref<ResourceDescriptor>* rtdescriptors, size_t descriptorCount);
-		void SetDepthStencil(Ref<ResourceDescriptor> dsdescriptor);
+		void BindDepthStencil(Ref<ResourceDescriptor> dsdescriptor);
+		void SetPrimitiveTopology(PrimitiveTopology topologyType);
 
 		//Barrier
 		void TextureBarrier(uint32_t numBarriers, const TextureBarrierDesc* barrierDescs);
@@ -84,6 +85,7 @@ namespace vkr::Render
 	private:
 		struct DrawState
 		{
+			PrimitiveTopology m_Topology;
 			std::vector<Ref<Buffer>> m_VertexBuffers;
 			Ref<Buffer> m_IndexBuffer;
 			RootSignature* m_RootSignature = nullptr;

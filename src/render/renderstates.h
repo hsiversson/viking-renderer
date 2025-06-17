@@ -48,6 +48,7 @@ namespace vkr::Render
 		bool m_Enabled;
 		bool m_WriteDepth;
 		ComparisonFunc m_ComparisonFunc;
+		Format m_DSFormat;
 	};
 
 	struct RenderTargetState

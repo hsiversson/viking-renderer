@@ -31,6 +31,7 @@ namespace vkr
 		auto mesh = MakeRef<Graphics::Mesh>();
 		mesh->SetVertexBuffer(vtxbuffer);
 		mesh->SetIndexBuffer(idxbuffer);
+		mesh->SetTopology(Render::PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		return mesh;
 	}
 }

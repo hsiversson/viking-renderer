@@ -39,6 +39,7 @@ namespace vkr::Render
 		m_CurrentD3DCommandList7 = nullptr;
 		m_CurrentD3DCommandList = nullptr;
 		m_CommandList = nullptr;
+		CurrentState = {};
 	}
 
 	Event Context::Flush()
@@ -252,7 +253,10 @@ namespace vkr::Render
 				view.Format = NewState.m_IndexBuffer->GetDesc().m_ElementSize == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
 				m_CurrentD3DCommandList->IASetIndexBuffer(&view);
 			}
-			
+			if (CurrentState.m_Topology != NewState.m_Topology)
+			{
+				m_CurrentD3DCommandList->IASetPrimitiveTopology(D3DConvertPrimitiveTopology(NewState.m_Topology));
+			}
 
 			for (int i = 0; i < NewState.m_RootCB.size(); i++)
 			{
@@ -306,7 +310,7 @@ namespace vkr::Render
 		}
 	}
 
-	void Context::SetDepthStencil(Ref<ResourceDescriptor> dsdescriptor)
+	void Context::BindDepthStencil(Ref<ResourceDescriptor> dsdescriptor)
 	{
 		if (NewState.m_DepthStencil != dsdescriptor)
 		{
@@ -339,6 +343,15 @@ namespace vkr::Render
 	{
 		UpdateState();
 		m_CurrentD3DCommandList->DrawIndexedInstanced(CurrentState.m_IndexBuffer->GetDesc().m_ElementCount, 1, StartIndex, StartVertex, 0);
+	}
+
+	void Context::SetPrimitiveTopology(PrimitiveTopology topologyType)
+	{
+		if (NewState.m_Topology != topologyType)
+		{
+			NewState.m_Topology = topologyType;
+			m_StateUpdate = true;
+		}
 	}
 
 }
