@@ -9,6 +9,7 @@
 #include "utils/types.h"
 #include "utils/commandline.h"
 #include "utils/meshutils.h"
+#include "utils/timer.h"
 
 #include "render/window.h"
 #include "render/device.h"
@@ -89,7 +90,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 	psodesc.Default.m_PixelShader = PS.get();
 	psodesc.Default.m_RasterizerState = { vkr::Render::FACE_CULL_MODE_BACK, true, false, false};
 	psodesc.Default.m_RenderTargetState = { {vkr::Render::Format::FORMAT_RGB10A2_UNORM} };
-	psodesc.Default.m_DepthStencilState = { true, true, vkr::Render::COMPARISON_FUNC_GREATER_EQUAL, Render::Format::FORMAT_D32_FLOAT };
+	psodesc.Default.m_DepthStencilState = { true, true, vkr::Render::COMPARISON_FUNC_GREATER, Render::Format::FORMAT_D32_FLOAT };
 	psodesc.Default.m_BlendState.m_D3DBlendDesc = CreateDefaultBlendDesc();
 	Ref<vkr::Render::PipelineState> cubemainpso = device->CreatePipelineState(psodesc);
 	Ref<Graphics::Material> cubematerial = MakeRef<Graphics::Material>();
@@ -101,9 +102,9 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 	cube->AddPart(part);
 
 	Ref<Graphics::Camera> camera = MakeRef<Graphics::Camera>();
-	Mat43 camtransform(Mat33::Identity, Vector3f(0,0,-2.0f));
+	Mat43 camtransform(Mat33::Identity, Vector3f(0,0.0f,-2.0f));
 	camera->SetLocalTransform(camtransform);
-	camera->SetupPerspective(std::numbers::pi / 2.0f, (float)windowSize.x / (float)windowSize.y, 1.0f, 1000.0f);
+	camera->SetupPerspective(std::numbers::pi / 2.0f, (float)windowSize.x / (float)windowSize.y, 0.1f, 1000.0f);
 	Graphics::Scene scene;
 	Ref<Graphics::ModelObject> modelinst = MakeRef<Graphics::ModelObject>();
 	modelinst->SetModel(cube);
@@ -113,6 +114,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 	/////////////////////////////////////////////////////////////////////////////////////////////
 
 	// Should we encapsulate this loop to accommodate different sample apps?
+	vkr::ElapsedTimer timer;
 	bool running = true;
 	while (running)
 	{
@@ -129,12 +131,15 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 			DispatchMessage(&msg);
 		}
 
+		timer.Tick();
 		// app.Update();
 
 		//////////////////////////////////////////////////////////////////////
 		// These should probably also move into whatever app class we build
 		//gameworld->Update()
 		view->SetCamera(*camera);
+
+		modelinst->SetLocalTransform(vkr::Mat43(vkr::Mat33::CreateRotationZ(timer.ElapsedTime()), Vector3f(0,std::sin(timer.ElapsedTime()), 0)));
 
 		Ref<vkr::Render::Texture> backbuffer = swapChain->GetOutputTexture();
 		Render::ResourceDescriptorDesc rtdesc;
