@@ -3,30 +3,65 @@
 #include "render/buffer.h"
 #include "render/device.h"
 
-constexpr float cubeVtx[] = { -1, -1, -1, 1, -1, -1, -1, 1, -1, 1, 1, -1,
-							 -1, -1,  1, 1, -1,  1, -1, 1,  1, 1, 1,  1 };
-
-constexpr short cubeIdx[] = { 4, 6, 0, 2, 0, 6, 0, 1, 4, 5, 4, 1,
-							 0, 2, 1, 3, 1, 2, 1, 3, 5, 7, 5, 3,
-							 2, 6, 3, 7, 3, 6, 4, 5, 6, 7, 6, 5 };
-
 namespace vkr
 {
+	constexpr Vector3f DefaultCubeVertices[] = 
+	{ 
+		// Front face
+		Vector3f(-0.5f, -0.5f, -0.5f), 
+		Vector3f(-0.5f,  0.5f, -0.5f), 
+		Vector3f( 0.5f,  0.5f, -0.5f), 
+		Vector3f( 0.5f, -0.5f, -0.5f),
+
+		// Back face
+		Vector3f(-0.5f, -0.5f,  0.5f), 
+		Vector3f(-0.5f,  0.5f,  0.5f), 
+		Vector3f( 0.5f,  0.5f,  0.5f),
+		Vector3f( 0.5f, -0.5f,  0.5f) 
+	};
+
+	constexpr uint16_t DefaultCubeIndices[] = 
+	{
+		// Front face
+		0, 1, 2,
+		0, 2, 3,
+
+		// Back face
+		4, 6, 5,
+		4, 7, 6,
+
+		// Left face
+		4, 5, 1,
+		4, 1, 0,
+
+		// Right face
+		3, 2, 6,
+		3, 6, 7,
+
+		// Top face
+		1, 5, 6,
+		1, 6, 2,
+
+		// Bottom face
+		4, 0, 3,
+		4, 3, 7
+	};
+
 	Ref<Graphics::Mesh> vkr::CreateCubeMesh(Ref<Render::Device> device)
 	{
 		Render::BufferDesc vtxbufferdesc;
 		vtxbufferdesc.bWriteOnCPU = true;
-		vtxbufferdesc.m_ElementCount = sizeof(cubeVtx) / sizeof(cubeVtx[0]);
-		vtxbufferdesc.m_ElementSize = sizeof(float);
+		vtxbufferdesc.m_ElementCount = sizeof(DefaultCubeVertices) / sizeof(Vector3f);
+		vtxbufferdesc.m_ElementSize = sizeof(Vector3f);
 		Ref<Render::Buffer> vtxbuffer = device->CreateBuffer(vtxbufferdesc);
-		if (!vtxbuffer || !vtxbuffer->InitWithData((uint8_t*)(&cubeVtx), sizeof(cubeVtx)))
+		if (!vtxbuffer || !vtxbuffer->InitWithData((uint8_t*)(&DefaultCubeVertices), sizeof(DefaultCubeVertices)))
 			return nullptr;
 		Render::BufferDesc idxbufferdesc;
 		idxbufferdesc.bWriteOnCPU = true;
-		idxbufferdesc.m_ElementCount = sizeof(cubeIdx) / sizeof(cubeIdx[0]);
-		idxbufferdesc.m_ElementSize = sizeof(short);
+		idxbufferdesc.m_ElementCount = sizeof(DefaultCubeIndices) / sizeof(uint16_t);
+		idxbufferdesc.m_ElementSize = sizeof(uint16_t);
 		Ref<Render::Buffer> idxbuffer = device->CreateBuffer(idxbufferdesc);
-		if (!idxbuffer || !idxbuffer->InitWithData((uint8_t*)&cubeIdx, sizeof(cubeIdx)))
+		if (!idxbuffer || !idxbuffer->InitWithData((uint8_t*)&DefaultCubeIndices, sizeof(DefaultCubeIndices)))
 			return nullptr;
 		auto mesh = MakeRef<Graphics::Mesh>();
 		mesh->SetVertexBuffer(vtxbuffer);

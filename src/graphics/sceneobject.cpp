@@ -22,6 +22,8 @@ namespace vkr::Graphics
 			auto ParentTransform = parent->GetWorldTransform();
 			m_World = m_Local * ParentTransform;
 		}
+		else
+			m_World = m_Local;
 	}
 
 	void SceneObject::SetLocalTransform(const Mat43& Local)

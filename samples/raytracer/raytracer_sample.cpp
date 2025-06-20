@@ -51,7 +51,8 @@ D3D12_BLEND_DESC CreateDefaultBlendDesc()
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
 	CommandLine::Parse(__argc, __argv);
-	Render::Window window = Render::Window("Raytracer Sample", {1280, 720}, nShowCmd);
+	const Vector2u windowSize = { 1280, 720 };
+	Render::Window window = Render::Window("Raytracer Sample", windowSize, nShowCmd);
 	Ref<Render::Device> device = MakeRef<Render::Device>();
 
 	device->Init();
@@ -60,10 +61,10 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	// These things should probably be encapsulated in some form of "application" class
-	Ref<Render::SwapChain> swapChain = device->CreateSwapChain(window.GetNativeHandle(), { 1280, 720 });
+	Ref<Render::SwapChain> swapChain = device->CreateSwapChain(window.GetNativeHandle(), windowSize);
 	Render::TextureDesc depthStencilDesc;
 	depthStencilDesc.Dimension = 2;
-	depthStencilDesc.Size = { 1280,720,0 };
+	depthStencilDesc.Size = { (int32_t)windowSize.x, (int32_t)windowSize.y, 0 };
 	depthStencilDesc.bUseMips = false;
 	depthStencilDesc.bDepthStencil = true;
 	depthStencilDesc.Format = DXGI_FORMAT_D32_FLOAT;
@@ -88,7 +89,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 	psodesc.Default.m_PixelShader = PS.get();
 	psodesc.Default.m_RasterizerState = { vkr::Render::FACE_CULL_MODE_BACK, true, false, false};
 	psodesc.Default.m_RenderTargetState = { {vkr::Render::Format::FORMAT_RGB10A2_UNORM} };
-	psodesc.Default.m_DepthStencilState = { true, true, vkr::Render::COMPARISON_FUNC_LESS, Render::Format::FORMAT_D32_FLOAT };
+	psodesc.Default.m_DepthStencilState = { true, true, vkr::Render::COMPARISON_FUNC_GREATER_EQUAL, Render::Format::FORMAT_D32_FLOAT };
 	psodesc.Default.m_BlendState.m_D3DBlendDesc = CreateDefaultBlendDesc();
 	Ref<vkr::Render::PipelineState> cubemainpso = device->CreatePipelineState(psodesc);
 	Ref<Graphics::Material> cubematerial = MakeRef<Graphics::Material>();
@@ -100,9 +101,9 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 	cube->AddPart(part);
 
 	Ref<Graphics::Camera> camera = MakeRef<Graphics::Camera>();
-	Mat43 camtransform(Mat33::CreateRotationZ(std::numbers::pi), Vector3f(20,0,0));
+	Mat43 camtransform(Mat33::Identity, Vector3f(0,0,-2.0f));
 	camera->SetLocalTransform(camtransform);
-	camera->SetupPerspective(std::numbers::pi / 2.0f, 1280/720, 1, 2000);
+	camera->SetupPerspective(std::numbers::pi / 2.0f, (float)windowSize.x / (float)windowSize.y, 1.0f, 1000.0f);
 	Graphics::Scene scene;
 	Ref<Graphics::ModelObject> modelinst = MakeRef<Graphics::ModelObject>();
 	modelinst->SetModel(cube);
