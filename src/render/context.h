@@ -82,6 +82,10 @@ namespace vkr::Render
 		void GlobalBarrier(uint32_t numBarriers, const GlobalBarrierDesc* barrierDescs);
 		void GlobalBarrier(const GlobalBarrierDesc& barrierDesc);
 
+		// Clear
+		void ClearRenderTargets(Ref<ResourceDescriptor>* rtvs, size_t numRtvs);
+		void ClearDepthStencil(Ref<ResourceDescriptor> dsv, float clearValue);
+
 		ContextType GetType() const;
 
 	private:

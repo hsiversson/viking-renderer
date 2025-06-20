@@ -30,13 +30,13 @@ namespace vkr::Graphics
 		return GetView() * GetProjection();
 	}
 
-	void Camera::SetupPerspective(float fov, float aspect, float near, float far)
+	void Camera::SetupPerspective(float fov, float aspect, float nearZ, float farZ)
 	{
 		float yscale = 1.0f / tan(fov * 0.5f);
 		float xscale = yscale / aspect;
 
-		float q = near / (near - far);
-		float r = far * near / (near - far);
+		float q = nearZ / (farZ - nearZ);
+		float r = farZ * nearZ / (farZ - nearZ);
 		m_Projection =
 		{ xscale,0,0,0,
 		0,yscale,0,0,
@@ -44,21 +44,21 @@ namespace vkr::Graphics
 		0,0,r,0 };
 	}
 
-	void Camera::SetupOrthographic(float left, float right, float bottom, float top, float near, float far)
+	void Camera::SetupOrthographic(float left, float right, float bottom, float top, float nearZ, float farZ)
 	{
 		float width = right - left;
 		float height = top - bottom;
-		float depth = far - near; // positive
+		float depth = farZ - nearZ; // positive
 
 		float tx = -(left + right) / width;
 		float ty = -(top + bottom) / height;
-		float tz = -far / depth; // inverse depth: near->1, far->0
+		float tz = -farZ / depth; // inverse depth: near->1, far->0
 
 		m_Projection = {
 			2.0f / width,  0.0f,          0.0f,       0.0f,
 			0.0f,          2.0f / height, 0.0f,       0.0f,
 			0.0f,          0.0f,         -1.0f / depth, 0.0f,
-			tx,            ty,           near / depth, 1.0f
+			tx,            ty,           nearZ / depth, 1.0f
 		};
 	}
 

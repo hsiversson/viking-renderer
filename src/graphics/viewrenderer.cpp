@@ -68,8 +68,13 @@ namespace vkr::Graphics
 		}
 		ctx->TextureBarrier(barriers.size(), barriers.data());
 
+
 		std::vector<vkr::Ref<vkr::Render::ResourceDescriptor>> rendertargets;
 		rendertargets.push_back(view.GetOutputTarget());
+
+		ctx->ClearRenderTargets(rendertargets.data(), rendertargets.size());
+		ctx->ClearDepthStencil(view.GetDepthStencil(), 0.0f);
+
 		ctx->BindRenderTargets(rendertargets.data(), rendertargets.size());
 		ctx->BindDepthStencil(view.GetDepthStencil());
 

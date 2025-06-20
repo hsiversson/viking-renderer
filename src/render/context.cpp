@@ -297,6 +297,20 @@ namespace vkr::Render
 		}
 	}
 
+	void Context::ClearRenderTargets(Ref<ResourceDescriptor>* rtvs, size_t numRtvs)
+	{
+		const float clearColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		for (uint32_t i = 0; i < numRtvs; ++i)
+		{
+			m_CurrentD3DCommandList->ClearRenderTargetView(rtvs[i]->GetHandle(), clearColor, 0, nullptr);
+		}
+	}
+
+	void Context::ClearDepthStencil(Ref<ResourceDescriptor> dsv, float clearValue)
+	{
+		m_CurrentD3DCommandList->ClearDepthStencilView(dsv->GetHandle(), D3D12_CLEAR_FLAG_DEPTH, clearValue, 0, 0, nullptr);
+	}
+
 	ContextType Context::GetType() const
 	{
 		return m_Type;
