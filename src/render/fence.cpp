@@ -6,7 +6,7 @@ namespace vkr::Render
 {
 
 	Fence::Fence()
-		: m_Value(0)
+		: m_Value(1)
 	{
 		GetDevice().GetD3DDevice()->CreateFence(m_Value, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
 	}
@@ -18,7 +18,7 @@ namespace vkr::Render
 
 	uint64_t Fence::Increment()
 	{
-		return ++m_Value;
+		return m_Value.fetch_add(1);
 	}
 
 	bool Fence::Wait(uint64_t value, bool block)
@@ -39,7 +39,7 @@ namespace vkr::Render
 
 	bool Fence::IsPending(uint64_t value) const
 	{
-		return value < m_Fence->GetCompletedValue();
+		return value > m_Fence->GetCompletedValue();
 	}
 
 	ID3D12Fence* Fence::GetFence() const

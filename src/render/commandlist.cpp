@@ -29,6 +29,7 @@ namespace vkr::Render
 
 	void CommandList::Open()
 	{
+		m_Allocator->Reset();
 		m_CommandList->Reset(m_Allocator.Get(), nullptr);
 	}
 
@@ -60,6 +61,8 @@ namespace vkr::Render
 
 	Ref<CommandList> CommandListPool::GetCommandList()
 	{
+		CheckPendingCommandLists();
+
 		Ref<CommandList> cmdList;
 		std::unique_lock<std::mutex> lock(m_FreeListMutex);
 		if (m_FreeCommandLists.size() > 0)

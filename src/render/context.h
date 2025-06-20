@@ -71,6 +71,8 @@ namespace vkr::Render
 		void BindRenderTargets(Ref<ResourceDescriptor>* rtdescriptors, size_t descriptorCount);
 		void BindDepthStencil(Ref<ResourceDescriptor> dsdescriptor);
 		void SetPrimitiveTopology(PrimitiveTopology topologyType);
+		void SetViewport(uint32_t offsetX, uint32_t offsetY, uint32_t width, uint32_t height, float depthMin = 0.0f, float depthMax = 1.0f);
+		void SetScissorRect(uint32_t left, uint32_t top, uint32_t right, uint32_t bottom);
 
 		//Barrier
 		void TextureBarrier(uint32_t numBarriers, const TextureBarrierDesc* barrierDescs);

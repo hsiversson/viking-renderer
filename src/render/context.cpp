@@ -123,6 +123,9 @@ namespace vkr::Render
 			barrier.Subresources.NumMipLevels = 0;
 
 			barriers.push_back(barrier);
+			stateTracking.m_CurrentAccess = barrierDesc.m_TargetAccess;
+			stateTracking.m_CurrentLayout = barrierDesc.m_TargetLayout;
+			stateTracking.m_CurrentSync = barrierDesc.m_TargetSync;
 		}
 
 		if (!barriers.empty())
@@ -352,6 +355,28 @@ namespace vkr::Render
 			NewState.m_Topology = topologyType;
 			m_StateUpdate = true;
 		}
+	}
+
+	void Context::SetViewport(uint32_t offsetX, uint32_t offsetY, uint32_t width, uint32_t height, float depthMin /*= 0.0f*/, float depthMax /*= 1.0f*/)
+	{
+		D3D12_VIEWPORT vp;
+		vp.TopLeftX = offsetX;
+		vp.TopLeftY = offsetY;
+		vp.Width = width;
+		vp.Height = height;
+		vp.MinDepth = depthMin;
+		vp.MaxDepth = depthMax;
+		m_CurrentD3DCommandList->RSSetViewports(1, &vp);
+	}
+
+	void Context::SetScissorRect(uint32_t left, uint32_t top, uint32_t right, uint32_t bottom)
+	{
+		D3D12_RECT rect;
+		rect.left = left;
+		rect.top = top;
+		rect.right = right;
+		rect.bottom = bottom;
+		m_CurrentD3DCommandList->RSSetScissorRects(1, &rect);
 	}
 
 }

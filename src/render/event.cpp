@@ -22,6 +22,7 @@ namespace vkr::Render
 			m_Fence->Wait(m_Value);
 		}
 	}
+
 	bool Event::IsPending() const
 	{
 		if (m_Fence)

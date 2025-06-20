@@ -28,6 +28,7 @@ namespace vkr::Render
 		~Texture();
 
 		bool Init(const TextureDesc& desc, const TextureData* initialData = nullptr);
+		bool InitWithResource(const TextureDesc& desc, const ComPtr<ID3D12Resource>& resource, const ResourceStateTracking& initialState);
 
 		TextureDesc m_TextureDesc;
 	};

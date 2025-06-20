@@ -20,6 +20,7 @@ namespace vkr::Graphics
 	void View::BeginPrepare()
 	{
 		m_PrepareDataIndex = (m_PrepareDataIndex + 1) % m_ViewRenderData.size();
+		GetPrepareData().Clear();
 	}
 
 	void View::EndPrepare()

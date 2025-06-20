@@ -60,6 +60,7 @@ namespace vkr::Render
 		Ref<Buffer> CreateBLAS(uint32_t numRtGeometryDescs, RtGeometryDesc* rtGeometryDescs);
 
 		ID3D12Device* GetD3DDevice() const;
+		ID3D12Device10* GetD3DDevice10() const;
 		IDXGIFactory2* GetDXGIFactory() const;
 		IDXGIAdapter1* GetDXGIAdapter() const;
 		const Ref<CommandQueue>& GetCommandQueue(ContextType contextType) const;
@@ -79,7 +80,7 @@ namespace vkr::Render
 		ComPtr<IDXGIFactory2> m_Factory;
 		ComPtr<IDXGIAdapter1> m_Adapter;
 		ComPtr<ID3D12Device> m_Device;
-		ComPtr<ID3D12Device5> m_Device5;
+		ComPtr<ID3D12Device10> m_Device10;
 
 		Ref<Context> m_Contexts[CONTEXT_TYPE_COUNT];//For now lets keep just a single context of every type on the device itself (prone to change)
 		Ref<CommandQueue> m_CommandQueue[CONTEXT_TYPE_COUNT];

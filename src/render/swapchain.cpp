@@ -1,6 +1,7 @@
 #include "swapchain.h"
 #include "device.h"
 #include "commandqueue.h"
+#include "d3dconvert.h"
 
 namespace vkr::Render
 {
@@ -96,16 +97,37 @@ namespace vkr::Render
 	{
 		for (int i = 0; i < NumBackBuffers; i++)
 		{
-			m_BackBuffers[i].m_Texture = MakeRef<Texture>();
 			ComPtr<ID3D12Resource> RT;
 			m_SwapChain->GetBuffer(i, IID_PPV_ARGS(&RT));
-			m_BackBuffers[i].m_Texture->InitWithResource(RT.Get());
+
+			const D3D12_RESOURCE_DESC desc = RT->GetDesc();
+			TextureDesc rtDesc = {};
+			rtDesc.Size.x = desc.Width;
+			rtDesc.Size.y = desc.Height;
+			rtDesc.Size.z = 1;
+			rtDesc.ArraySize = 1;
+			rtDesc.Format = desc.Format;
+			rtDesc.bDepthStencil = false;
+			rtDesc.bUseMips = false;
+
+			ResourceStateTracking initialState;
+			initialState.m_CurrentAccess = RESOURCE_STATE_ACCESS_COMMON;
+			initialState.m_CurrentLayout = RESOURCE_STATE_LAYOUT_PRESENT;
+			initialState.m_CurrentSync = RESOURCE_STATE_SYNC_ALL;
+
+			m_BackBuffers[i].m_Texture = MakeRef<Texture>();
+			m_BackBuffers[i].m_Texture->InitWithResource(rtDesc, RT, initialState);
+			RT->SetName(L"Framebuffer");
 		}
 	}
 
 	void SwapChain::ReleaseResources()
 	{
-		// Wait for GPU
+		for (int i = 0; i < NumBackBuffers; i++)
+		{
+			m_BackBuffers[i].m_LastFrameEvent.Wait();
+			m_BackBuffers[i].m_Texture.reset();
+		}
 	}
 
 	vkr::Ref<vkr::Render::Texture> SwapChain::GetOutputTexture()

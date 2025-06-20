@@ -51,7 +51,7 @@ namespace vkr::Render
 		m_Factory->EnumAdapters1(0, &m_Adapter); // Make this smarter?
 
 		D3D12CreateDevice(m_Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_Device));
-		m_Device.As(&m_Device5);
+		m_Device.As(&m_Device10);
 
 		m_ShaderCompiler = MakeUnique<ShaderCompiler>();
 
@@ -179,6 +179,11 @@ namespace vkr::Render
 	ID3D12Device* Device::GetD3DDevice() const
 	{
 		return m_Device.Get();
+	}
+
+	ID3D12Device10* Device::GetD3DDevice10() const
+	{
+		return m_Device10.Get();
 	}
 
 	IDXGIFactory2* Device::GetDXGIFactory() const
@@ -468,7 +473,7 @@ namespace vkr::Render
 	Ref<Buffer> Device::CreateRaytracingAccelerationStructure(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC& buildDesc)
 	{
 		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuildInfo = {};
-		m_Device5->GetRaytracingAccelerationStructurePrebuildInfo(&buildDesc.Inputs, &prebuildInfo);
+		m_Device10->GetRaytracingAccelerationStructurePrebuildInfo(&buildDesc.Inputs, &prebuildInfo);
 
 		TempBuffer scratchBuffer = GetTempBuffer(prebuildInfo.ScratchDataSizeInBytes);
 		buildDesc.ScratchAccelerationStructureData = scratchBuffer.m_Buffer->GetD3DResource()->GetGPUVirtualAddress() + scratchBuffer.m_Offset;
@@ -516,5 +521,4 @@ namespace vkr::Render
 		m_TempBuffer = CreateBuffer(tempBufferDesc);
 		m_TempBufferCurrentOffset = 0;
 	}
-
 }
