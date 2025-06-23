@@ -18,9 +18,8 @@ namespace vkr::Graphics
 
 	}
 
-	bool ViewRenderer::Init(Ref<vkr::Render::Device> device)
+	bool ViewRenderer::Init()
 	{
-		m_Device = device;
 		// init any renderer subsystems
 		// ex. upscalers, water, vegetation, environment, particle/vfx, light culling
 		return true;
@@ -45,7 +44,7 @@ namespace vkr::Graphics
 	void ViewRenderer::ForwardPass(View& view)
 	{
 		const ViewRenderData& renderData = view.GetRenderData();
-		Ref<vkr::Render::Context> ctx = m_Device->GetContext(vkr::Render::CONTEXT_TYPE_GRAPHICS);
+		Ref<vkr::Render::Context> ctx = Render::GetDevice().GetContext(vkr::Render::CONTEXT_TYPE_GRAPHICS);
 		ctx->Begin();
 
 		//Transition to RT the output
@@ -60,7 +59,7 @@ namespace vkr::Graphics
 		}
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = static_cast<Render::Texture*>(view.GetDepthStencil()->GetResource());
+			barrierDesc.m_Texture = static_cast<Render::Texture*>(view.GetDepthBuffer()->GetResource());
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_DEPTH_STECIL;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_DEPTH_WRITE;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_DEPTH_STENCIL;
@@ -73,10 +72,10 @@ namespace vkr::Graphics
 		rendertargets.push_back(view.GetOutputTarget());
 
 		ctx->ClearRenderTargets(rendertargets.data(), rendertargets.size());
-		ctx->ClearDepthStencil(view.GetDepthStencil(), 0.0f);
+		ctx->ClearDepthStencil(view.GetDepthBuffer(), 0.0f);
 
 		ctx->BindRenderTargets(rendertargets.data(), rendertargets.size());
-		ctx->BindDepthStencil(view.GetDepthStencil());
+		ctx->BindDepthStencil(view.GetDepthBuffer());
 
 		const Render::TextureDesc& rtDesc = static_cast<Render::Texture*>(view.GetOutputTarget()->GetResource())->m_TextureDesc;
 		ctx->SetViewport(0, 0, rtDesc.Size.x, rtDesc.Size.y);
@@ -102,7 +101,7 @@ namespace vkr::Graphics
 			data.World = mesh.m_Transform;
 			data.Color = Vector4f(1, 0, 0, 1);
 
-			auto cbuffer = m_Device->GetTempBuffer(sizeof(ConstantData),sizeof(data), (void*)&data);
+			auto cbuffer = Render::GetDevice().GetTempBuffer(sizeof(ConstantData),sizeof(data), (void*)&data);
 			std::vector<vkr::Render::Buffer*> buffers;
 			std::vector<uint64_t> offsets;
 			buffers.push_back(cbuffer.m_Buffer);

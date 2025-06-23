@@ -1,4 +1,5 @@
 #include "view.h"
+#include "render/device.h"
 
 namespace vkr::Graphics
 {
@@ -6,6 +7,8 @@ namespace vkr::Graphics
 	View::View()
 		: m_PrepareDataIndex(0)
 		, m_RenderDataIndex(1)
+		, m_MaxRenderSize{}
+		, m_CurrentRenderSize{}
 		, m_IsRendering(false)
 		, m_IsPrimary(false)
 	{
@@ -15,6 +18,16 @@ namespace vkr::Graphics
 	View::~View()
 	{
 
+	}
+
+	void View::SetRenderSize(const Vector2u& size)
+	{
+		if (size.x != m_MaxRenderSize.x ||
+			size.y != m_MaxRenderSize.y)
+		{
+			m_MaxRenderSize = size;
+			InitTargets();
+		}
 	}
 
 	void View::BeginPrepare()
@@ -49,7 +62,7 @@ namespace vkr::Graphics
 		m_Camera = camera;
 	}
 
-	const Camera& View::GetCamera()
+	const Camera& View::GetCamera() const
 	{
 		return m_Camera;
 	}
@@ -59,7 +72,7 @@ namespace vkr::Graphics
 		return m_ViewRenderData[m_PrepareDataIndex];
 	}
 
-	const ViewRenderData& View::GetRenderData()
+	const ViewRenderData& View::GetRenderData() const
 	{
 		return m_ViewRenderData[m_RenderDataIndex];
 	}
@@ -77,6 +90,24 @@ namespace vkr::Graphics
 	bool View::IsSecondary() const
 	{
 		return !m_IsPrimary;
+	}
+
+	bool View::InitTargets()
+	{
+		Render::TextureDesc depthStencilDesc;
+		depthStencilDesc.Dimension = 2;
+		depthStencilDesc.Size = { (int32_t)m_MaxRenderSize.x, (int32_t)m_MaxRenderSize.y, 0 };
+		depthStencilDesc.bUseMips = false;
+		depthStencilDesc.bDepthStencil = true;
+		depthStencilDesc.Format = DXGI_FORMAT_D32_FLOAT;
+		m_DepthBuffer = Render::GetDevice().CreateTexture(depthStencilDesc);
+
+		Render::ResourceDescriptorDesc dsvDesc = {};
+		dsvDesc.Type = Render::ResourceDescriptorType::DSV;
+		dsvDesc.TextureDesc.Mip = 0;
+		m_DepthBufferView = Render::GetDevice().GetOrCreateDescriptor(m_DepthBuffer.get(), dsvDesc);
+
+		return true;
 	}
 
 }

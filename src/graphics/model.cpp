@@ -1,5 +1,5 @@
 #include "model.h"
-#include "utils/types.h"
+#include "core/types.h"
 #include "mesh.h"
 #include "material.h"
 

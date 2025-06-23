@@ -1,5 +1,5 @@
 #pragma once
-#include "utils/types.h"
+#include "core/types.h"
 #include "render/texture.h"
 
 namespace vkr::Render

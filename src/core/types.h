@@ -124,6 +124,13 @@ namespace vkr
 		static Mat33 CreateRotationZ(float angleradians);
 	};
 	
+	using ReturnCode = int32_t;
+	enum ReturnCodes : int32_t 
+	{
+		RETURN_OK,
+		RETURN_ERROR,
+		RETURN_INVALID_ARG,
+	};
 }
 
-#include "str.h"
+#include "utils/str.h"

@@ -26,4 +26,14 @@ namespace vkr
 
 		static ElapsedTimer* g_Instance;
 	};
+
+	class Timer
+	{
+	public:
+		Timer();
+		void Restart();
+		float Stop(); // Returns the number of milliseconds that have passed since timer started.
+	private:
+		TimeType m_StartTime;
+	};
 }

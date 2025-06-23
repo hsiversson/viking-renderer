@@ -1,5 +1,5 @@
 #pragma once
-#include "utils/types.h"
+#include "core/types.h"
 
 namespace vkr::Render
 {
@@ -8,6 +8,8 @@ namespace vkr::Render
 	public:
 		Window(const char* name, const Vector2u& size, int32_t showCmd);
 		~Window();
+
+		bool PeekMessages();
 
 		void* GetNativeHandle() const;
 

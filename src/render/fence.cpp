@@ -1,5 +1,5 @@
 #include "fence.h"
-#include "utils/types.h"
+#include "core/types.h"
 #include "device.h"
 
 namespace vkr::Render

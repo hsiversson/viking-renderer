@@ -9,7 +9,7 @@
 #include "commandqueue.h"
 #include "d3dconvert.h"
 
-#include "utils/commandline.h"
+#include "core/commandline.h"
 #include "utils/hash.h"
 
 #include <algorithm>

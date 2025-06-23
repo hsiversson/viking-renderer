@@ -7,10 +7,12 @@ cbuffer ConstantBuffer : register(b0)
 
 struct PSInput
 {
+	float3 InPosition : POSITION;
 	float4 Position : SV_POSITION;
 };
 
 float4 MainPS(PSInput input) : SV_TARGET
 {
-	return BaseColor;
+	//return BaseColor;
+	return float4(input.InPosition * 0.5 + 0.5, 1.0f);
 }

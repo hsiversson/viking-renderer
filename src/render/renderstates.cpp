@@ -25,4 +25,37 @@ namespace vkr::Render
 			return nullptr;
 		}
 	}
+
+	void GetDefaultRasterizerState(RasterizerState& outRasterizerState)
+	{
+		outRasterizerState.m_CullMode = FACE_CULL_MODE_BACK;
+		outRasterizerState.m_Wireframe = false;
+		outRasterizerState.m_AntialiasedLine = false;
+		outRasterizerState.m_FrontIsCounterClockwise = false;
+	}
+
+	void GetGreaterEqualDepthStencilState(DepthStencilState& outDepthStencilState, bool writeDepth)
+	{
+		outDepthStencilState.m_Enabled = true;
+		outDepthStencilState.m_WriteDepth = writeDepth;
+		outDepthStencilState.m_ComparisonFunc = COMPARISON_FUNC_GREATER_EQUAL;
+		outDepthStencilState.m_DSFormat = FORMAT_D32_FLOAT;
+	}
+
+	void GetGreaterDepthStencilState(DepthStencilState& outDepthStencilState, bool writeDepth)
+	{
+		outDepthStencilState.m_Enabled = true;
+		outDepthStencilState.m_WriteDepth = writeDepth;
+		outDepthStencilState.m_ComparisonFunc = COMPARISON_FUNC_GREATER;
+		outDepthStencilState.m_DSFormat = FORMAT_D32_FLOAT;
+	}
+
+	void GetEqualDepthStencilState(DepthStencilState& outDepthStencilState, bool writeDepth)
+	{
+		outDepthStencilState.m_Enabled = true;
+		outDepthStencilState.m_WriteDepth = writeDepth;
+		outDepthStencilState.m_ComparisonFunc = COMPARISON_FUNC_EQUAL;
+		outDepthStencilState.m_DSFormat = FORMAT_D32_FLOAT;
+	}
+
 }

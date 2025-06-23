@@ -12,12 +12,14 @@ struct VSInput
 
 struct VSOutput
 {
-	float4 Position : SV_Position;
+	float3 InPosition : POSITION;
+	float4 Position : SV_POSITION;
 };
 
 VSOutput MainVS(VSInput input)
 {
 	VSOutput output;
+	output.InPosition = input.Position;
 	float4 worldpos = mul(World, float4(input.Position, 1.0));
 	output.Position = mul(ViewProjection, worldpos);
 	return output;

@@ -1,5 +1,5 @@
 #include "modelloader_gltf.h"
-#include "utils/types.h"
+#include "core/types.h"
 #include "render/renderstates.h"
 #include "graphics/model.h"
 

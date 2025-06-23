@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 
+file(GLOB_RECURSE VKR_CORE_SOURCES ${VKR_SRC_DIR}/core/*.cpp ${VKR_SRC_DIR}/core/*.h)
+source_group(Core FILES ${VKR_CORE_SOURCES})
+
+file(GLOB_RECURSE VKR_APPLICATION_SOURCES ${VKR_SRC_DIR}/application/*.cpp ${VKR_SRC_DIR}/application/*.h)
+source_group(Application FILES ${VKR_APPLICATION_SOURCES})
+
 file(GLOB_RECURSE VKR_GRAPHICS_SOURCES ${VKR_SRC_DIR}/graphics/*.cpp ${VKR_SRC_DIR}/graphics/*.h)
 source_group(Graphics FILES ${VKR_GRAPHICS_SOURCES})
 
@@ -14,10 +20,12 @@ file(GLOB_RECURSE VKR_UTILS_SOURCES ${VKR_SRC_DIR}/utils/*.cpp ${VKR_SRC_DIR}/ut
 source_group(Utils FILES ${VKR_UTILS_SOURCES})
 
 add_library(VikingRenderer 
+			${VKR_CORE_SOURCES}
+			${VKR_APPLICATION_SOURCES}
 			${VKR_GRAPHICS_SOURCES}
 			${VKR_SHADER_SOURCES} 
 			${VKR_RENDER_SOURCES}
-            		${VKR_UTILS_SOURCES}) 
+            ${VKR_UTILS_SOURCES}) 
 
 find_package(directx-dxc CONFIG REQUIRED)
 target_link_libraries(VikingRenderer PRIVATE Microsoft::DirectXShaderCompiler)

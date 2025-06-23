@@ -1,7 +1,7 @@
 #pragma once
 
 #include "sceneobject.h"
-#include "utils/types.h"
+#include "core/types.h"
 
 namespace vkr::Graphics
 {

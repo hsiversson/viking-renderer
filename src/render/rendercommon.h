@@ -20,5 +20,5 @@
 #include <wrl/client.h>
 using Microsoft::WRL::ComPtr;
 
-#include "utils/types.h"
+#include "core/types.h"
 #include "render/renderenums.h"

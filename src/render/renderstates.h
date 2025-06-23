@@ -42,6 +42,7 @@ namespace vkr::Render
 		bool m_Wireframe;
 		bool m_AntialiasedLine;
 	};
+	void GetDefaultRasterizerState(RasterizerState& outRasterizerState);
 
 	struct DepthStencilState
 	{
@@ -50,6 +51,9 @@ namespace vkr::Render
 		ComparisonFunc m_ComparisonFunc;
 		Format m_DSFormat;
 	};
+	void GetGreaterEqualDepthStencilState(DepthStencilState& outDepthStencilState, bool writeDepth);
+	void GetGreaterDepthStencilState(DepthStencilState& outDepthStencilState, bool writeDepth);
+	void GetEqualDepthStencilState(DepthStencilState& outDepthStencilState, bool writeDepth);
 
 	struct RenderTargetState
 	{

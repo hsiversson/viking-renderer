@@ -43,4 +43,21 @@ namespace vkr
 		return m_FrameIndex;
 	}
 
+	Timer::Timer()
+		: m_StartTime(Time::Now())
+	{
+	}
+
+	void Timer::Restart()
+	{
+		m_StartTime = Time::Now();
+	}
+
+	float Timer::Stop()
+	{
+		const TimeType now = Time::Now();
+		const TimeType durationSeconds = now - m_StartTime;
+		return static_cast<float>(durationSeconds * 1000.0);
+	}
+
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils/types.h"
+#include "core/types.h"
 
 namespace vkr::Graphics
 {

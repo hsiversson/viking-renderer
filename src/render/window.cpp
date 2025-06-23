@@ -12,9 +12,10 @@ namespace vkr::Render
 {
 	LRESULT CALLBACK WndProc(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 
+	static constexpr const char* g_WindowClassName = "VKR_WND_CLASS";
+
 	Window::Window(const char* name, const Vector2u& size, int32_t showCmd)
 	{
-		static constexpr const char* windowClassName = "VKR_WND_CLASS";
 
 		WNDCLASSEX WndClsEx = {};
 		WndClsEx.cbSize = sizeof(WNDCLASSEX);
@@ -22,11 +23,11 @@ namespace vkr::Render
 		WndClsEx.lpfnWndProc = WndProc;
 		WndClsEx.hInstance = nullptr;
 		WndClsEx.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
-		WndClsEx.lpszClassName = windowClassName;
+		WndClsEx.lpszClassName = g_WindowClassName;
 		WndClsEx.hIconSm = LoadIcon(nullptr, IDI_APPLICATION);
 		RegisterClassEx(&WndClsEx);
 
-		m_NativeHandle = CreateWindow(windowClassName, name, WS_OVERLAPPEDWINDOW, 100, 100, size.x, size.y, nullptr, nullptr, nullptr, nullptr);
+		m_NativeHandle = CreateWindow(g_WindowClassName, name, WS_OVERLAPPEDWINDOW, 100, 100, size.x, size.y, nullptr, nullptr, nullptr, nullptr);
 
 		ShowWindow((HWND)m_NativeHandle, showCmd);
 		UpdateWindow((HWND)m_NativeHandle);
@@ -34,12 +35,29 @@ namespace vkr::Render
 
 	Window::~Window()
 	{
-
+		UnregisterClass(g_WindowClassName, nullptr);
 	}
 
 	void* Window::GetNativeHandle() const
 	{
 		return m_NativeHandle;
+	}
+
+	bool Window::PeekMessages()
+	{
+		MSG msg = {};
+		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+		{
+			if (msg.message == WM_QUIT)
+			{
+				return false;
+			}
+
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+
+		return true;
 	}
 
 	LRESULT CALLBACK WndProc(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)

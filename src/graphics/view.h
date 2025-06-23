@@ -2,7 +2,11 @@
 #include "viewrenderdata.h"
 #include "camera.h"
 
-#include "render/resourcedescriptor.h"
+namespace vkr::Render
+{
+	class ResourceDescriptor;
+	class Texture;
+}
 
 namespace vkr::Graphics
 {
@@ -12,6 +16,8 @@ namespace vkr::Graphics
 		View();
 		~View();
 
+		void SetRenderSize(const Vector2u& size);
+
 		void BeginPrepare();
 		void EndPrepare();
 
@@ -19,24 +25,26 @@ namespace vkr::Graphics
 		void EndRender();
 
 		void SetCamera(Camera& camera);
-		const Camera& GetCamera();
+		const Camera& GetCamera() const;
 
 		// We fill the render data in the preparation stage.
 		ViewRenderData& GetPrepareData();
 
 		// We consume the render data at render stage.
-		const ViewRenderData& GetRenderData();
+		const ViewRenderData& GetRenderData() const;
 
 		void SetOutputTarget(Ref<vkr::Render::ResourceDescriptor> outputdescriptor) { m_OutputDescriptor = outputdescriptor; }
-		Ref<vkr::Render::ResourceDescriptor> GetOutputTarget() { return m_OutputDescriptor; }
+		Ref<vkr::Render::ResourceDescriptor> GetOutputTarget() const { return m_OutputDescriptor; }
 
-		void SetDepthStencil(Ref<Render::ResourceDescriptor> dsDescriptor) { m_DSDescriptor = dsDescriptor; }
-		Ref<vkr::Render::ResourceDescriptor> GetDepthStencil() { return m_DSDescriptor; }
+		Ref<vkr::Render::ResourceDescriptor> GetDepthBuffer() const { return m_DepthBufferView; }
 
 		void SetPrimary(bool value);
 
 		bool IsPrimary() const;
 		bool IsSecondary() const;
+
+	private:
+		bool InitTargets();
 
 	private:
 		std::array<ViewRenderData, 2> m_ViewRenderData;
@@ -45,7 +53,13 @@ namespace vkr::Graphics
 
 		Camera m_Camera;
 		Ref<vkr::Render::ResourceDescriptor> m_OutputDescriptor;
-		Ref<vkr::Render::ResourceDescriptor> m_DSDescriptor;
+
+		Vector2u m_MaxRenderSize;
+		Vector2u m_CurrentRenderSize;
+
+		// encapsulate targets in a sub struct?
+		Ref<Render::Texture> m_DepthBuffer;
+		Ref<vkr::Render::ResourceDescriptor> m_DepthBufferView;
 
 		bool m_IsRendering;
 		bool m_IsPrimary;
