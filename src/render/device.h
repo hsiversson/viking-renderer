@@ -50,9 +50,11 @@ namespace vkr::Render
 
 		Ref<Texture> CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr);
 		Ref<Texture> LoadTexture(const std::filesystem::path& filepath);
-		Ref<ResourceDescriptor> GetOrCreateDescriptor(Texture* tex, const ResourceDescriptorDesc& desc);
+		Ref<TextureView> CreateView(Texture* tex, const ResourceDescriptorDesc& desc);
+		Ref<RenderTargetView> CreateRTView(Texture* tex, const ResourceDescriptorDesc& desc);
+		Ref<DepthStencilView> CreateDSView(Texture* tex, const ResourceDescriptorDesc& desc);
 		Ref<Buffer> CreateBuffer(const BufferDesc& desc);
-		Ref<ResourceDescriptor> GetOrCreateDescriptor(Buffer* buf, const ResourceDescriptorDesc& desc);
+		Ref<BufferView> CreateView(Buffer* buf, const ResourceDescriptorDesc& desc);
 
 		TempBuffer GetTempBuffer(uint32_t byteSize, uint32_t initialDataSize = 0, const void* initialData = nullptr); // TempBuffers only last until the end of the frame, then their memory is reused
 

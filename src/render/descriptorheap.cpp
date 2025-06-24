@@ -4,7 +4,7 @@
 
 namespace vkr::Render
 {
-	Ref<ResourceDescriptor> DescriptorHeap::Allocate()
+	void DescriptorHeap::Allocate(Ref<ResourceDescriptor>& descriptor)
 	{
 		// TODO: thread safety
 		if (m_MaxCounter < m_NumElements)
@@ -19,13 +19,11 @@ namespace vkr::Render
 			}
 			D3D12_CPU_DESCRIPTOR_HANDLE handle = m_D3DHeap->GetCPUDescriptorHandleForHeapStart();
 			handle.ptr += index * m_DescriptorSize;
-			auto result = MakeRef<ResourceDescriptor>();
-			result->Init(handle, index);
-			return result;
+			descriptor->Init(handle, index);
 		}
 		else
 		{
-			return nullptr;
+			descriptor.reset();
 		}
 	}
 

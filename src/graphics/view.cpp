@@ -105,7 +105,7 @@ namespace vkr::Graphics
 		Render::ResourceDescriptorDesc dsvDesc = {};
 		dsvDesc.Type = Render::ResourceDescriptorType::DSV;
 		dsvDesc.TextureDesc.Mip = 0;
-		m_DepthBufferView = Render::GetDevice().GetOrCreateDescriptor(m_DepthBuffer.get(), dsvDesc);
+		m_DepthBufferView = Render::GetDevice().CreateDSView(m_DepthBuffer.get(), dsvDesc);
 
 		return true;
 	}

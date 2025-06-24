@@ -51,7 +51,7 @@ namespace vkr::Graphics
 		std::vector<Render::TextureBarrierDesc> barriers;
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = static_cast<Render::Texture*>(view.GetOutputTarget()->GetResource());
+			barrierDesc.m_Texture = view.GetOutputTarget()->GetTexture();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_RENDER_TARGET;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_RENDER_TARGET;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
@@ -59,7 +59,7 @@ namespace vkr::Graphics
 		}
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = static_cast<Render::Texture*>(view.GetDepthBuffer()->GetResource());
+			barrierDesc.m_Texture = view.GetDepthBuffer()->GetTexture();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_DEPTH_STECIL;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_DEPTH_WRITE;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_DEPTH_STENCIL;
@@ -77,7 +77,7 @@ namespace vkr::Graphics
 		ctx->BindRenderTargets(rendertargets.data(), rendertargets.size());
 		ctx->BindDepthStencil(view.GetDepthBuffer());
 
-		const Render::TextureDesc& rtDesc = static_cast<Render::Texture*>(view.GetOutputTarget()->GetResource())->m_TextureDesc;
+		const Render::TextureDesc& rtDesc = view.GetOutputTarget()->GetTexture()->m_TextureDesc;
 		ctx->SetViewport(0, 0, rtDesc.Size.x, rtDesc.Size.y);
 		ctx->SetScissorRect(0, 0, rtDesc.Size.x, rtDesc.Size.y);
 
@@ -113,7 +113,7 @@ namespace vkr::Graphics
 		//Transition output to present
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = static_cast<Render::Texture*>(view.GetOutputTarget()->GetResource());
+			barrierDesc.m_Texture = view.GetOutputTarget()->GetTexture();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_PRESENT;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COMMON;

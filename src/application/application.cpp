@@ -142,7 +142,7 @@ namespace vkr
 			Ref<vkr::Render::Texture> backbuffer = m_SwapChain->GetOutputTexture();
 			Render::ResourceDescriptorDesc rtdesc;
 			rtdesc.Type = vkr::Render::ResourceDescriptorType::RTV;
-			Ref<Render::ResourceDescriptor> rtdescriptor = m_RenderDevice->GetOrCreateDescriptor(backbuffer.get(), rtdesc);
+			Ref<Render::RenderTargetView> rtdescriptor = m_RenderDevice->CreateRTView(backbuffer.get(), rtdesc);
 			m_View->SetOutputTarget(rtdescriptor);
 			m_View->SetCamera(*camera);
 

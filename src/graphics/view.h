@@ -4,7 +4,8 @@
 
 namespace vkr::Render
 {
-	class ResourceDescriptor;
+	class DepthStencilView;
+	class RenderTargetView;
 	class Texture;
 }
 
@@ -33,10 +34,10 @@ namespace vkr::Graphics
 		// We consume the render data at render stage.
 		const ViewRenderData& GetRenderData() const;
 
-		void SetOutputTarget(Ref<vkr::Render::ResourceDescriptor> outputdescriptor) { m_OutputDescriptor = outputdescriptor; }
-		Ref<vkr::Render::ResourceDescriptor> GetOutputTarget() const { return m_OutputDescriptor; }
+		void SetOutputTarget(Ref<vkr::Render::RenderTargetView> outputdescriptor) { m_OutputDescriptor = outputdescriptor; }
+		Ref<vkr::Render::RenderTargetView> GetOutputTarget() const { return m_OutputDescriptor; }
 
-		Ref<vkr::Render::ResourceDescriptor> GetDepthBuffer() const { return m_DepthBufferView; }
+		Ref<vkr::Render::DepthStencilView> GetDepthBuffer() const { return m_DepthBufferView; }
 
 		void SetPrimary(bool value);
 
@@ -52,14 +53,14 @@ namespace vkr::Graphics
 		uint32_t m_RenderDataIndex;
 
 		Camera m_Camera;
-		Ref<vkr::Render::ResourceDescriptor> m_OutputDescriptor;
+		Ref<vkr::Render::RenderTargetView> m_OutputDescriptor;
 
 		Vector2u m_MaxRenderSize;
 		Vector2u m_CurrentRenderSize;
 
 		// encapsulate targets in a sub struct?
 		Ref<Render::Texture> m_DepthBuffer;
-		Ref<vkr::Render::ResourceDescriptor> m_DepthBufferView;
+		Ref<vkr::Render::DepthStencilView> m_DepthBufferView;
 
 		bool m_IsRendering;
 		bool m_IsPrimary;

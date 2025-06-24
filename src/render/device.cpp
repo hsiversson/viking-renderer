@@ -206,7 +206,44 @@ namespace vkr::Render
 		return m_CommandListPool[contextType];
 	}
 
-	Ref<ResourceDescriptor> Device::GetOrCreateDescriptor(Texture* tex, const ResourceDescriptorDesc& desc)
+	Ref<RenderTargetView> Device::CreateRTView(Texture* tex, const ResourceDescriptorDesc& desc)
+	{
+		const uint8_t* buffer = reinterpret_cast<const uint8_t*>(&desc);
+		uint64_t hashvalue = vkr::hash_fnv64(buffer, buffer + sizeof(ResourceDescriptorDesc));
+		auto descriptor = tex->GetDescriptor(hashvalue);
+		if (!descriptor)
+		{
+			descriptor = MakeRef<RenderTargetView>();
+			m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_RTV]->Allocate(descriptor);
+			//Keep it simple and use nullptr desc
+			m_Device->CreateRenderTargetView(tex->GetD3DResource(), nullptr, descriptor->GetHandle());
+			std::static_pointer_cast<TextureView>(descriptor)->SetTexture(tex);
+			tex->AddDescriptor(hashvalue, descriptor);
+		}
+		return std::static_pointer_cast<RenderTargetView>(descriptor);
+	}
+
+	Ref<DepthStencilView> Device::CreateDSView(Texture* tex, const ResourceDescriptorDesc& desc)
+	{
+		const uint8_t* buffer = reinterpret_cast<const uint8_t*>(&desc);
+		uint64_t hashvalue = vkr::hash_fnv64(buffer, buffer + sizeof(ResourceDescriptorDesc));
+		auto descriptor = tex->GetDescriptor(hashvalue);
+		if (!descriptor)
+		{
+			descriptor = MakeRef<DepthStencilView>();
+			m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV]->Allocate(descriptor);
+			D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+			dsvDesc.Format = tex->m_TextureDesc.Format;
+			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+			dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+			m_Device->CreateDepthStencilView(tex->GetD3DResource(), &dsvDesc, descriptor->GetHandle());
+			std::static_pointer_cast<TextureView>(descriptor)->SetTexture(tex);
+			tex->AddDescriptor(hashvalue, descriptor);
+		}
+		return std::static_pointer_cast<DepthStencilView>(descriptor);
+	}
+
+	Ref<TextureView> Device::CreateView(Texture* tex, const ResourceDescriptorDesc& desc)
 	{
 		const uint8_t* buffer = reinterpret_cast<const uint8_t*>(&desc);
 		uint64_t hashvalue = vkr::hash_fnv64(buffer, buffer + sizeof(ResourceDescriptorDesc));
@@ -217,7 +254,8 @@ namespace vkr::Render
 			{
 				case ResourceDescriptorType::UAV:
 				{
-					descriptor = m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->Allocate();
+					descriptor = MakeRef<TextureView>();
+					m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->Allocate(descriptor);
 					D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 					uavDesc.Format = tex->m_TextureDesc.Format; 
 					if (tex->m_TextureDesc.Dimension == 1)
@@ -236,7 +274,8 @@ namespace vkr::Render
 				break;
 				case ResourceDescriptorType::SRV:
 				{
-					descriptor = m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->Allocate();
+					descriptor = MakeRef<TextureView>();
+					m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->Allocate(descriptor);
 					D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 					srvDesc.Format = tex->m_TextureDesc.Format;
 					srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -255,43 +294,29 @@ namespace vkr::Render
 					m_Device->CreateShaderResourceView(tex->GetD3DResource(), &srvDesc, descriptor->GetHandle());
 				}
 				break;
-				case ResourceDescriptorType::RTV:
-				{
-					descriptor = m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_RTV]->Allocate();
-					//Keep it simple and use nullptr desc
-					m_Device->CreateRenderTargetView(tex->GetD3DResource(), nullptr, descriptor->GetHandle());
-				}
-				break;
-				case ResourceDescriptorType::DSV:
-				{
-					descriptor = m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV]->Allocate();
-					D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-					dsvDesc.Format = tex->m_TextureDesc.Format;
-					dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-					dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-					
-					m_Device->CreateDepthStencilView(tex->GetD3DResource(), &dsvDesc, descriptor->GetHandle());
-				}
-				break;
+				default:
+					checkNoEntry();
+					break;
 			}
-			descriptor->SetResource(tex);
+			std::static_pointer_cast<TextureView>(descriptor)->SetTexture(tex);
 			tex->AddDescriptor(hashvalue, descriptor);
 		}
-		return descriptor;
+		return std::static_pointer_cast<TextureView>(descriptor);
 	}
 
-	Ref<ResourceDescriptor> Device::GetOrCreateDescriptor(Buffer* buf, const ResourceDescriptorDesc& desc)
+	Ref<BufferView> Device::CreateView(Buffer* buf, const ResourceDescriptorDesc& desc)
 	{
 		const uint8_t* buffer = reinterpret_cast<const uint8_t*>(&desc);
 		uint64_t hashvalue = vkr::hash_fnv64(buffer, buffer + sizeof(ResourceDescriptorDesc));
 		auto descriptor = buf->GetDescriptor(hashvalue);
 		if (!descriptor)
 		{
+			descriptor = MakeRef<BufferView>();
 			switch (desc.Type)
 			{
 			case ResourceDescriptorType::UAV:
 			{
-				descriptor = m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->Allocate();
+				m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->Allocate(descriptor);
 				D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 				uavDesc.Format = DXGI_FORMAT_UNKNOWN;
 				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
@@ -304,7 +329,7 @@ namespace vkr::Render
 			break;
 			case ResourceDescriptorType::SRV:
 			{
-				descriptor = m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->Allocate();
+				m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->Allocate(descriptor);
 				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 				srvDesc.Format = DXGI_FORMAT_UNKNOWN;
 				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -316,10 +341,10 @@ namespace vkr::Render
 			}
 			break;
 			}
-			descriptor->SetResource(buf);
+			std::static_pointer_cast<BufferView>(descriptor)->SetBuffer(buf);
 			buf->AddDescriptor(hashvalue, descriptor);
 		}
-		return descriptor;
+		return std::static_pointer_cast<BufferView>(descriptor);
 	}
 
 	TempBuffer Device::GetTempBuffer(uint32_t byteSize, uint32_t initialDataSize, const void* initialData)

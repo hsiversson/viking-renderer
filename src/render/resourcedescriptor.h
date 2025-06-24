@@ -5,6 +5,8 @@
 namespace vkr::Render
 {
 	class Resource; 
+	class Texture;
+	class Buffer;
 
 	enum class ResourceDescriptorType : unsigned int
 	{
@@ -47,13 +49,38 @@ namespace vkr::Render
 		~ResourceDescriptor();
 
 		void Init(const D3D12_CPU_DESCRIPTOR_HANDLE& handle, uint32_t index);
-		void SetResource(Resource* resource) { m_Resource = resource; }
-		Resource* GetResource() const { return m_Resource; }
 		uint32_t GetIndex() const { return m_DescriptorIndex; }
 		D3D12_CPU_DESCRIPTOR_HANDLE& GetHandle() { return m_D3DHandle; }
 	private:
-		Resource* m_Resource = nullptr;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_D3DHandle;
 		uint32_t m_DescriptorIndex;
+	};
+
+	class TextureView : public ResourceDescriptor
+	{
+	public: 
+		void SetTexture(Texture* texture) { m_Texture = texture; }
+		Texture* GetTexture() const { return m_Texture; }
+	private:
+		Texture* m_Texture = nullptr;
+	};
+
+	class RenderTargetView : public TextureView
+	{
+
+	};
+
+	class DepthStencilView : public TextureView
+	{
+
+	};
+
+	class BufferView : public ResourceDescriptor
+	{
+	public:
+		void SetBuffer(Buffer* buffer) { m_Buffer = buffer; }
+		Buffer* GetBuffer() const { return m_Buffer; }
+	private:
+		Buffer* m_Buffer = nullptr;
 	};
 }
