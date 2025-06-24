@@ -18,11 +18,18 @@ namespace vkr
 		class Scene;
 	}
 
+	enum class ApplicationMode
+	{
+		Runtime,
+		Editor
+	};
+
 	struct ApplicationInitDesc
 	{
 		Vector2u m_Resolution;
 		std::string m_WindowTitle;
 		int32_t m_ShowCmd;
+		ApplicationMode m_Mode;
 	};
 
 	class Application

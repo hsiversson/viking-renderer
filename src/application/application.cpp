@@ -113,6 +113,9 @@ namespace vkr
 				running = false;
 			}
 
+			// TODO: Apply changes coming from window messages
+			// TODO: Apply changes going to window
+
 			m_ElapsedTimer.Tick();
 
 			//////////////////////////////////////////////////
