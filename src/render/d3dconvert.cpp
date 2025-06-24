@@ -540,4 +540,140 @@ namespace vkr::Render
 		}
 	}
 
+	D3D12_BLEND_OP D3DConvertBlendOp(BlendOp blendOp)
+	{
+		switch (blendOp)
+		{
+		case BLEND_OP_ADD:
+			return D3D12_BLEND_OP_ADD;
+		case BLEND_OP_SUBTRACT:
+			return D3D12_BLEND_OP_SUBTRACT;
+		case BLEND_OP_REV_SUBTRACT:
+			return D3D12_BLEND_OP_REV_SUBTRACT;
+		case BLEND_OP_MIN:
+			return D3D12_BLEND_OP_MIN;
+		case BLEND_OP_MAX:
+			return D3D12_BLEND_OP_MAX;
+		default:
+			assert(false);
+			return D3D12_BLEND_OP_ADD;
+		}
+	}
+
+	vkr::Render::BlendOp D3DConvertBlendOp(D3D12_BLEND_OP blendOp)
+	{
+		switch (blendOp)
+		{
+		case D3D12_BLEND_OP_ADD:
+			return BLEND_OP_ADD;
+		case D3D12_BLEND_OP_SUBTRACT:
+			return BLEND_OP_SUBTRACT;
+		case D3D12_BLEND_OP_REV_SUBTRACT:
+			return BLEND_OP_REV_SUBTRACT;
+		case D3D12_BLEND_OP_MIN:
+			return BLEND_OP_MIN;
+		case D3D12_BLEND_OP_MAX:
+			return BLEND_OP_MAX;
+		default:
+			assert(false);
+			return BLEND_OP_ADD;
+		}
+	}
+
+	D3D12_BLEND D3DConvertBlendArg(BlendArg blendArg)
+	{
+		switch (blendArg)
+		{
+		case BLEND_ZERO:
+			return D3D12_BLEND_ZERO;
+		case BLEND_ONE:
+			return D3D12_BLEND_ONE;
+		case BLEND_SRC_COLOR:
+			return D3D12_BLEND_SRC_COLOR;
+		case BLEND_INV_SRC_COLOR:
+			return D3D12_BLEND_INV_SRC_COLOR;
+		case BLEND_SRC_ALPHA:
+			return D3D12_BLEND_SRC_ALPHA;
+		case BLEND_INV_SRC_ALPHA:
+			return D3D12_BLEND_INV_SRC_ALPHA;
+		case BLEND_DEST_ALPHA:
+			return D3D12_BLEND_DEST_ALPHA;
+		case BLEND_INV_DEST_ALPHA:
+			return D3D12_BLEND_INV_DEST_ALPHA;
+		case BLEND_DEST_COLOR:
+			return D3D12_BLEND_DEST_COLOR;
+		case BLEND_INV_DEST_COLOR:
+			return D3D12_BLEND_INV_DEST_COLOR;
+		case BLEND_SRC_ALPHA_SAT:
+			return D3D12_BLEND_SRC_ALPHA_SAT;
+		case BLEND_BLEND_FACTOR:
+			return D3D12_BLEND_BLEND_FACTOR;
+		case BLEND_INV_BLEND_FACTOR:
+			return D3D12_BLEND_INV_BLEND_FACTOR;
+		case BLEND_SRC1_COLOR:
+			return D3D12_BLEND_SRC1_COLOR;
+		case BLEND_INV_SRC1_COLOR:
+			return D3D12_BLEND_INV_SRC1_COLOR;
+		case BLEND_SRC1_ALPHA:
+			return D3D12_BLEND_SRC1_ALPHA;
+		case BLEND_INV_SRC1_ALPHA:
+			return D3D12_BLEND_INV_SRC1_ALPHA;
+		case BLEND_ALPHA_FACTOR:
+			return D3D12_BLEND_ALPHA_FACTOR;
+		case BLEND_INV_ALPHA_FACTOR:
+			return D3D12_BLEND_INV_ALPHA_FACTOR;
+		default:
+			checkNoEntry();
+			return D3D12_BLEND_ALPHA_FACTOR;
+		}
+	}
+
+	vkr::Render::BlendArg D3DConvertBlendArg(D3D12_BLEND blendArg)
+	{
+		switch (blendArg)
+		{
+		case D3D12_BLEND_ZERO:
+			return BLEND_ZERO;
+		case D3D12_BLEND_ONE:
+			return BLEND_ONE;
+		case D3D12_BLEND_SRC_COLOR:
+			return BLEND_SRC_COLOR;
+		case D3D12_BLEND_INV_SRC_COLOR:
+			return BLEND_INV_SRC_COLOR;
+		case D3D12_BLEND_SRC_ALPHA:
+			return BLEND_SRC_ALPHA;
+		case D3D12_BLEND_INV_SRC_ALPHA:
+			return BLEND_INV_SRC_ALPHA;
+		case D3D12_BLEND_DEST_ALPHA:
+			return BLEND_DEST_ALPHA;
+		case D3D12_BLEND_INV_DEST_ALPHA:
+			return BLEND_INV_DEST_ALPHA;
+		case D3D12_BLEND_DEST_COLOR:
+			return BLEND_DEST_COLOR;
+		case D3D12_BLEND_INV_DEST_COLOR:
+			return BLEND_INV_DEST_COLOR;
+		case D3D12_BLEND_SRC_ALPHA_SAT:
+			return BLEND_SRC_ALPHA_SAT;
+		case D3D12_BLEND_BLEND_FACTOR:
+			return BLEND_BLEND_FACTOR;
+		case D3D12_BLEND_INV_BLEND_FACTOR:
+			return BLEND_INV_BLEND_FACTOR;
+		case D3D12_BLEND_SRC1_COLOR:
+			return BLEND_SRC1_COLOR;
+		case D3D12_BLEND_INV_SRC1_COLOR:
+			return BLEND_INV_SRC1_COLOR;
+		case D3D12_BLEND_SRC1_ALPHA:
+			return BLEND_SRC1_ALPHA;
+		case D3D12_BLEND_INV_SRC1_ALPHA:
+			return BLEND_INV_SRC1_ALPHA;
+		case D3D12_BLEND_ALPHA_FACTOR:
+			return BLEND_ALPHA_FACTOR;
+		case D3D12_BLEND_INV_ALPHA_FACTOR:
+			return BLEND_INV_ALPHA_FACTOR;
+		default:
+			checkNoEntry();
+			return BLEND_ALPHA_FACTOR;
+		}
+	}
+
 }

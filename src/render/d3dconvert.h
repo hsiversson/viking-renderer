@@ -9,6 +9,12 @@ namespace vkr::Render
 	D3D12_COMPARISON_FUNC D3DConvertComparisonFunc(ComparisonFunc comparisonFunc);
 	ComparisonFunc D3DConvertComparisonFunc(D3D12_COMPARISON_FUNC comparisonFunc);
 
+	D3D12_BLEND_OP D3DConvertBlendOp(BlendOp blendOp);
+	BlendOp D3DConvertBlendOp(D3D12_BLEND_OP blendOp);
+
+	D3D12_BLEND D3DConvertBlendArg(BlendArg blendArg);
+	BlendArg D3DConvertBlendArg(D3D12_BLEND blendArg);
+
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE D3DConvertPrimitiveType(PrimitiveType primitiveType);
 	PrimitiveType D3DConvertPrimitiveType(D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveType);
 

@@ -15,27 +15,6 @@
 
 namespace vkr
 {
-	D3D12_BLEND_DESC CreateDefaultBlendDesc()
-	{
-		D3D12_BLEND_DESC blendDesc = {};
-		blendDesc.AlphaToCoverageEnable = FALSE;
-		blendDesc.IndependentBlendEnable = FALSE;
-	
-		D3D12_RENDER_TARGET_BLEND_DESC rtBlendDesc = {};
-		rtBlendDesc.BlendEnable = TRUE;
-		rtBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-		rtBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
-		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
-		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
-		rtBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-	
-		// Fill all 8 slots with the same setup unless you use independent blending
-		for (int i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
-			blendDesc.RenderTarget[i] = rtBlendDesc;
-		return blendDesc;
-	}
 
 	Application::Application()
 		: m_WindowSize{}
@@ -109,7 +88,8 @@ namespace vkr
 		psodesc.Default.m_RasterizerState = { vkr::Render::FACE_CULL_MODE_BACK, false, false, false };
 		psodesc.Default.m_RenderTargetState = { {vkr::Render::Format::FORMAT_RGB10A2_UNORM} };
 		psodesc.Default.m_DepthStencilState = { true, true, vkr::Render::COMPARISON_FUNC_GREATER, Render::Format::FORMAT_D32_FLOAT };
-		psodesc.Default.m_BlendState.m_D3DBlendDesc = CreateDefaultBlendDesc();
+		psodesc.Default.m_BlendState.RTBlends.push_back({true, vkr::Render::BLEND_OP_ADD, vkr::Render::BLEND_SRC_ALPHA, vkr::Render::BLEND_INV_SRC_ALPHA, vkr::Render::BLEND_OP_ADD, vkr::Render::BLEND_ONE, vkr::Render::BLEND_ZERO, vkr::Render::COLOR_WRITE_ALL});
+
 		Ref<vkr::Render::PipelineState> cubemainpso = m_RenderDevice->CreatePipelineState(psodesc);
 		Ref<Graphics::Material> cubematerial = MakeRef<Graphics::Material>();
 		cubematerial->SetPipelineState(cubemainpso);

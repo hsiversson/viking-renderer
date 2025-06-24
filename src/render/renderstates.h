@@ -60,10 +60,21 @@ namespace vkr::Render
 		std::array<Format, MAX_NUM_RENDER_TARGETS> m_Formats;
 	};
 
+	struct RenderTargetBlend
+	{
+		bool m_Enabled = false;
+		BlendOp m_Operation;
+		BlendArg m_SrcBlend;
+		BlendArg m_DstBlend;
+		BlendOp m_AlphaOperation;
+		BlendArg m_SrcBlendAlpha;
+		BlendArg m_DstBlendAlpha;
+		uint8_t m_WriteMask = COLOR_WRITE_ALL;
+	};
+
 	struct BlendState
 	{
-		// should we wrap the things we need?
-		D3D12_BLEND_DESC m_D3DBlendDesc;
+		std::vector<RenderTargetBlend> RTBlends;
 	};
 }
 

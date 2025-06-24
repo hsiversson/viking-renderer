@@ -81,8 +81,25 @@ namespace vkr::Render
 					break;
 				}
 			}
-
-			graphicsDesc.BlendState = desc.Default.m_BlendState.m_D3DBlendDesc;
+			{
+				const BlendState& blendState = desc.Default.m_BlendState;
+				graphicsDesc.BlendState = {};
+				graphicsDesc.BlendState.AlphaToCoverageEnable = false;
+				graphicsDesc.BlendState.IndependentBlendEnable = blendState.RTBlends.size() > 1;
+				for (int i = 0; i < blendState.RTBlends.size(); i++)
+				{
+					graphicsDesc.BlendState.RenderTarget[i].BlendEnable = blendState.RTBlends[i].m_Enabled;
+					graphicsDesc.BlendState.RenderTarget[i].BlendOp = D3DConvertBlendOp(blendState.RTBlends[i].m_Operation);
+					graphicsDesc.BlendState.RenderTarget[i].SrcBlend = D3DConvertBlendArg(blendState.RTBlends[i].m_SrcBlend);
+					graphicsDesc.BlendState.RenderTarget[i].DestBlend = D3DConvertBlendArg(blendState.RTBlends[i].m_DstBlend);
+					graphicsDesc.BlendState.RenderTarget[i].BlendOpAlpha = D3DConvertBlendOp(blendState.RTBlends[i].m_AlphaOperation);
+					graphicsDesc.BlendState.RenderTarget[i].SrcBlendAlpha = D3DConvertBlendArg(blendState.RTBlends[i].m_SrcBlendAlpha);
+					graphicsDesc.BlendState.RenderTarget[i].DestBlendAlpha = D3DConvertBlendArg(blendState.RTBlends[i].m_DstBlendAlpha);
+					graphicsDesc.BlendState.RenderTarget[i].LogicOpEnable = false; //Do we want to use this?
+					graphicsDesc.BlendState.RenderTarget[i].RenderTargetWriteMask = blendState.RTBlends[i].m_WriteMask;
+				}
+				
+			}
 			{
 				const DepthStencilState& depthStencilState = desc.Default.m_DepthStencilState;
 				graphicsDesc.DepthStencilState = {};
