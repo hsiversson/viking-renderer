@@ -72,7 +72,7 @@ namespace vkr
 		//////////////////////////////////////////////////
 		// these parts should not be in application
 		Ref<Graphics::Camera> camera = MakeRef<Graphics::Camera>();
-		Mat43 camtransform(Mat33::Identity, Vector3f(0, 0.0f, -2.0f));
+		Mat43 camtransform = Compose(Mat33::Identity(), Vector3f(0, 0.0f, -2.0f));
 		camera->SetLocalTransform(camtransform);
 		camera->SetupPerspective(std::numbers::pi / 2.0f, (float)m_WindowSize.x / (float)m_WindowSize.y, 0.1f, 1000.0f);
 
@@ -120,7 +120,7 @@ namespace vkr
 
 			//////////////////////////////////////////////////
 			// these parts should not be in application
-			modelinst->SetLocalTransform(vkr::Mat43(vkr::Mat33::CreateRotationZ(m_ElapsedTimer.ElapsedTime()), Vector3f(0, std::sin(m_ElapsedTimer.ElapsedTime()), 0)));
+			modelinst->SetLocalTransform(Compose(CreateRotationZ(m_ElapsedTimer.ElapsedTime()), Vector3f(0, std::sin(m_ElapsedTimer.ElapsedTime()), 0)));
 
 			Ref<vkr::Render::Texture> backbuffer = m_SwapChain->GetOutputTexture();
 			Render::ResourceDescriptorDesc rtdesc;

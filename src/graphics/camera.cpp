@@ -15,9 +15,7 @@ namespace vkr::Graphics
 	vkr::Mat44 Camera::GetView()
 	{
 		//Do we need to cache the camera view matrix? Can get expensive if we call it many times. We can override the compute transform from the base class in Camera and recompute the view matrix as well
-		Mat44 View;
-		assert(Inverse(GetWorldTransform(), View));
-		return View;
+		return Inverse(GetWorldTransform());
 	}
 
 	vkr::Mat44 Camera::GetProjection() const
