@@ -63,15 +63,9 @@ namespace vkr::Render
 		return true;
 	}
 
-	void Device::InitRootSignatures()
+	void Device::GarbageCollect()
 	{
-		for (int i = 0; i < PipelineStateType::PIPELINE_STATE_TYPE_COUNT; i++)
-		{
-			auto Signature = MakeRef<RootSignature>();
-			// For now just consider one unique constant buffer?
-			Signature->Init({ PipelineStateType(i), 1 });
-			m_RootSignatures[i] = Signature;
-		}
+		m_TempBufferCurrentOffset = 0;
 	}
 
 	Ref<Context> Device::CreateContext(ContextType contextType)
@@ -122,15 +116,6 @@ namespace vkr::Render
 		return texture;
 	}
 
-	Ref<Buffer> Device::CreateBuffer(const BufferDesc& desc, uint32_t initialDataSize, const void* initialData)
-	{
-		Ref<Buffer> buffer = MakeRef<Buffer>();
-		if (!buffer->Init(desc, initialDataSize, initialData))
-			return nullptr;
-		
-		return buffer;
-	}
-
 	Ref<Texture> Device::LoadTexture(const std::filesystem::path& filepath)
 	{
 		TextureLoader* loader = nullptr;
@@ -154,65 +139,10 @@ namespace vkr::Render
 		return CreateTexture(textureDesc, &textureData);
 	}
 
-	void Device::InitTextureLoaders()
-	{
-		m_TextureLoaderByExtension[".dds"] = MakeUnique<TextureLoader_DDS>();
-		m_TextureLoaderByExtension[".png"] = MakeUnique<TextureLoader_PNG>();
-		m_TextureLoaderByExtension[".tga"] = MakeUnique<TextureLoader_TGA>();
-	}
-
-	void Device::InitCommandQueues()
-	{
-		m_CommandQueue[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandQueue>(CONTEXT_TYPE_GRAPHICS);
-		m_CommandListPool[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandListPool>(CONTEXT_TYPE_GRAPHICS);
-		m_Contexts[CONTEXT_TYPE_GRAPHICS] = MakeRef<Context>(CONTEXT_TYPE_GRAPHICS);
-
-		m_CommandQueue[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandQueue>(CONTEXT_TYPE_COMPUTE);
-		m_CommandListPool[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandListPool>(CONTEXT_TYPE_COMPUTE);
-		m_Contexts[CONTEXT_TYPE_COMPUTE] = MakeRef<Context>(CONTEXT_TYPE_COMPUTE);
-
-		m_CommandQueue[CONTEXT_TYPE_COPY] = MakeRef<CommandQueue>(CONTEXT_TYPE_COPY);
-		m_CommandListPool[CONTEXT_TYPE_COPY] = MakeRef<CommandListPool>(CONTEXT_TYPE_COPY);
-		m_Contexts[CONTEXT_TYPE_COPY] = MakeRef<Context>(CONTEXT_TYPE_COPY);
-	}
-
-	ID3D12Device* Device::GetD3DDevice() const
-	{
-		return m_Device.Get();
-	}
-
-	ID3D12Device10* Device::GetD3DDevice10() const
-	{
-		return m_Device10.Get();
-	}
-
-	IDXGIFactory2* Device::GetDXGIFactory() const
-	{
-		return m_Factory.Get();
-	}
-
-	IDXGIAdapter1* Device::GetDXGIAdapter() const
-	{
-		return m_Adapter.Get();
-	}
-
-	const Ref<CommandQueue>& Device::GetCommandQueue(ContextType contextType) const
-	{
-		return m_CommandQueue[contextType];
-	}
-
-	const Ref<CommandListPool>& Device::GetCommandListPool(ContextType contextType) const
-	{
-		return m_CommandListPool[contextType];
-	}
-
-	DescriptorHeap* Device::GetDescriptorHeap(DescriptorHeapType type) const
-	{
-		return m_DescriptorHeaps[type].get();
-	}
-
 	Ref<TextureView> Device::CreateTextureView(const TextureViewDesc& desc, const Ref<Texture>& resource)
 	{
+		// todo hash desc and get existing view if possible
+
 		Ref<TextureView> textureView = MakeRef<TextureView>();
 		if (!textureView->Init(desc, resource))
 		{
@@ -223,6 +153,8 @@ namespace vkr::Render
 
 	Ref<RenderTargetView> Device::CreateRenderTargetView(const RenderTargetViewDesc& desc, const Ref<Texture>& resource)
 	{
+		// todo hash desc and get existing view if possible
+
 		Ref<RenderTargetView> rtv = MakeRef<RenderTargetView>();
 		if (!rtv->Init(desc, resource))
 		{
@@ -233,6 +165,8 @@ namespace vkr::Render
 
 	Ref<DepthStencilView> Device::CreateDepthStencilView(const DepthStencilViewDesc& desc, const Ref<Texture>& resource)
 	{
+		// todo hash desc and get existing view if possible
+
 		Ref<DepthStencilView> dsv = MakeRef<DepthStencilView>();
 		if (!dsv->Init(desc, resource))
 		{
@@ -241,8 +175,19 @@ namespace vkr::Render
 		return dsv;
 	}
 
+	Ref<Buffer> Device::CreateBuffer(const BufferDesc& desc, uint32_t initialDataSize, const void* initialData)
+	{
+		Ref<Buffer> buffer = MakeRef<Buffer>();
+		if (!buffer->Init(desc, initialDataSize, initialData))
+			return nullptr;
+
+		return buffer;
+	}
+
 	Ref<BufferView> Device::CreateBufferView(const BufferViewDesc& desc, const Ref<Buffer>& resource)
 	{
+		// todo hash desc and get existing view if possible
+
 		Ref<BufferView> bufferView = MakeRef<BufferView>();
 		if (!bufferView->Init(desc, resource))
 		{
@@ -254,16 +199,16 @@ namespace vkr::Render
 	TempBuffer Device::GetTempBuffer(uint32_t byteSize, uint32_t initialDataSize, const void* initialData)
 	{
 		auto Align = [](uint32_t value, uint32_t alignment)
-		{
-			return ((value + alignment - 1) / alignment) * alignment;
-		};
+			{
+				return ((value + alignment - 1) / alignment) * alignment;
+			};
 
 		// 256 is mainly for constant buffers though. We should align differently based on buffer usage
 		const uint32_t size = Align(byteSize, 256);
 		assert("TempBuffer is full" && (m_TempBufferCurrentOffset + size) <= m_TempBuffer->GetDesc().ByteSize());
 
 		TempBuffer outTempBuffer;
-		outTempBuffer.m_Buffer = m_TempBuffer.get();		
+		outTempBuffer.m_Buffer = m_TempBuffer.get();
 		outTempBuffer.m_Offset = m_TempBufferCurrentOffset.fetch_add(size);
 
 		if (initialData)
@@ -338,12 +283,97 @@ namespace vkr::Render
 		return CreateRaytracingAccelerationStructure(buildDesc);
 	}
 
+	ID3D12Device* Device::GetD3DDevice() const
+	{
+		return m_Device.Get();
+	}
+
+	ID3D12Device10* Device::GetD3DDevice10() const
+	{
+		return m_Device10.Get();
+	}
+
+	IDXGIFactory2* Device::GetDXGIFactory() const
+	{
+		return m_Factory.Get();
+	}
+
+	IDXGIAdapter1* Device::GetDXGIAdapter() const
+	{
+		return m_Adapter.Get();
+	}
+
+	const Ref<CommandQueue>& Device::GetCommandQueue(ContextType contextType) const
+	{
+		return m_CommandQueue[contextType];
+	}
+
+	const Ref<CommandListPool>& Device::GetCommandListPool(ContextType contextType) const
+	{
+		return m_CommandListPool[contextType];
+	}
+
+	DescriptorHeap* Device::GetDescriptorHeap(DescriptorHeapType type) const
+	{
+		return m_DescriptorHeaps[type].get();
+	}
+
+	Ref<Context> Device::GetContext(ContextType contextType) const
+	{
+		return m_Contexts[contextType];
+	}
+
+	void Device::InitRootSignatures()
+	{
+		for (int i = 0; i < PipelineStateType::PIPELINE_STATE_TYPE_COUNT; i++)
+		{
+			auto Signature = MakeRef<RootSignature>();
+			// For now just consider one unique constant buffer?
+			Signature->Init({ PipelineStateType(i), 1 });
+			m_RootSignatures[i] = Signature;
+		}
+	}
+
+	void Device::InitTextureLoaders()
+	{
+		m_TextureLoaderByExtension[".dds"] = MakeUnique<TextureLoader_DDS>();
+		m_TextureLoaderByExtension[".png"] = MakeUnique<TextureLoader_PNG>();
+		m_TextureLoaderByExtension[".tga"] = MakeUnique<TextureLoader_TGA>();
+	}
+
+	void Device::InitCommandQueues()
+	{
+		m_CommandQueue[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandQueue>(CONTEXT_TYPE_GRAPHICS);
+		m_CommandListPool[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandListPool>(CONTEXT_TYPE_GRAPHICS);
+		m_Contexts[CONTEXT_TYPE_GRAPHICS] = MakeRef<Context>(CONTEXT_TYPE_GRAPHICS);
+
+		m_CommandQueue[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandQueue>(CONTEXT_TYPE_COMPUTE);
+		m_CommandListPool[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandListPool>(CONTEXT_TYPE_COMPUTE);
+		m_Contexts[CONTEXT_TYPE_COMPUTE] = MakeRef<Context>(CONTEXT_TYPE_COMPUTE);
+
+		m_CommandQueue[CONTEXT_TYPE_COPY] = MakeRef<CommandQueue>(CONTEXT_TYPE_COPY);
+		m_CommandListPool[CONTEXT_TYPE_COPY] = MakeRef<CommandListPool>(CONTEXT_TYPE_COPY);
+		m_Contexts[CONTEXT_TYPE_COPY] = MakeRef<Context>(CONTEXT_TYPE_COPY);
+	}
+
 	void Device::InitDescriptorHeaps()
 	{
 		m_DescriptorHeaps[DESCRIPTOR_HEAP_TYPE_SHADER_RESOURCE] = MakeUnique<DescriptorHeap>(DESCRIPTOR_HEAP_TYPE_SHADER_RESOURCE, 1000000);
 		m_DescriptorHeaps[DESCRIPTOR_HEAP_TYPE_SAMPLER] = MakeUnique<DescriptorHeap>(DESCRIPTOR_HEAP_TYPE_SAMPLER, 128);
 		m_DescriptorHeaps[DESCRIPTOR_HEAP_TYPE_RENDER_TARGET] = MakeUnique<DescriptorHeap>(DESCRIPTOR_HEAP_TYPE_RENDER_TARGET, 512);
 		m_DescriptorHeaps[DESCRIPTOR_HEAP_TYPE_DEPTH_STENCIL] = MakeUnique<DescriptorHeap>(DESCRIPTOR_HEAP_TYPE_DEPTH_STENCIL, 16);
+	}
+
+	void Device::InitTempBuffer()
+	{
+		BufferDesc tempBufferDesc = {};
+		tempBufferDesc.m_CpuWritable = true;
+		tempBufferDesc.m_Writable = false;
+		tempBufferDesc.m_ElementCount = 8 * 1024 * 1024; // 8MB should be enough for now
+		tempBufferDesc.m_ElementSize = 1;
+		tempBufferDesc.m_Format = FORMAT_UNKNOWN;
+		m_TempBuffer = CreateBuffer(tempBufferDesc);
+		m_TempBufferCurrentOffset = 0;
 	}
 
 	Ref<Buffer> Device::CreateRaytracingAccelerationStructure(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC& buildDesc)
@@ -375,26 +405,5 @@ namespace vkr::Render
 
 		d3dCmdList4->Release();
 		return outBuffer;
-	}
-	vkr::Ref<vkr::Render::Context> Device::GetContext(ContextType contextType) const
-	{
-		return m_Contexts[contextType];
-	}
-
-	void Device::GarbageCollect()
-	{
-		m_TempBufferCurrentOffset = 0;
-	}
-
-	void Device::InitTempBuffer()
-	{
-		BufferDesc tempBufferDesc = {};
-		tempBufferDesc.m_CpuWritable = true;
-		tempBufferDesc.m_Writable = false;
-		tempBufferDesc.m_ElementCount = 8 * 1024 * 1024; // 8MB should be enough for now
-		tempBufferDesc.m_ElementSize = 1;
-		tempBufferDesc.m_Format = FORMAT_UNKNOWN;
-		m_TempBuffer = CreateBuffer(tempBufferDesc);
-		m_TempBufferCurrentOffset = 0;
 	}
 }
