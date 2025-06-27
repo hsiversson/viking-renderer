@@ -50,18 +50,18 @@ namespace vkr
 	Ref<Graphics::Mesh> vkr::CreateCubeMesh()
 	{
 		Render::BufferDesc vtxbufferdesc;
-		vtxbufferdesc.bWriteOnCPU = true;
+		vtxbufferdesc.m_CpuWritable = true;
 		vtxbufferdesc.m_ElementCount = sizeof(DefaultCubeVertices) / sizeof(Vector3f);
 		vtxbufferdesc.m_ElementSize = sizeof(Vector3f);
-		Ref<Render::Buffer> vtxbuffer = Render::GetDevice().CreateBuffer(vtxbufferdesc);
-		if (!vtxbuffer || !vtxbuffer->InitWithData((uint8_t*)(&DefaultCubeVertices), sizeof(DefaultCubeVertices)))
+		Ref<Render::Buffer> vtxbuffer = Render::GetDevice().CreateBuffer(vtxbufferdesc, sizeof(DefaultCubeVertices), &DefaultCubeVertices);
+		if (!vtxbuffer)
 			return nullptr;
 		Render::BufferDesc idxbufferdesc;
-		idxbufferdesc.bWriteOnCPU = true;
+		idxbufferdesc.m_CpuWritable = true;
 		idxbufferdesc.m_ElementCount = sizeof(DefaultCubeIndices) / sizeof(uint16_t);
 		idxbufferdesc.m_ElementSize = sizeof(uint16_t);
-		Ref<Render::Buffer> idxbuffer = Render::GetDevice().CreateBuffer(idxbufferdesc);
-		if (!idxbuffer || !idxbuffer->InitWithData((uint8_t*)&DefaultCubeIndices, sizeof(DefaultCubeIndices)))
+		Ref<Render::Buffer> idxbuffer = Render::GetDevice().CreateBuffer(idxbufferdesc, sizeof(DefaultCubeIndices), &DefaultCubeIndices);
+		if (!idxbuffer)
 			return nullptr;
 		auto mesh = MakeRef<Graphics::Mesh>();
 		mesh->SetVertexBuffer(vtxbuffer);

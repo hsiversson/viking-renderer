@@ -44,6 +44,6 @@ namespace vkr::Render
 		Event m_GpuPendingEvent;
 		ResourceStateTracking m_StateTracking;
 		std::unordered_map<uint64_t, Ref<ResourceDescriptor>> m_Descriptors;
-		ComPtr<ID3D12Resource> m_Resource; // do we generalize the resources between texture/buffer? We need to keep track of resource state etc, so would be annoying to duplicate.
+		ComPtr<ID3D12Resource> m_Resource;
 	};
 }

@@ -122,10 +122,10 @@ namespace vkr::Render
 		return texture;
 	}
 
-	Ref<Buffer> Device::CreateBuffer(const BufferDesc& desc)
+	Ref<Buffer> Device::CreateBuffer(const BufferDesc& desc, uint32_t initialDataSize, const void* initialData)
 	{
 		Ref<Buffer> buffer = MakeRef<Buffer>();
-		if (!buffer->Init(desc))
+		if (!buffer->Init(desc, initialDataSize, initialData))
 			return nullptr;
 		
 		return buffer;
@@ -538,8 +538,8 @@ namespace vkr::Render
 	void Device::InitTempBuffer()
 	{
 		BufferDesc tempBufferDesc = {};
-		tempBufferDesc.bWriteOnCPU = true;
-		tempBufferDesc.bWriteOnGPU = false;
+		tempBufferDesc.m_CpuWritable = true;
+		tempBufferDesc.m_Writable = false;
 		tempBufferDesc.m_ElementCount = 8 * 1024 * 1024; // 8MB should be enough for now
 		tempBufferDesc.m_ElementSize = 1;
 		tempBufferDesc.m_Format = FORMAT_UNKNOWN;

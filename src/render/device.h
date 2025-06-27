@@ -53,7 +53,7 @@ namespace vkr::Render
 		Ref<TextureView> CreateView(Texture* tex, const ResourceDescriptorDesc& desc);
 		Ref<RenderTargetView> CreateRTView(Texture* tex, const ResourceDescriptorDesc& desc);
 		Ref<DepthStencilView> CreateDSView(Texture* tex, const ResourceDescriptorDesc& desc);
-		Ref<Buffer> CreateBuffer(const BufferDesc& desc);
+		Ref<Buffer> CreateBuffer(const BufferDesc& desc, uint32_t initialDataSize = 0, const void* initialData = nullptr);
 		Ref<BufferView> CreateView(Buffer* buf, const ResourceDescriptorDesc& desc);
 
 		TempBuffer GetTempBuffer(uint32_t byteSize, uint32_t initialDataSize = 0, const void* initialData = nullptr); // TempBuffers only last until the end of the frame, then their memory is reused

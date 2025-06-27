@@ -9,8 +9,8 @@ namespace vkr::Render
 		Format m_Format;
 		uint32_t m_ElementSize;
 		uint32_t m_ElementCount;
-		bool bWriteOnCPU = true;
-		bool bWriteOnGPU = false;
+		bool m_Writable = false;
+		bool m_CpuWritable = false;
 
 		inline uint32_t ByteSize() const { return m_ElementCount * m_ElementSize; }
 	};
@@ -25,8 +25,6 @@ namespace vkr::Render
 
 		void UploadData(uint64_t offset, uint32_t byteSize, const void* data);
 		void DownloadData();
-
-		bool InitWithData(const void* Data, size_t size);
 
 		const BufferDesc& GetDesc() const;
 
