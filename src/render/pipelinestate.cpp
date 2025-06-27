@@ -59,7 +59,10 @@ namespace vkr::Render
 
 			graphicsDesc.pRootSignature = rootSignature->GetD3DRootSignature();
 			graphicsDesc.VS = { desc.Default.m_VertexShader->GetByteCode(), desc.Default.m_VertexShader->GetByteCodeSize() };
-			graphicsDesc.PS = { desc.Default.m_PixelShader->GetByteCode(), desc.Default.m_PixelShader->GetByteCodeSize() };
+			if (desc.Default.m_PixelShader)
+			{
+				graphicsDesc.PS = { desc.Default.m_PixelShader->GetByteCode(), desc.Default.m_PixelShader->GetByteCodeSize() };
+			}
 
 			{
 				const RasterizerState& rasterState = desc.Default.m_RasterizerState;

@@ -28,13 +28,13 @@ namespace vkr::Graphics
 	void ViewRenderer::RenderView(View& view)
 	{
 		RenderViewContext renderViewCtx(view);
-		//Lets just do a simple forward render for now
-		ForwardPass(view);
-		//
-
+		
 		UpdateRtScene(view);
 		UpdateParticles(view);
 		DepthPrepass(view);
+		//Lets just do a simple forward render for now, remove when raytracing is in place
+		ForwardPass(view);
+		//
 		TraceRadiance(view);
 		ApplyUpscaling(view);
 		ApplyPostEffects(view);
@@ -57,22 +57,23 @@ namespace vkr::Graphics
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
 			barriers.push_back(barrierDesc);
 		}
+		//We will only read from DS now that depths are written to
 		{
 			Render::TextureBarrierDesc barrierDesc;
 			barrierDesc.m_Texture = view.GetDepthBuffer()->GetTexture();
-			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_DEPTH_STECIL;
-			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_DEPTH_WRITE;
-			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_DEPTH_STENCIL;
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_DEPTH_READ;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_DEPTH_STENCIL_READ;
 			barriers.push_back(barrierDesc);
 		}
 		ctx->TextureBarrier(barriers.size(), barriers.data());
 
 
-		std::vector<vkr::Ref<vkr::Render::ResourceDescriptor>> rendertargets;
+		std::vector<vkr::Ref<vkr::Render::RenderTargetView>> rendertargets;
 		rendertargets.push_back(view.GetOutputTarget());
 
 		ctx->ClearRenderTargets(rendertargets.data(), rendertargets.size());
-		ctx->ClearDepthStencil(view.GetDepthBuffer(), 0.0f);
+		//ctx->ClearDepthStencil(view.GetDepthBuffer(), 0.0f);
 
 		ctx->BindRenderTargets(rendertargets.data(), rendertargets.size());
 		ctx->BindDepthStencil(view.GetDepthBuffer());
@@ -88,7 +89,7 @@ namespace vkr::Graphics
 			ctx->BindVertexBuffers(vertexbuffers.data(), vertexbuffers.size());
 			ctx->BindIndexBuffer(mesh.m_Mesh->GetIndexBuffer());
 			ctx->SetPrimitiveTopology(mesh.m_Mesh->GetTopology());
-			ctx->BindPSO(mesh.m_Material->GetPipelineState());
+			ctx->BindPSO(mesh.m_Material->GetDefaultPipelineState());
 
 			struct alignas(16) ConstantData 
 			{
@@ -136,19 +137,61 @@ namespace vkr::Graphics
 	void ViewRenderer::DepthPrepass(View& view)
 	{
 		const ViewRenderData& renderData = view.GetRenderData();
-		//Render::Device* device = Render::GetDevice();
-		//Render::Context* ctx = device->GetContext(Render::CONTEXT_TYPE_GRAPHICS);
-		//
-		//ctx->SetRenderTarget(nullptr, depthbuffer);
-		//
-		//for (auto& mesh : renderData.m_VisibleMeshes)
-		//{
-		//	ctx->BindVertexBuffer(meshVtxBuffer);
-		//	ctx->BindIndexBuffer(meshIdxBuffer);
-		//	ctx->BindRootConstantBuffers(materialConstantData);
-		//	ctx->BindPSO(materialPso);
-		//	ctx->Draw();
-		//}
+		Ref<vkr::Render::Context> ctx = Render::GetDevice().GetContext(vkr::Render::CONTEXT_TYPE_GRAPHICS);
+		ctx->Begin();
+
+		//Transition DS to write
+		std::vector<Render::TextureBarrierDesc> barriers;
+		{
+			Render::TextureBarrierDesc barrierDesc;
+			barrierDesc.m_Texture = view.GetDepthBuffer()->GetTexture();
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_DEPTH_STENCIL;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_DEPTH_WRITE;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_DEPTH_STENCIL_WRITE;
+			barriers.push_back(barrierDesc);
+		}
+		ctx->TextureBarrier(barriers.size(), barriers.data());
+
+		ctx->ClearDepthStencil(view.GetDepthBuffer(), 0.0f);
+
+		std::vector<vkr::Ref<vkr::Render::RenderTargetView>> rendertargets;
+		ctx->BindRenderTargets(rendertargets.data(), rendertargets.size());
+		ctx->BindDepthStencil(view.GetDepthBuffer());
+
+		const Render::TextureDesc& rtDesc = view.GetDepthBuffer()->GetTexture()->m_TextureDesc;
+		ctx->SetViewport(0, 0, rtDesc.m_Size.x, rtDesc.m_Size.y);
+		ctx->SetScissorRect(0, 0, rtDesc.m_Size.x, rtDesc.m_Size.y);
+		
+		for (auto& mesh : renderData.m_VisibleMeshes)
+		{
+			std::vector<vkr::Ref<vkr::Render::Buffer>> vertexbuffers;
+			vertexbuffers.push_back(mesh.m_Mesh->GetVertexBuffer());
+			ctx->BindVertexBuffers(vertexbuffers.data(), vertexbuffers.size());
+			ctx->BindIndexBuffer(mesh.m_Mesh->GetIndexBuffer());
+			ctx->SetPrimitiveTopology(mesh.m_Mesh->GetTopology());
+			ctx->BindPSO(mesh.m_Material->GetDepthPipelineState());
+
+			struct alignas(16) ConstantData
+			{
+				Mat44 ViewProjection; // 64 bytes
+				Mat44 World; // 64 bytes
+				Vector4f Color; // 16 bytes
+			};
+			ConstantData data;
+			data.ViewProjection = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
+			data.World = mesh.m_Transform;
+			data.Color = Vector4f(1, 0, 0, 1);
+
+			auto cbuffer = Render::GetDevice().GetTempBuffer(sizeof(ConstantData), sizeof(data), (void*)&data);
+			std::vector<vkr::Render::Buffer*> buffers;
+			std::vector<uint64_t> offsets;
+			buffers.push_back(cbuffer.m_Buffer);
+			offsets.push_back(cbuffer.m_Offset);
+			ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
+			ctx->DrawIndexed(0, 0);
+		}
+		ctx->End();
+		ctx->Flush();
 	}
 
 	void ViewRenderer::TraceRadiance(View& view)

@@ -21,15 +21,18 @@ namespace vkr::Graphics
 		Material();
 		~Material();
 
-		void SetPipelineState(Ref<Render::PipelineState> pso) { m_PipelineState = pso; }
-		Ref<Render::PipelineState> GetPipelineState() const { return m_PipelineState; }
+		void SetDepthPipelineState(Ref<Render::PipelineState> pso) { m_DepthPipelineState = pso; }
+		Ref<Render::PipelineState> GetDepthPipelineState() const { return m_DepthPipelineState; }
+		void SetDefaultPipelineState(Ref<Render::PipelineState> pso) { m_DefaultPipelineState = pso; }
+		Ref<Render::PipelineState> GetDefaultPipelineState() const { return m_DefaultPipelineState; }
 
 	private:
 		// Make this parameterized?
 		std::vector<Ref<Render::Texture>> m_Textures;
 		//std::vector<Ref<Render::Sampler>> m_Samplers; // This should probably not be stored, but rather requested from device to be able to handle dynamic mip biasing.
 
-		// Should we have multiple?
-		Ref<Render::PipelineState> m_PipelineState;
+		// In the future we would like a full fledged PSO management system
+		Ref<Render::PipelineState> m_DepthPipelineState;
+		Ref<Render::PipelineState> m_DefaultPipelineState;
 	};
 };

@@ -85,7 +85,7 @@ namespace vkr::Render
 		{
 			initialLayout = D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE;
 			m_StateTracking.m_CurrentLayout = RESOURCE_STATE_LAYOUT_DEPTH_WRITE;
-			m_StateTracking.m_CurrentAccess = RESOURCE_STATE_ACCESS_DEPTH_STENCIL;
+			m_StateTracking.m_CurrentAccess = RESOURCE_STATE_ACCESS_DEPTH_STENCIL_WRITE;
 			m_StateTracking.m_CurrentSync = RESOURCE_STATE_SYNC_ALL;
 		}
 

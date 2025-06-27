@@ -79,20 +79,35 @@ namespace vkr
 		Ref<Render::Shader> VS = m_RenderDevice->CreateShader("../../../content/shaders/simpleforwardtestVS.hlsl", L"MainVS", vkr::Render::SHADER_STAGE_VERTEX, vkr::Render::ShaderModel::SM_6_0);
 		Ref<Render::Shader> PS = m_RenderDevice->CreateShader("../../../content/shaders/simpleforwardtestPS.hlsl", L"MainPS", vkr::Render::SHADER_STAGE_PIXEL, vkr::Render::ShaderModel::SM_6_0);
 
-		Render::PipelineStateDesc psodesc;
-		psodesc.m_Type = vkr::Render::PIPELINE_STATE_TYPE_DEFAULT;
-		psodesc.Default.m_PrimitiveType = vkr::Render::PRIMITIVE_TYPE_TRIANGLE;
-		psodesc.Default.m_VertexLayout.m_Attributes.insert({ vkr::Render::VertexAttribute::TYPE_POSITION, 0, 0, vkr::Render::FORMAT_RGB32_FLOAT });
-		psodesc.Default.m_VertexShader = VS.get();
-		psodesc.Default.m_PixelShader = PS.get();
-		psodesc.Default.m_RasterizerState = { vkr::Render::FACE_CULL_MODE_BACK, false, false, false };
-		psodesc.Default.m_RenderTargetState = { {vkr::Render::Format::FORMAT_RGB10A2_UNORM} };
-		psodesc.Default.m_DepthStencilState = { true, true, vkr::Render::COMPARISON_FUNC_GREATER, Render::Format::FORMAT_D32_FLOAT };
-		psodesc.Default.m_BlendState.RTBlends.push_back({true, vkr::Render::BLEND_OP_ADD, vkr::Render::BLEND_SRC_ALPHA, vkr::Render::BLEND_INV_SRC_ALPHA, vkr::Render::BLEND_OP_ADD, vkr::Render::BLEND_ONE, vkr::Render::BLEND_ZERO, vkr::Render::COLOR_WRITE_ALL});
+		Render::PipelineStateDesc defpsodesc;
+		defpsodesc.m_Type = vkr::Render::PIPELINE_STATE_TYPE_DEFAULT;
+		defpsodesc.Default.m_PrimitiveType = vkr::Render::PRIMITIVE_TYPE_TRIANGLE;
+		defpsodesc.Default.m_VertexLayout.m_Attributes.insert({ vkr::Render::VertexAttribute::TYPE_POSITION, 0, 0, vkr::Render::FORMAT_RGB32_FLOAT });
+		defpsodesc.Default.m_VertexShader = VS.get();
+		defpsodesc.Default.m_PixelShader = PS.get();
+		defpsodesc.Default.m_RasterizerState = { vkr::Render::FACE_CULL_MODE_BACK, false, false, false };
+		defpsodesc.Default.m_RenderTargetState = { {vkr::Render::Format::FORMAT_RGB10A2_UNORM} };
+		defpsodesc.Default.m_DepthStencilState = { true, false, vkr::Render::COMPARISON_FUNC_EQUAL, Render::Format::FORMAT_D32_FLOAT };
+		defpsodesc.Default.m_BlendState.RTBlends.push_back({true, vkr::Render::BLEND_OP_ADD, vkr::Render::BLEND_SRC_ALPHA, vkr::Render::BLEND_INV_SRC_ALPHA, vkr::Render::BLEND_OP_ADD, vkr::Render::BLEND_ONE, vkr::Render::BLEND_ZERO, vkr::Render::COLOR_WRITE_ALL});
 
-		Ref<vkr::Render::PipelineState> cubemainpso = m_RenderDevice->CreatePipelineState(psodesc);
+		Ref<vkr::Render::PipelineState> cubemainpso = m_RenderDevice->CreatePipelineState(defpsodesc);
+
+		Render::PipelineStateDesc depthpsodesc;
+		depthpsodesc.m_Type = vkr::Render::PIPELINE_STATE_TYPE_DEFAULT;
+		depthpsodesc.Default.m_PrimitiveType = vkr::Render::PRIMITIVE_TYPE_TRIANGLE;
+		depthpsodesc.Default.m_VertexLayout.m_Attributes.insert({ vkr::Render::VertexAttribute::TYPE_POSITION, 0, 0, vkr::Render::FORMAT_RGB32_FLOAT });
+		depthpsodesc.Default.m_VertexShader = VS.get();
+		depthpsodesc.Default.m_PixelShader = nullptr;
+		depthpsodesc.Default.m_RasterizerState = { vkr::Render::FACE_CULL_MODE_BACK, false, false, false };
+		depthpsodesc.Default.m_RenderTargetState = { {vkr::Render::Format::FORMAT_RGB10A2_UNORM} };
+		depthpsodesc.Default.m_DepthStencilState = { true, true, vkr::Render::COMPARISON_FUNC_GREATER_EQUAL, Render::Format::FORMAT_D32_FLOAT };
+		depthpsodesc.Default.m_BlendState.RTBlends.push_back({ true, vkr::Render::BLEND_OP_ADD, vkr::Render::BLEND_SRC_ALPHA, vkr::Render::BLEND_INV_SRC_ALPHA, vkr::Render::BLEND_OP_ADD, vkr::Render::BLEND_ONE, vkr::Render::BLEND_ZERO, vkr::Render::COLOR_WRITE_ALL });
+
+		Ref<vkr::Render::PipelineState> cubedepthpso = m_RenderDevice->CreatePipelineState(depthpsodesc);
+
 		Ref<Graphics::Material> cubematerial = MakeRef<Graphics::Material>();
-		cubematerial->SetPipelineState(cubemainpso);
+		cubematerial->SetDefaultPipelineState(cubemainpso);
+		cubematerial->SetDepthPipelineState(cubedepthpso);
 
 		Graphics::Model::Part part;
 		part.m_Material = cubematerial;

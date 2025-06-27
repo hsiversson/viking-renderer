@@ -6,7 +6,9 @@ namespace vkr::Render
 {
 	class Texture;
 	class Buffer;
+	class DepthStencilView;
 	class PipelineState;
+	class RenderTargetView;
 	class ResourceDescriptor;
 	class RootSignature;
 	class CommandList;
@@ -68,8 +70,8 @@ namespace vkr::Render
 		void BindRootConstantBuffers(Buffer** buffers, size_t bufferCount, uint64_t* offsets = nullptr);
 		void BindVertexBuffers(Ref<Buffer>* vertexbuffers, size_t vertexbuffercount);
 		void BindIndexBuffer(Ref<Buffer> indexbuffer);
-		void BindRenderTargets(Ref<ResourceDescriptor>* rtdescriptors, size_t descriptorCount);
-		void BindDepthStencil(Ref<ResourceDescriptor> dsdescriptor);
+		void BindRenderTargets(Ref<RenderTargetView>* rtviews, size_t viewCount);
+		void BindDepthStencil(Ref<DepthStencilView> dsview);
 		void SetPrimitiveTopology(PrimitiveTopology topologyType);
 		void SetViewport(uint32_t offsetX, uint32_t offsetY, uint32_t width, uint32_t height, float depthMin = 0.0f, float depthMax = 1.0f);
 		void SetScissorRect(uint32_t left, uint32_t top, uint32_t right, uint32_t bottom);
@@ -83,8 +85,8 @@ namespace vkr::Render
 		void GlobalBarrier(const GlobalBarrierDesc& barrierDesc);
 
 		// Clear
-		void ClearRenderTargets(Ref<ResourceDescriptor>* rtvs, size_t numRtvs);
-		void ClearDepthStencil(Ref<ResourceDescriptor> dsv, float clearValue);
+		void ClearRenderTargets(Ref<RenderTargetView>* rtvs, size_t numRtvs);
+		void ClearDepthStencil(Ref<DepthStencilView> dsv, float clearValue);
 
 		ContextType GetType() const;
 
@@ -98,8 +100,8 @@ namespace vkr::Render
 			Ref<PipelineState> m_PipelineState = nullptr;
 			std::vector<Buffer*> m_RootCB;
 			std::vector<uint64_t> m_RootCBOffsets;
-			std::vector<Ref<ResourceDescriptor>> m_RenderTargets;
-			Ref<ResourceDescriptor> m_DepthStencil;
+			std::vector<Ref<RenderTargetView>> m_RenderTargets;
+			Ref<DepthStencilView> m_DepthStencil;
 		};
 
 		void UpdateState();

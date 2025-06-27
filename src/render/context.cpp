@@ -287,7 +287,7 @@ namespace vkr::Render
 					FinalRT.push_back(&Descriptor->GetHandle());
 				}
 				
-				m_CurrentD3DCommandList->OMSetRenderTargets(FinalRT.size(),*FinalRT.data(),false,&NewState.m_DepthStencil->GetHandle());
+				m_CurrentD3DCommandList->OMSetRenderTargets(FinalRT.size(),FinalRT.size() ? *FinalRT.data() : nullptr, false, &NewState.m_DepthStencil->GetHandle());
 				m_RenderTargetUpdate = false;
 			}
 			
@@ -297,7 +297,7 @@ namespace vkr::Render
 		}
 	}
 
-	void Context::ClearRenderTargets(Ref<ResourceDescriptor>* rtvs, size_t numRtvs)
+	void Context::ClearRenderTargets(Ref<RenderTargetView>* rtvs, size_t numRtvs)
 	{
 		const float clearColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		for (uint32_t i = 0; i < numRtvs; ++i)
@@ -306,7 +306,7 @@ namespace vkr::Render
 		}
 	}
 
-	void Context::ClearDepthStencil(Ref<ResourceDescriptor> dsv, float clearValue)
+	void Context::ClearDepthStencil(Ref<DepthStencilView> dsv, float clearValue)
 	{
 		m_CurrentD3DCommandList->ClearDepthStencilView(dsv->GetHandle(), D3D12_CLEAR_FLAG_DEPTH, clearValue, 0, 0, nullptr);
 	}
@@ -316,9 +316,9 @@ namespace vkr::Render
 		return m_Type;
 	}
 
-	void Context::BindRenderTargets(Ref<ResourceDescriptor>* descriptors, size_t descriptorsCount)
+	void Context::BindRenderTargets(Ref<RenderTargetView>* rtviews, size_t viewCount)
 	{
-		std::vector<Ref<ResourceDescriptor>> rtdescriptors(descriptors, descriptors + descriptorsCount);
+		std::vector<Ref<RenderTargetView>> rtdescriptors(rtviews, rtviews + viewCount);
 		if (NewState.m_RenderTargets != rtdescriptors)
 		{
 			NewState.m_RenderTargets = rtdescriptors;
@@ -327,11 +327,11 @@ namespace vkr::Render
 		}
 	}
 
-	void Context::BindDepthStencil(Ref<ResourceDescriptor> dsdescriptor)
+	void Context::BindDepthStencil(Ref<DepthStencilView> dsview)
 	{
-		if (NewState.m_DepthStencil != dsdescriptor)
+		if (NewState.m_DepthStencil != dsview)
 		{
-			NewState.m_DepthStencil = dsdescriptor;
+			NewState.m_DepthStencil = dsview;
 			m_StateUpdate = true;
 			m_RenderTargetUpdate = true;
 		}
