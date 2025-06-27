@@ -8,6 +8,15 @@ namespace vkr::Render
 		return true;
 	}
 
+	void Resource::SetName(const char* name)
+	{
+		if (m_Resource)
+		{
+			std::wstring wName = UTF8ToUTF16(name);
+			m_Resource->SetName(wName.c_str());
+		}		
+	}
+
 	bool Resource::AddDescriptor(uint64_t descriptorhash, const Ref<ResourceDescriptor>& descriptor)
 	{
 		auto it = m_Descriptors.find(descriptorhash);

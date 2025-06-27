@@ -5,6 +5,7 @@
 namespace vkr::Render
 {
 	class Texture;
+	class RenderTargetView;
 	class CommandQueue;
 	class SwapChain
 	{
@@ -20,7 +21,8 @@ namespace vkr::Render
 		void SetHdrEnabled(bool hdr);
 		bool IsHdrEnabled() const;
 
-		Ref<Texture> GetOutputTexture();
+		Ref<Texture> GetOutputTexture()  const;
+		Ref<RenderTargetView> GetOutputRenderTarget() const;
 
 		void Present();
 
@@ -38,6 +40,8 @@ namespace vkr::Render
 		{
 			Event m_LastFrameEvent;
 			Ref<Texture> m_Texture;
+			Ref<RenderTargetView> m_View;
+
 		};
 		std::array<BackBufferResource, NumBackBuffers> m_BackBuffers;
 		uint32_t m_CurrentBackBufferIndex;

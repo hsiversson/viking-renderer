@@ -29,6 +29,8 @@ namespace vkr::Render
 		Resource();
 		bool InitWithResource(ID3D12Resource* Resource);
 
+		void SetName(const char* name);
+
 		ID3D12Resource* GetD3DResource() { return m_Resource.Get(); }
 		Ref<ResourceDescriptor> GetDescriptor(uint64_t descriptorhash);
 		bool AddDescriptor(uint64_t descriptorhash, const Ref<ResourceDescriptor>& descriptor);

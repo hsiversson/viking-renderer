@@ -122,11 +122,7 @@ namespace vkr
 			// these parts should not be in application
 			modelinst->SetLocalTransform(Compose(CreateRotationZ(m_ElapsedTimer.ElapsedTime()), Vector3f(0, std::sin(m_ElapsedTimer.ElapsedTime()), 0)));
 
-			Ref<vkr::Render::Texture> backbuffer = m_SwapChain->GetOutputTexture();
-			Render::ResourceDescriptorDesc rtdesc;
-			rtdesc.Type = vkr::Render::ResourceDescriptorType::RTV;
-			Ref<Render::RenderTargetView> rtdescriptor = m_RenderDevice->CreateRTView(backbuffer.get(), rtdesc);
-			m_View->SetOutputTarget(rtdescriptor);
+			m_View->SetOutputTarget(m_SwapChain->GetOutputRenderTarget());
 			m_View->SetCamera(*camera);
 
 			m_Scene->Update();

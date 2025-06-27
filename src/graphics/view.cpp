@@ -102,10 +102,9 @@ namespace vkr::Graphics
 		depthStencilDesc.m_Format = Render::FORMAT_D32_FLOAT;
 		m_DepthBuffer = Render::GetDevice().CreateTexture(depthStencilDesc);
 
-		Render::ResourceDescriptorDesc dsvDesc = {};
-		dsvDesc.Type = Render::ResourceDescriptorType::DSV;
-		dsvDesc.TextureDesc.Mip = 0;
-		m_DepthBufferView = Render::GetDevice().CreateDSView(m_DepthBuffer.get(), dsvDesc);
+		Render::DepthStencilViewDesc dsvDesc;
+		dsvDesc.m_Mip = 0;
+		m_DepthBufferView = Render::GetDevice().CreateDepthStencilView(dsvDesc, m_DepthBuffer);
 
 		return true;
 	}

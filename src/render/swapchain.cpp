@@ -117,7 +117,10 @@ namespace vkr::Render
 
 			m_BackBuffers[i].m_Texture = MakeRef<Texture>();
 			m_BackBuffers[i].m_Texture->InitWithResource(rtDesc, RT, initialState);
-			RT->SetName(L"Framebuffer");
+
+			RenderTargetViewDesc rtvDesc = {};
+			rtvDesc.m_Mip = 0;
+			m_BackBuffers[i].m_View = GetDevice().CreateRenderTargetView(rtvDesc, m_BackBuffers[i].m_Texture);
 		}
 	}
 
@@ -127,12 +130,18 @@ namespace vkr::Render
 		{
 			m_BackBuffers[i].m_LastFrameEvent.Wait();
 			m_BackBuffers[i].m_Texture.reset();
+			m_BackBuffers[i].m_View.reset();
 		}
 	}
 
-	vkr::Ref<vkr::Render::Texture> SwapChain::GetOutputTexture()
+	Ref<Texture> SwapChain::GetOutputTexture() const
 	{
 		return m_BackBuffers[m_CurrentBackBufferIndex].m_Texture;
+	}
+
+	Ref<RenderTargetView> SwapChain::GetOutputRenderTarget() const
+	{
+		return m_BackBuffers[m_CurrentBackBufferIndex].m_View;
 	}
 
 }

@@ -6,6 +6,7 @@
 #include "render/pipelinestate.h"
 #include "render/texture.h"
 #include "render/buffer.h"
+#include "render/descriptorheap.h"
 
 namespace vkr::Render
 {
@@ -50,11 +51,12 @@ namespace vkr::Render
 
 		Ref<Texture> CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr);
 		Ref<Texture> LoadTexture(const std::filesystem::path& filepath);
-		Ref<TextureView> CreateView(Texture* tex, const ResourceDescriptorDesc& desc);
-		Ref<RenderTargetView> CreateRTView(Texture* tex, const ResourceDescriptorDesc& desc);
-		Ref<DepthStencilView> CreateDSView(Texture* tex, const ResourceDescriptorDesc& desc);
+		Ref<TextureView> CreateTextureView(const TextureViewDesc& desc, const Ref<Texture>& resource);
+		Ref<RenderTargetView> CreateRenderTargetView(const RenderTargetViewDesc& desc, const Ref<Texture>& resource);
+		Ref<DepthStencilView> CreateDepthStencilView(const DepthStencilViewDesc& desc, const Ref<Texture>& resource);
+
 		Ref<Buffer> CreateBuffer(const BufferDesc& desc, uint32_t initialDataSize = 0, const void* initialData = nullptr);
-		Ref<BufferView> CreateView(Buffer* buf, const ResourceDescriptorDesc& desc);
+		Ref<BufferView> CreateBufferView(const BufferViewDesc& desc, const Ref<Buffer>& resource);
 
 		TempBuffer GetTempBuffer(uint32_t byteSize, uint32_t initialDataSize = 0, const void* initialData = nullptr); // TempBuffers only last until the end of the frame, then their memory is reused
 
@@ -67,6 +69,7 @@ namespace vkr::Render
 		IDXGIAdapter1* GetDXGIAdapter() const;
 		const Ref<CommandQueue>& GetCommandQueue(ContextType contextType) const;
 		const Ref<CommandListPool>& GetCommandListPool(ContextType contextType) const;
+		DescriptorHeap* GetDescriptorHeap(DescriptorHeapType type) const;
 		Ref<Context> GetContext(ContextType contextType) const;
 
 	private:
@@ -95,7 +98,7 @@ namespace vkr::Render
 		Ref<RootSignature> m_RootSignatures[PIPELINE_STATE_TYPE_COUNT];
 
 		std::unordered_map<std::filesystem::path, UniquePtr<TextureLoader>> m_TextureLoaderByExtension;
-		DescriptorHeap* m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+		UniquePtr<DescriptorHeap> m_DescriptorHeaps[RESOURCE_DESCRIPTOR_TYPE_COUNT];
 
 		// Temp buffers
 		Ref<Buffer> m_TempBuffer;
