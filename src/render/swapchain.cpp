@@ -102,13 +102,13 @@ namespace vkr::Render
 
 			const D3D12_RESOURCE_DESC desc = RT->GetDesc();
 			TextureDesc rtDesc = {};
-			rtDesc.Size.x = desc.Width;
-			rtDesc.Size.y = desc.Height;
-			rtDesc.Size.z = 1;
-			rtDesc.ArraySize = 1;
-			rtDesc.Format = desc.Format;
-			rtDesc.bDepthStencil = false;
-			rtDesc.bUseMips = false;
+			rtDesc.m_Size.x = desc.Width;
+			rtDesc.m_Size.y = desc.Height;
+			rtDesc.m_Size.z = 1;
+			rtDesc.m_ArraySize = 1;
+			rtDesc.m_Format = D3DConvertFormat(desc.Format);
+			rtDesc.m_AllowDepthStencil = false;
+			rtDesc.m_CalculateMips = false;
 
 			ResourceStateTracking initialState;
 			initialState.m_CurrentAccess = RESOURCE_STATE_ACCESS_COMMON;

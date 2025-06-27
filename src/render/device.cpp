@@ -233,7 +233,7 @@ namespace vkr::Render
 			descriptor = MakeRef<DepthStencilView>();
 			m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV]->Allocate(descriptor);
 			D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-			dsvDesc.Format = tex->m_TextureDesc.Format;
+			dsvDesc.Format = D3DConvertFormat(tex->m_TextureDesc.m_Format);
 			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 			dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 			m_Device->CreateDepthStencilView(tex->GetD3DResource(), &dsvDesc, descriptor->GetHandle());
@@ -257,13 +257,13 @@ namespace vkr::Render
 					descriptor = MakeRef<TextureView>();
 					m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->Allocate(descriptor);
 					D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-					uavDesc.Format = tex->m_TextureDesc.Format; 
-					if (tex->m_TextureDesc.Dimension == 1)
+					uavDesc.Format = D3DConvertFormat(tex->m_TextureDesc.m_Format);
+					if (tex->m_TextureDesc.m_Dimension == ResourceDimension::Texture1D)
 					{
 						uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
 						uavDesc.Texture1D.MipSlice = desc.TextureDesc.Mip;
 					}
-					else if (tex->m_TextureDesc.Dimension == 2)
+					else if (tex->m_TextureDesc.m_Dimension == ResourceDimension::Texture2D)
 					{
 						uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 						uavDesc.Texture2D.PlaneSlice = 0;
@@ -277,14 +277,14 @@ namespace vkr::Render
 					descriptor = MakeRef<TextureView>();
 					m_DescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->Allocate(descriptor);
 					D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-					srvDesc.Format = tex->m_TextureDesc.Format;
+					srvDesc.Format = D3DConvertFormat(tex->m_TextureDesc.m_Format);
 					srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-					if (tex->m_TextureDesc.Dimension == 1)
+					if (tex->m_TextureDesc.m_Dimension == ResourceDimension::Texture1D)
 					{
 						srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
 						srvDesc.Texture1D.MipLevels = desc.TextureDesc.Mip;
 					}
-					else if (tex->m_TextureDesc.Dimension == 2)
+					else if (tex->m_TextureDesc.m_Dimension == ResourceDimension::Texture2D)
 					{
 						srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 						srvDesc.Texture2D.PlaneSlice = 0;

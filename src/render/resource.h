@@ -7,6 +7,15 @@
 
 namespace vkr::Render
 {
+	enum class ResourceDimension
+	{
+		Unknown,
+		Buffer,
+		Texture1D,
+		Texture2D,
+		Texture3D
+	};
+
 	struct ResourceStateTracking
 	{
 		ResourceStateAccess m_CurrentAccess;

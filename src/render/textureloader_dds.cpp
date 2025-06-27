@@ -1,5 +1,6 @@
 #include "textureloader_dds.h"
 #include "DirectXTex.h"
+#include "d3dconvert.h"
 
 namespace vkr::Render
 {
@@ -26,14 +27,29 @@ namespace vkr::Render
 		const DirectX::Image& baseImage = img[0];
 
 		// Fill outDesc
-		outDesc.Dimension = static_cast<int>(scratch.GetMetadata().dimension); // TEXTURE2D, etc.
-		outDesc.Size.x = static_cast<int>(baseImage.width);
-		outDesc.Size.y = static_cast<int>(baseImage.height);
-		outDesc.Size.z = 1;// static_cast<int>(baseImage.depth);
-		outDesc.ArraySize = static_cast<int>(scratch.GetMetadata().arraySize);
-		outDesc.Format = scratch.GetMetadata().format;
-		outDesc.bUseMips = (scratch.GetMetadata().mipLevels > 1);
-		outDesc.bWriteable = false; // DDS files are usually read-only
+		switch (scratch.GetMetadata().dimension)
+		{
+		case DirectX::TEX_DIMENSION_TEXTURE1D:
+			outDesc.m_Dimension = ResourceDimension::Texture1D;
+			break;
+		case DirectX::TEX_DIMENSION_TEXTURE2D:
+			outDesc.m_Dimension = ResourceDimension::Texture2D;
+			break;
+		case DirectX::TEX_DIMENSION_TEXTURE3D:
+			outDesc.m_Dimension = ResourceDimension::Texture3D;
+			break;
+		default:
+			assert(false);
+			return false;
+		}
+
+		outDesc.m_Size.x = static_cast<uint32_t>(baseImage.width);
+		outDesc.m_Size.y = static_cast<uint32_t>(baseImage.height);
+		outDesc.m_Size.z = 1;
+		outDesc.m_ArraySize = static_cast<uint16_t>(scratch.GetMetadata().arraySize);
+		outDesc.m_Format = D3DConvertFormat(scratch.GetMetadata().format);
+		outDesc.m_CalculateMips = (scratch.GetMetadata().mipLevels > 1);
+		outDesc.m_Writeable = false; // DDS files are usually read-only
 
 		// Copy pixel data into outData
 		// Total bytes = sum of all image slices * bytes per slice

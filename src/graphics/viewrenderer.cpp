@@ -78,8 +78,8 @@ namespace vkr::Graphics
 		ctx->BindDepthStencil(view.GetDepthBuffer());
 
 		const Render::TextureDesc& rtDesc = view.GetOutputTarget()->GetTexture()->m_TextureDesc;
-		ctx->SetViewport(0, 0, rtDesc.Size.x, rtDesc.Size.y);
-		ctx->SetScissorRect(0, 0, rtDesc.Size.x, rtDesc.Size.y);
+		ctx->SetViewport(0, 0, rtDesc.m_Size.x, rtDesc.m_Size.y);
+		ctx->SetScissorRect(0, 0, rtDesc.m_Size.x, rtDesc.m_Size.y);
 
 		for (auto& mesh : renderData.m_VisibleMeshes)
 		{
