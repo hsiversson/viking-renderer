@@ -141,9 +141,11 @@ namespace vkr::Render
 
 	Ref<TextureView> Device::CreateTextureView(const TextureViewDesc& desc, const Ref<Texture>& resource)
 	{
-		// todo hash desc and get existing view if possible
+		Ref<TextureView> textureView = std::static_pointer_cast<TextureView>(resource->GetDescriptor(desc));
+		if (textureView)
+			return textureView;
 
-		Ref<TextureView> textureView = MakeRef<TextureView>();
+		textureView = MakeRef<TextureView>();
 		if (!textureView->Init(desc, resource))
 		{
 			return nullptr;
@@ -153,9 +155,11 @@ namespace vkr::Render
 
 	Ref<RenderTargetView> Device::CreateRenderTargetView(const RenderTargetViewDesc& desc, const Ref<Texture>& resource)
 	{
-		// todo hash desc and get existing view if possible
+		Ref<RenderTargetView> rtv = std::static_pointer_cast<RenderTargetView>(resource->GetDescriptor(desc));
+		if (rtv)
+			return rtv;
 
-		Ref<RenderTargetView> rtv = MakeRef<RenderTargetView>();
+		rtv = MakeRef<RenderTargetView>();
 		if (!rtv->Init(desc, resource))
 		{
 			return nullptr;
@@ -165,9 +169,11 @@ namespace vkr::Render
 
 	Ref<DepthStencilView> Device::CreateDepthStencilView(const DepthStencilViewDesc& desc, const Ref<Texture>& resource)
 	{
-		// todo hash desc and get existing view if possible
+		Ref<DepthStencilView> dsv = std::static_pointer_cast<DepthStencilView>(resource->GetDescriptor(desc));
+		if (dsv)
+			return dsv;
 
-		Ref<DepthStencilView> dsv = MakeRef<DepthStencilView>();
+		dsv = MakeRef<DepthStencilView>();
 		if (!dsv->Init(desc, resource))
 		{
 			return nullptr;
@@ -186,9 +192,11 @@ namespace vkr::Render
 
 	Ref<BufferView> Device::CreateBufferView(const BufferViewDesc& desc, const Ref<Buffer>& resource)
 	{
-		// todo hash desc and get existing view if possible
+		Ref<BufferView> bufferView = std::static_pointer_cast<BufferView>(resource->GetDescriptor(desc));
+		if (bufferView)
+			return bufferView;
 
-		Ref<BufferView> bufferView = MakeRef<BufferView>();
+		bufferView = MakeRef<BufferView>();
 		if (!bufferView->Init(desc, resource))
 		{
 			return nullptr;

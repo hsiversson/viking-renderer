@@ -19,7 +19,7 @@ namespace vkr::Render
 		RESOURCE_DESCRIPTOR_TYPE_COUNT
 	};
 
-	class ResourceDescriptor
+	class ResourceDescriptor : public std::enable_shared_from_this<ResourceDescriptor>
 	{
 		friend class DescriptorHeap;
 	public:
@@ -39,6 +39,7 @@ namespace vkr::Render
 	protected:
 		D3D12_CPU_DESCRIPTOR_HANDLE m_D3DHandle;
 		uint32_t m_DescriptorIndex;
+		uint64_t m_DescHash;
 
 		const ResourceDescriptorType m_Type;
 	};

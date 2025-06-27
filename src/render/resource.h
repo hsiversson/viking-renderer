@@ -2,8 +2,10 @@
 
 #include "rendercommon.h"
 #include "resourcedescriptor.h"
-#include <unordered_map>
 #include "event.h"
+#include "utils/hash.h"
+
+#include <unordered_map>
 
 namespace vkr::Render
 {
@@ -32,8 +34,16 @@ namespace vkr::Render
 		void SetName(const char* name);
 
 		ID3D12Resource* GetD3DResource() { return m_Resource.Get(); }
-		Ref<ResourceDescriptor> GetDescriptor(uint64_t descriptorhash);
-		bool AddDescriptor(uint64_t descriptorhash, const Ref<ResourceDescriptor>& descriptor);
+
+		Ref<ResourceDescriptor> GetDescriptor(uint64_t hash);
+		template<typename DescType>	Ref<ResourceDescriptor> GetDescriptor(const DescType& desc)
+		{ 
+			uint64_t hash = vkr::hash_fnv64(reinterpret_cast<const uint8_t*>(&desc), sizeof(desc));
+			return GetDescriptor(hash); 
+		}
+
+		bool TrackDescriptor(uint64_t hash, const WeakPtr<ResourceDescriptor>& descriptor);
+		void UntrackDescriptor(uint64_t hash);
 
 		ResourceStateTracking& GetStateTracking();
 		const ResourceStateTracking& GetStateTracking() const;
@@ -45,7 +55,7 @@ namespace vkr::Render
 	protected:
 		Event m_GpuPendingEvent;
 		ResourceStateTracking m_StateTracking;
-		std::unordered_map<uint64_t, Ref<ResourceDescriptor>> m_Descriptors;
+		std::unordered_map<uint64_t, WeakPtr<ResourceDescriptor>> m_Descriptors;
 		ComPtr<ID3D12Resource> m_Resource;
 	};
 }

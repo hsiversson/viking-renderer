@@ -1,6 +1,7 @@
 #include "resourcedescriptor.h"
 #include "device.h"
 #include "d3dconvert.h"
+#include "utils/hash.h"
 
 namespace vkr::Render
 {
@@ -25,6 +26,7 @@ namespace vkr::Render
 	ResourceDescriptor::ResourceDescriptor(ResourceDescriptorType type)
 		: m_D3DHandle{}
 		, m_DescriptorIndex(g_InvalidIndex)
+		, m_DescHash(0)
 		, m_Type(type)
 	{
 	}
@@ -105,6 +107,8 @@ namespace vkr::Render
 				GetDevice().GetD3DDevice()->CreateShaderResourceView(resource->GetD3DResource(), &srvDesc, m_D3DHandle);
 			}
 			m_Texture = resource;
+			m_DescHash = hash_fnv64(reinterpret_cast<const uint8_t*>(&desc), sizeof(desc));
+			m_Texture->TrackDescriptor(m_DescHash, weak_from_this());
 			return true;
 		}
 		return false;
@@ -123,6 +127,8 @@ namespace vkr::Render
 			GetDevice().GetD3DDevice()->CreateRenderTargetView(resource->GetD3DResource(), nullptr, m_D3DHandle);
 
 			m_Texture = resource;
+			m_DescHash = hash_fnv64(reinterpret_cast<const uint8_t*>(&desc), sizeof(desc));
+			m_Texture->TrackDescriptor(m_DescHash, weak_from_this());
 			return true;
 		}
 
@@ -145,6 +151,8 @@ namespace vkr::Render
 			GetDevice().GetD3DDevice()->CreateDepthStencilView(resource->GetD3DResource(), &dsvDesc, m_D3DHandle);
 
 			m_Texture = resource;
+			m_DescHash = hash_fnv64(reinterpret_cast<const uint8_t*>(&desc), sizeof(desc));
+			m_Texture->TrackDescriptor(m_DescHash, weak_from_this());
 			return true;
 		}
 
@@ -188,6 +196,8 @@ namespace vkr::Render
 			}
 
 			m_Buffer = resource;
+			m_DescHash = hash_fnv64(reinterpret_cast<const uint8_t*>(&desc), sizeof(desc));
+			m_Buffer->TrackDescriptor(m_DescHash, weak_from_this());
 			return true;
 		}
 

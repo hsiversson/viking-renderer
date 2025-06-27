@@ -17,19 +17,30 @@ namespace vkr::Render
 		}		
 	}
 
-	bool Resource::AddDescriptor(uint64_t descriptorhash, const Ref<ResourceDescriptor>& descriptor)
+	bool Resource::TrackDescriptor(uint64_t hash, const WeakPtr<ResourceDescriptor>& descriptor)
 	{
-		auto it = m_Descriptors.find(descriptorhash);
+		auto it = m_Descriptors.find(hash);
 		if (it != m_Descriptors.end())
 			return false;
-		m_Descriptors[descriptorhash] = descriptor;
+		m_Descriptors[hash] = descriptor;
 		return true;
 	}
 
-	Ref<ResourceDescriptor> Resource::GetDescriptor(uint64_t descriptorhash)
+	Ref<ResourceDescriptor> Resource::GetDescriptor(uint64_t hash)
 	{
-		auto it = m_Descriptors.find(descriptorhash);
-		return it == m_Descriptors.end() ? nullptr : it->second;
+		auto it = m_Descriptors.find(hash);
+		if (it == m_Descriptors.end())
+		{
+			return nullptr;
+		}
+			
+		if (it->second.expired())
+		{
+			m_Descriptors.erase(it);
+			return nullptr;
+		}
+
+		return it->second.lock();
 	}
 
 	Resource::Resource()
