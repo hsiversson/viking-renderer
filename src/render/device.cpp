@@ -109,7 +109,7 @@ namespace vkr::Render
 		Ref<Texture> texture = MakeRef<Texture>();
 
 		// Move all of the resource creation into Texture?
-		if (!texture->Init(desc,initialData))
+		if (!texture->Init(desc, initialData))
 		{
 			return nullptr;
 		}

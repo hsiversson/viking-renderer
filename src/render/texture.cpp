@@ -57,7 +57,7 @@ namespace vkr::Render
 		textureDesc.SampleDesc.Count = 1;
 		textureDesc.SampleDesc.Quality = 0;
 		textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-		if (desc.m_Writeable)
+		if (desc.m_Writable)
 		{
 			textureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 		}
@@ -74,7 +74,7 @@ namespace vkr::Render
 		m_StateTracking.m_CurrentAccess = RESOURCE_STATE_ACCESS_COMMON;
 		m_StateTracking.m_CurrentLayout = RESOURCE_STATE_LAYOUT_COMMON;
 		m_StateTracking.m_CurrentSync = RESOURCE_STATE_SYNC_ALL;
-		if (desc.m_Writeable)
+		if (desc.m_Writable)
 		{
 			initialLayout = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS;
 			m_StateTracking.m_CurrentLayout = RESOURCE_STATE_LAYOUT_WRITE;
@@ -121,6 +121,20 @@ namespace vkr::Render
 		m_TextureDesc = desc;
 		m_StateTracking = initialState;
 		return true;
+	}
+
+	void Texture::UploadData(const TextureData& data)
+	{
+		if (true /*isRenderThread*/)
+		{
+			// Get staging buffer and place texture data
+			// copy operation on context from staging to persistent texture (m_Resource)
+			// barriers?
+		}
+		//else
+		//{
+		//	// Launch copy task on render thread, wait for event?
+		//}
 	}
 
 }

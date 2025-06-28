@@ -10,7 +10,7 @@ namespace vkr::Render
 		uint16_t m_ArraySize = 1;
 		Format m_Format = FORMAT_UNKNOWN;
 		ResourceDimension m_Dimension = ResourceDimension::Texture2D;
-		bool m_Writeable = false;
+		bool m_Writable = false;
 		bool m_AllowRenderTarget = false;
 		bool m_AllowDepthStencil = false;
 		bool m_CalculateMips = false;
@@ -18,8 +18,8 @@ namespace vkr::Render
 
 	struct TextureData
 	{
-		std::vector<uint8_t> Data;
-		uint32_t ByteSize;
+		std::vector<uint8_t> m_Data;
+		uint32_t m_ByteSize;
 	};
 
 	class Texture : public Resource
@@ -30,6 +30,8 @@ namespace vkr::Render
 
 		bool Init(const TextureDesc& desc, const TextureData* initialData = nullptr);
 		bool InitWithResource(const TextureDesc& desc, const ComPtr<ID3D12Resource>& resource, const ResourceStateTracking& initialState);
+
+		void UploadData(const TextureData& data);
 
 		TextureDesc m_TextureDesc;
 	};

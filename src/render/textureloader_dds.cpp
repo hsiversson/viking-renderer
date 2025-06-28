@@ -49,16 +49,16 @@ namespace vkr::Render
 		outDesc.m_ArraySize = static_cast<uint16_t>(scratch.GetMetadata().arraySize);
 		outDesc.m_Format = D3DConvertFormat(scratch.GetMetadata().format);
 		outDesc.m_CalculateMips = (scratch.GetMetadata().mipLevels > 1);
-		outDesc.m_Writeable = false; // DDS files are usually read-only
+		outDesc.m_Writable = false; // DDS files are usually read-only
 
 		// Copy pixel data into outData
 		// Total bytes = sum of all image slices * bytes per slice
 		size_t totalBytes = scratch.GetPixelsSize();
-		outData.Data.resize(totalBytes);
+		outData.m_Data.resize(totalBytes);
 
 		// Copy all pixel data (including all mip levels and array slices)
-		memcpy(outData.Data.data(), scratch.GetPixels(), totalBytes);
-		outData.ByteSize = static_cast<uint32_t>(totalBytes);
+		memcpy(outData.m_Data.data(), scratch.GetPixels(), totalBytes);
+		outData.m_ByteSize = static_cast<uint32_t>(totalBytes);
 
 		return true;
 	}

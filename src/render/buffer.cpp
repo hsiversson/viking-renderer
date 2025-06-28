@@ -71,13 +71,17 @@ namespace vkr::Render
 			memcpy(dataPtr + offset, data, byteSize);
 			m_Resource->Unmap(0, nullptr);
 		}
-		else
-		{
-			// Create staging buffer
-			// map staging buffer and memcpy data
-			// run copy operation on a Context and execute (potentially wait as well)
-			// discard staging buffer
-		}
+		//else if (isRenderThread)
+		//{
+		//	// Create staging buffer
+		//	// map staging buffer and memcpy data
+		//	// run copy operation on a Context and execute (potentially wait as well)
+		//	// discard staging buffer
+		//}
+		//else
+		//{
+		//	// Launch copy task on render thread, wait for event?
+		//}
 	}
 
 }

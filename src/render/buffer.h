@@ -32,7 +32,6 @@ namespace vkr::Render
 		BufferDesc m_Desc;
 	};
 
-
 	class TempBufferAllocator
 	{
 	private:
