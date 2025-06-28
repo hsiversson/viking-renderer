@@ -63,7 +63,11 @@ namespace vkr::Render
 		void DispatchThreads(Ref<PipelineState> pipelineState, const Vector3u& threads);
 
 		//Draw
-		void DrawIndexed(uint32_t StartIndex, uint32_t StartVertex);
+		void Draw(uint32_t vertexCount, uint32_t startVertex = 0);
+		void DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertex = 0, uint32_t startInstance = 0);
+
+		void DrawIndexed(uint32_t indexCount, uint32_t startIndex = 0, uint32_t startVertex = 0);
+		void DrawIndexedInstanced(uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex = 0, uint32_t startVertex = 0, uint32_t startInstance = 0);
 
 		//Render state
 		void BindPSO(Ref<PipelineState> pipelineState);

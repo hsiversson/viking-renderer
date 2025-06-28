@@ -356,10 +356,26 @@ namespace vkr::Render
 		}
 	}
 
-	void Context::DrawIndexed(uint32_t StartIndex, uint32_t StartVertex)
+	void Context::Draw(uint32_t vertexCount, uint32_t startVertex)
+	{
+		DrawInstanced(vertexCount, 1, startVertex, 0);
+	}
+
+	void Context::DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertex, uint32_t startInstance)
 	{
 		UpdateState();
-		m_CurrentD3DCommandList->DrawIndexedInstanced(CurrentState.m_IndexBuffer->GetDesc().m_ElementCount, 1, StartIndex, StartVertex, 0);
+		m_CurrentD3DCommandList->DrawInstanced(vertexCount, instanceCount, startVertex, startInstance);
+	}
+
+	void Context::DrawIndexed(uint32_t indexCount, uint32_t startIndex, uint32_t startVertex)
+	{
+		DrawIndexedInstanced(indexCount, 1, startIndex, startVertex, 0);
+	}
+
+	void Context::DrawIndexedInstanced(uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex, uint32_t startVertex, uint32_t startInstance)
+	{
+		UpdateState();
+		m_CurrentD3DCommandList->DrawIndexedInstanced(indexCount, instanceCount, startIndex, startVertex, startInstance);
 	}
 
 	void Context::SetPrimitiveTopology(PrimitiveTopology topologyType)

@@ -108,7 +108,7 @@ namespace vkr::Graphics
 			buffers.push_back(cbuffer.m_Buffer);
 			offsets.push_back(cbuffer.m_Offset);
 			ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
-			ctx->DrawIndexed(0, 0);
+			ctx->DrawIndexed(mesh.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount);
 		}
 
 		//Transition output to present
@@ -188,7 +188,7 @@ namespace vkr::Graphics
 			buffers.push_back(cbuffer.m_Buffer);
 			offsets.push_back(cbuffer.m_Offset);
 			ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
-			ctx->DrawIndexed(0, 0);
+			ctx->DrawIndexed(mesh.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount);
 		}
 		ctx->End();
 		ctx->Flush();
