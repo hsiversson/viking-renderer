@@ -147,7 +147,7 @@ namespace vkr
 
 			m_SwapChain->Present();
 
-			m_RenderDevice->GarbageCollect();
+			m_RenderDevice->EndFrame();
 		}
 
 		return RETURN_OK;

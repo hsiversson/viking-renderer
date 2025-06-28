@@ -63,9 +63,9 @@ namespace vkr::Render
 		return true;
 	}
 
-	void Device::GarbageCollect()
+	void Device::EndFrame()
 	{
-		m_TempBufferCurrentOffset = 0;
+		m_TempBufferAllocator->EndFrame(GetCommandQueue(CONTEXT_TYPE_PRESENT)->Signal());
 	}
 
 	Ref<Context> Device::CreateContext(ContextType contextType)
@@ -213,11 +213,12 @@ namespace vkr::Render
 
 		// 256 is mainly for constant buffers though. We should align differently based on buffer usage
 		const uint32_t size = Align(byteSize, 256);
-		assert("TempBuffer is full" && (m_TempBufferCurrentOffset + size) <= m_TempBuffer->GetDesc().ByteSize());
+		uint64_t offset = m_TempBufferAllocator->Allocate(size);
+		assert(offset < UINT64_MAX && "Allocator is full.");
 
 		TempBuffer outTempBuffer;
 		outTempBuffer.m_Buffer = m_TempBuffer.get();
-		outTempBuffer.m_Offset = m_TempBufferCurrentOffset.fetch_add(size);
+		outTempBuffer.m_Offset = offset;
 
 		if (initialData)
 		{
@@ -381,7 +382,8 @@ namespace vkr::Render
 		tempBufferDesc.m_ElementSize = 1;
 		tempBufferDesc.m_Format = FORMAT_UNKNOWN;
 		m_TempBuffer = CreateBuffer(tempBufferDesc);
-		m_TempBufferCurrentOffset = 0;
+
+		m_TempBufferAllocator = MakeUnique<TempBufferAllocator>(tempBufferDesc.m_ElementCount);
 	}
 
 	Ref<Buffer> Device::CreateRaytracingAccelerationStructure(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC& buildDesc)

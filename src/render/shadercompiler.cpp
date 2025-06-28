@@ -1,4 +1,5 @@
 #include "shadercompiler.h"
+#include "core/commandline.h"
 
 #include <dxcapi.h>
 
@@ -83,6 +84,46 @@ namespace vkr::Render
 		const std::wstring targetProfile = GetTargetProfile(stage, shaderModel);
 		compileArguments.push_back(L"-T");
 		compileArguments.push_back(targetProfile.c_str());
+
+		compileArguments.push_back(L"-Qstrip_debug");
+		compileArguments.push_back(L"-Qstrip_rootsignature");
+		//compileArguments.push_back(L"-Qstrip_reflect");
+		compileArguments.push_back(L"-Qstrip_priv");
+		compileArguments.push_back(L"-flegacy-macro-expansion");
+		compileArguments.push_back(DXC_ARG_ALL_RESOURCES_BOUND);
+
+		if (CommandLine::Has("shader_debug"))
+		{
+			compileArguments.push_back(DXC_ARG_DEBUG);
+		}
+		else
+		{
+			compileArguments.push_back(L"-Qstrip_debug");
+		}
+
+		if (CommandLine::Has("shader_skip_optimizations"))
+		{
+			compileArguments.push_back(DXC_ARG_SKIP_OPTIMIZATIONS);
+		}
+		else
+		{
+			if (CommandLine::Has("shader_optimize0"))
+			{
+				compileArguments.push_back(DXC_ARG_OPTIMIZATION_LEVEL0);
+			}
+			else if (CommandLine::Has("shader_optimize1"))
+			{
+				compileArguments.push_back(DXC_ARG_OPTIMIZATION_LEVEL1);
+			}
+			else if (CommandLine::Has("shader_optimize2"))
+			{
+				compileArguments.push_back(DXC_ARG_OPTIMIZATION_LEVEL2);
+			}
+			else
+			{
+				compileArguments.push_back(DXC_ARG_OPTIMIZATION_LEVEL3);
+			}
+		}
 
 		DxcBuffer sourceBuffer;
 		sourceBuffer.Ptr = sourceBlob->GetBufferPointer();

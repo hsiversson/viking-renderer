@@ -13,9 +13,9 @@ namespace vkr
 
 		void Tick();
 
-		float DeltaTime() const { return static_cast<float>(m_DeltaTime); }
-		float ElapsedTime() const { return static_cast<float>(m_ElapsedTime); }
-		uint64_t FrameIndex() const;
+		static float DeltaTime() { return static_cast<float>(Get().m_DeltaTime); }
+		static float ElapsedTime() { return static_cast<float>(Get().m_ElapsedTime); }
+		static uint64_t FrameIndex();
 
 	private:
 		double m_DeltaTime;

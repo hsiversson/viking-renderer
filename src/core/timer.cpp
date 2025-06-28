@@ -38,9 +38,9 @@ namespace vkr
 		m_LastTickTime = now;
 	}
 
-	uint64_t ElapsedTimer::FrameIndex() const
+	uint64_t ElapsedTimer::FrameIndex()
 	{
-		return m_FrameIndex;
+		return Get().m_FrameIndex;
 	}
 
 	Timer::Timer()

@@ -40,7 +40,7 @@ namespace vkr::Render
 
 		bool Init();
 
-		void GarbageCollect();
+		void EndFrame();
 
 		Ref<Context> CreateContext(ContextType contextType);
 		
@@ -102,7 +102,7 @@ namespace vkr::Render
 
 		// Temp buffers
 		Ref<Buffer> m_TempBuffer;
-		std::atomic<uint64_t> m_TempBufferCurrentOffset;
+		UniquePtr<TempBufferAllocator> m_TempBufferAllocator;
 
 		static Device* g_Instance;
 	};

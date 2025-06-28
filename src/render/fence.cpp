@@ -29,9 +29,9 @@ namespace vkr::Render
 			{
 				return false;
 			}
-			HANDLE event = CreateEvent(nullptr, false, false, "Fence::Wait");
+			HANDLE event = CreateEvent(nullptr, false, false, nullptr);
 			m_Fence->SetEventOnCompletion(value, event);
-			WaitForSingleObject(event, INFINITY);
+			WaitForSingleObject(event, INFINITE);
 			CloseHandle(event);
 		}
 		return true;
