@@ -133,6 +133,8 @@ namespace vkr
 
 			m_ElapsedTimer.Tick();
 
+			m_RenderDevice->BeginFrame();
+
 			//////////////////////////////////////////////////
 			// these parts should not be in application
 			modelinst->SetLocalTransform(Compose(CreateRotationZ(m_ElapsedTimer.ElapsedTime()), Vector3f(0, std::sin(m_ElapsedTimer.ElapsedTime()), 0)));

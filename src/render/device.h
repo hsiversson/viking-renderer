@@ -40,6 +40,7 @@ namespace vkr::Render
 
 		bool Init();
 
+		void BeginFrame();
 		void EndFrame();
 
 		Ref<Context> CreateContext(ContextType contextType);

@@ -47,5 +47,7 @@ namespace vkr::Graphics
 		}
 
 		std::sort(prepareData.m_VisibleMeshes.begin(), prepareData.m_VisibleMeshes.end());
+
+		//Collect instance information in a single buffer
 	}
 }

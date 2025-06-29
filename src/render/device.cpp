@@ -63,6 +63,11 @@ namespace vkr::Render
 		return true;
 	}
 
+	void Device::BeginFrame()
+	{
+		m_TempBufferAllocator->BeginFrame();
+	}
+
 	void Device::EndFrame()
 	{
 		m_TempBufferAllocator->EndFrame(GetCommandQueue(CONTEXT_TYPE_PRESENT)->Signal());
@@ -416,4 +421,7 @@ namespace vkr::Render
 		d3dCmdList4->Release();
 		return outBuffer;
 	}
+
+	
+
 }
