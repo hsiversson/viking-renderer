@@ -23,7 +23,7 @@ namespace vkr::Render
 			break;
 
 		}
-		GetDevice().GetD3DDevice()->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(&m_CommandQueue));
+		GetDevice()->GetD3DDevice()->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(&m_CommandQueue));
 	}
 
 	CommandQueue::~CommandQueue()

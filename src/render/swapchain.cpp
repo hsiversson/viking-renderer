@@ -19,7 +19,7 @@ namespace vkr::Render
 
 	bool SwapChain::Init(void* nativeWindowHandle, const Vector2u& size)
 	{
-		m_CommandQueue = GetDevice().GetCommandQueue(CONTEXT_TYPE_PRESENT);
+		m_CommandQueue = GetDevice()->GetCommandQueue(CONTEXT_TYPE_PRESENT);
 
 		DXGI_SWAP_CHAIN_DESC1 desc = {};
 		desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -34,7 +34,7 @@ namespace vkr::Render
 		DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc = {};
 		fullscreenDesc.Windowed = true;
 
-		HRESULT hr = GetDevice().GetDXGIFactory()->CreateSwapChainForHwnd(m_CommandQueue->GetD3DCommandQueue(), (HWND)nativeWindowHandle, &desc, &fullscreenDesc, nullptr, &m_SwapChain);
+		HRESULT hr = GetDevice()->GetDXGIFactory()->CreateSwapChainForHwnd(m_CommandQueue->GetD3DCommandQueue(), (HWND)nativeWindowHandle, &desc, &fullscreenDesc, nullptr, &m_SwapChain);
 		if (FAILED(hr))
 		{
 			OutputDebugStringW(L"SwapChain creation failed.");
@@ -119,7 +119,7 @@ namespace vkr::Render
 
 			RenderTargetViewDesc rtvDesc = {};
 			rtvDesc.m_Mip = 0;
-			m_BackBuffers[i].m_View = GetDevice().CreateRenderTargetView(rtvDesc, m_BackBuffers[i].m_Texture);
+			m_BackBuffers[i].m_View = GetDevice()->CreateRenderTargetView(rtvDesc, m_BackBuffers[i].m_Texture);
 		}
 	}
 

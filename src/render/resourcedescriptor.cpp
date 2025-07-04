@@ -7,17 +7,21 @@ namespace vkr::Render
 {
 	static DescriptorHeap* GetHeap(ResourceDescriptorType type)
 	{
+		Device* device = GetDevice();
+		if (!device)
+			return nullptr;
+
 		switch (type)
 		{
 		case RESOURCE_DESCRIPTOR_TYPE_TEXTURE_VIEW:
 		case RESOURCE_DESCRIPTOR_TYPE_BUFFER_VIEW:
-			return GetDevice().GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SHADER_RESOURCE);
+			return device->GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SHADER_RESOURCE);
 		case RESOURCE_DESCRIPTOR_TYPE_SAMPLER:
-			return GetDevice().GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SAMPLER);
+			return device->GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		case RESOURCE_DESCRIPTOR_TYPE_RENDER_TARGET_VIEW:
-			return GetDevice().GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_RENDER_TARGET);
+			return device->GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_RENDER_TARGET);
 		case RESOURCE_DESCRIPTOR_TYPE_DEPTH_STENCIL_VIEW:
-			return GetDevice().GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_DEPTH_STENCIL);
+			return device->GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_DEPTH_STENCIL);
 		default:
 			return nullptr;
 		}
@@ -87,7 +91,7 @@ namespace vkr::Render
 					uavDesc.Texture2D.PlaneSlice = 0;
 					uavDesc.Texture2D.MipSlice = desc.m_Mip;
 				}
-				GetDevice().GetD3DDevice()->CreateUnorderedAccessView(resource->GetD3DResource(), nullptr, &uavDesc, m_D3DHandle);
+				GetDevice()->GetD3DDevice()->CreateUnorderedAccessView(resource->GetD3DResource(), nullptr, &uavDesc, m_D3DHandle);
 			}
 			else
 			{
@@ -108,7 +112,7 @@ namespace vkr::Render
 					srvDesc.Texture2D.MostDetailedMip = desc.m_Mip;
 					srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 				}
-				GetDevice().GetD3DDevice()->CreateShaderResourceView(resource->GetD3DResource(), &srvDesc, m_D3DHandle);
+				GetDevice()->GetD3DDevice()->CreateShaderResourceView(resource->GetD3DResource(), &srvDesc, m_D3DHandle);
 			}
 			m_Texture = resource;
 			m_DescHash = hash_fnv64(reinterpret_cast<const uint8_t*>(&desc), sizeof(desc));
@@ -128,7 +132,7 @@ namespace vkr::Render
 		if (AllocateDescriptor())
 		{
 			// TODO: add desc
-			GetDevice().GetD3DDevice()->CreateRenderTargetView(resource->GetD3DResource(), nullptr, m_D3DHandle);
+			GetDevice()->GetD3DDevice()->CreateRenderTargetView(resource->GetD3DResource(), nullptr, m_D3DHandle);
 
 			m_Texture = resource;
 			m_DescHash = hash_fnv64(reinterpret_cast<const uint8_t*>(&desc), sizeof(desc));
@@ -152,7 +156,7 @@ namespace vkr::Render
 			dsvDesc.Format = D3DConvertFormat(resource->m_TextureDesc.m_Format);
 			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 			dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-			GetDevice().GetD3DDevice()->CreateDepthStencilView(resource->GetD3DResource(), &dsvDesc, m_D3DHandle);
+			GetDevice()->GetD3DDevice()->CreateDepthStencilView(resource->GetD3DResource(), &dsvDesc, m_D3DHandle);
 
 			m_Texture = resource;
 			m_DescHash = hash_fnv64(reinterpret_cast<const uint8_t*>(&desc), sizeof(desc));
@@ -183,7 +187,7 @@ namespace vkr::Render
 				uavDesc.Buffer.NumElements = desc.m_Last - desc.m_First;
 				uavDesc.Buffer.StructureByteStride = desc.m_ElementSize;
 				uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
-				GetDevice().GetD3DDevice()->CreateUnorderedAccessView(resource->GetD3DResource(), nullptr, &uavDesc, m_D3DHandle);
+				GetDevice()->GetD3DDevice()->CreateUnorderedAccessView(resource->GetD3DResource(), nullptr, &uavDesc, m_D3DHandle);
 			}
 			else
 			{
@@ -196,7 +200,7 @@ namespace vkr::Render
 				srvDesc.Buffer.NumElements = desc.m_Last - desc.m_First;
 				srvDesc.Buffer.StructureByteStride = desc.m_ElementSize;
 				srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-				GetDevice().GetD3DDevice()->CreateShaderResourceView(resource->GetD3DResource(), &srvDesc, m_D3DHandle);
+				GetDevice()->GetD3DDevice()->CreateShaderResourceView(resource->GetD3DResource(), &srvDesc, m_D3DHandle);
 			}
 
 			m_Buffer = resource;

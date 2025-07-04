@@ -18,7 +18,7 @@ namespace vkr::Render
 
 	bool PipelineState::Init(const PipelineStateDesc& desc, const Ref<RootSignature> rootSignature)
 	{
-		ID3D12Device* device = GetDevice().GetD3DDevice();
+		ID3D12Device* device = GetDevice()->GetD3DDevice();
 
 		HRESULT hr;
 		switch (desc.m_Type)

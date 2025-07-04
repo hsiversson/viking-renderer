@@ -65,12 +65,12 @@ namespace vkr::Render
 
 	void Device::BeginFrame()
 	{
-		m_TempBufferAllocator->BeginFrame();
+		m_TempBufferAllocator->StartChunk();
 	}
 
 	void Device::EndFrame()
 	{
-		m_TempBufferAllocator->EndFrame(GetCommandQueue(CONTEXT_TYPE_PRESENT)->Signal());
+		m_TempBufferAllocator->EndChunk(GetCommandQueue(CONTEXT_TYPE_PRESENT)->Signal());
 	}
 
 	Ref<Context> Device::CreateContext(ContextType contextType)

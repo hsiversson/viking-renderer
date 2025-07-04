@@ -54,7 +54,7 @@ namespace vkr::Render
 		}
 
 		const D3D12_HEAP_PROPERTIES heapProps = D3DGetDefaultHeapProperties();
-		HRESULT hr = GetDevice().GetD3DDevice10()->CreateCommittedResource3(&heapProps, D3D12_HEAP_FLAG_NONE, &textureDesc, initialLayout, (desc.m_AllowRenderTarget || desc.m_AllowDepthStencil) ? &optimizedClearValue : nullptr, nullptr, 0, nullptr, IID_PPV_ARGS(&m_Resource));
+		HRESULT hr = GetDevice()->GetD3DDevice10()->CreateCommittedResource3(&heapProps, D3D12_HEAP_FLAG_NONE, &textureDesc, initialLayout, (desc.m_AllowRenderTarget || desc.m_AllowDepthStencil) ? &optimizedClearValue : nullptr, nullptr, 0, nullptr, IID_PPV_ARGS(&m_Resource));
 		if (FAILED(hr))
 		{
 			return false;
@@ -84,9 +84,9 @@ namespace vkr::Render
 			// copy operation on context from staging to persistent texture (m_Resource)
 			// barriers?
 
-			Device& device = GetDevice();
-			ID3D12Device10* d3dDevice = device.GetD3DDevice10();
-			Ref<Context> ctx = device.GetContext(CONTEXT_TYPE_GRAPHICS);
+			Device* device = GetDevice();
+			ID3D12Device10* d3dDevice = device->GetD3DDevice10();
+			Ref<Context> ctx = device->GetContext(CONTEXT_TYPE_GRAPHICS);
 			ctx->Begin();
 			ID3D12GraphicsCommandList* d3dCmdList = ctx->GetCommandList()->GetD3DCommandList();
 
@@ -101,7 +101,7 @@ namespace vkr::Render
 			uint64_t totalTempBufferSize = 0;
 			d3dDevice->GetCopyableFootprints1(&tempDesc, 0, numSubresources, 0, footprints.data(), numRows.data(), rowSizes.data(), &totalTempBufferSize);
 
-			TempBuffer tempBuffer = device.GetTempBuffer(totalTempBufferSize);
+			TempBuffer tempBuffer = device->GetTempBuffer(totalTempBufferSize);
 			for (uint32_t arrayIdx = 0; arrayIdx < m_TextureDesc.m_ArraySize; ++arrayIdx)
 			{
 				for (uint32_t mipIdx = 0; mipIdx < m_TextureDesc.m_MipLevels; ++mipIdx)

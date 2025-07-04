@@ -43,7 +43,7 @@ namespace vkr::Render
 	class TempBufferAllocator
 	{
 	private:
-		struct FrameBlock
+		struct Chunk
 		{
 			uint64_t start;
 			uint64_t end;
@@ -53,9 +53,9 @@ namespace vkr::Render
 	public:
 		TempBufferAllocator(uint64_t bufferSizeBytes, uint64_t alignment = 256);
 
-		void BeginFrame();
+		void StartChunk();
 		uint64_t Allocate(uint64_t size);
-		void EndFrame(Event event);
+		void EndChunk(Event event);
 
 	private:
 		void GarbageCollect();
@@ -63,10 +63,10 @@ namespace vkr::Render
 
 		const uint64_t m_Capacity;
 		const uint64_t m_Alignment;
-		uint64_t m_FrameStart;
+		uint64_t m_ChunkStart;
 
 		std::atomic<uint64_t> m_Head;   // producer – many threads
 		std::atomic<uint64_t> m_Tail;   // consumer – 1 thread
-		std::deque<FrameBlock> m_Blocks;
+		std::deque<Chunk> m_Chunks;
 	};
 }

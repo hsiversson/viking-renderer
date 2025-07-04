@@ -33,7 +33,7 @@ namespace vkr::Render
 
 	class Device
 	{
-		friend Device& GetDevice();
+		friend Device* GetDevice();
 	public:
 		Device();
 		~Device();
@@ -108,6 +108,6 @@ namespace vkr::Render
 		static Device* g_Instance;
 	};
 
-	inline Device& GetDevice() { return *Device::g_Instance; }
+	inline Device* GetDevice() { return Device::g_Instance; }
 }
 

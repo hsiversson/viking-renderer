@@ -8,7 +8,7 @@ namespace vkr::Render
 	Fence::Fence()
 		: m_Value(1)
 	{
-		GetDevice().GetD3DDevice()->CreateFence(m_Value, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
+		GetDevice()->GetD3DDevice()->CreateFence(m_Value, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
 	}
 
 	Fence::~Fence()

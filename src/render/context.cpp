@@ -23,7 +23,7 @@ namespace vkr::Render
 
 	void Context::Begin()
 	{
-		m_CommandList = GetDevice().GetCommandListPool(m_Type)->GetCommandList();
+		m_CommandList = GetDevice()->GetCommandListPool(m_Type)->GetCommandList();
 		m_CurrentD3DCommandList = m_CommandList->GetD3DCommandList();
 		m_CurrentD3DCommandList->QueryInterface(IID_PPV_ARGS(&m_CurrentD3DCommandList7));
 		m_CommandList->Open();
@@ -44,13 +44,13 @@ namespace vkr::Render
 
 	Event Context::Flush()
 	{
-		Device& device = GetDevice();
-		m_LastFlushEvent = device.GetCommandQueue(m_Type)->Submit(m_CommandListsToSubmit.size(), m_CommandListsToSubmit.data());
+		Device* device = GetDevice();
+		m_LastFlushEvent = device->GetCommandQueue(m_Type)->Submit(m_CommandListsToSubmit.size(), m_CommandListsToSubmit.data());
 
 		CommandListPool::PendingCommandLists pending;
 		pending.m_CommandLists.insert(pending.m_CommandLists.end(), m_CommandListsToSubmit.begin(), m_CommandListsToSubmit.end());
 		pending.m_Event = m_LastFlushEvent;
-		device.GetCommandListPool(m_Type)->ReturnCommandList(pending);
+		device->GetCommandListPool(m_Type)->ReturnCommandList(pending);
 
 		m_CommandListsToSubmit.clear();
 
@@ -226,8 +226,8 @@ namespace vkr::Render
 			{
 				ID3D12DescriptorHeap* descriptorHeaps[2] = 
 				{ 
-					GetDevice().GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SHADER_RESOURCE)->GetD3DDescriptorHeap(),
-					GetDevice().GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SAMPLER)->GetD3DDescriptorHeap()
+					GetDevice()->GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SHADER_RESOURCE)->GetD3DDescriptorHeap(),
+					GetDevice()->GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SAMPLER)->GetD3DDescriptorHeap()
 				};
 				m_CurrentD3DCommandList->SetDescriptorHeaps(2, descriptorHeaps);
 

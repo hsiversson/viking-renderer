@@ -24,7 +24,7 @@ namespace vkr::Render
 
 		const D3D12_RESOURCE_DESC1 bufferDesc = D3DConvertBufferDesc(desc);
 		const D3D12_HEAP_PROPERTIES& heapProps = desc.m_CpuWritable ? D3DGetUploadHeapProperties() : D3DGetDefaultHeapProperties();
-		HRESULT hr = GetDevice().GetD3DDevice10()->CreateCommittedResource3(&heapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc, D3D12_BARRIER_LAYOUT_UNDEFINED, nullptr, nullptr, 0, nullptr, IID_PPV_ARGS(&m_Resource));
+		HRESULT hr = GetDevice()->GetD3DDevice10()->CreateCommittedResource3(&heapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc, D3D12_BARRIER_LAYOUT_UNDEFINED, nullptr, nullptr, 0, nullptr, IID_PPV_ARGS(&m_Resource));
 		if (FAILED(hr))
 		{
 			return false;
@@ -81,16 +81,16 @@ namespace vkr::Render
 	TempBufferAllocator::TempBufferAllocator(uint64_t bufferSizeBytes, uint64_t alignment)
 		: m_Capacity(bufferSizeBytes)
 		, m_Alignment(alignment)
-		, m_FrameStart(UINT64_MAX)
+		, m_ChunkStart(UINT64_MAX)
 		, m_Head(0)
 		, m_Tail(0)
 	{
 	}
 
-	void TempBufferAllocator::BeginFrame()
+	void TempBufferAllocator::StartChunk()
 	{
 		// Capture where the chunk will start.
-		m_FrameStart = m_Head.load(std::memory_order_relaxed);
+		m_ChunkStart = m_Head.load(std::memory_order_relaxed);
 	}
 
 	uint64_t TempBufferAllocator::Allocate(uint64_t size)
@@ -123,22 +123,22 @@ namespace vkr::Render
 		}
 	}
 
-	void TempBufferAllocator::EndFrame(Event event)
+	void TempBufferAllocator::EndChunk(Event event)
 	{
 		uint64_t end = m_Head.load(std::memory_order_relaxed);
-		m_Blocks.push_back({ m_FrameStart, end, event });
-		m_FrameStart = UINT64_MAX;
+		m_Chunks.push_back({ m_ChunkStart, end, event });
+		m_ChunkStart = UINT64_MAX;
 
 		GarbageCollect();
 	}
 	
 	void TempBufferAllocator::GarbageCollect()
 	{
-		while (!m_Blocks.empty() && !m_Blocks.front().event.IsPending())
+		while (!m_Chunks.empty() && !m_Chunks.front().event.IsPending())
 		{
-			const FrameBlock& block = m_Blocks.front();
-			m_Tail.store(block.end, std::memory_order_release);
-			m_Blocks.pop_front();
+			const Chunk& chunk = m_Chunks.front();
+			m_Tail.store(chunk.end, std::memory_order_release);
+			m_Chunks.pop_front();
 		}
 	}
 }

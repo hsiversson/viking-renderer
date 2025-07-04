@@ -33,13 +33,13 @@ namespace vkr::Render
 			return;
 		}
 
-		HRESULT hr = GetDevice().GetD3DDevice()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_D3DHeap));
+		HRESULT hr = GetDevice()->GetD3DDevice()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_D3DHeap));
 		if (FAILED(hr))
 		{
 			assert(false);
 		}
 
-		m_DescriptorSize = GetDevice().GetD3DDevice()->GetDescriptorHandleIncrementSize(desc.Type);
+		m_DescriptorSize = GetDevice()->GetD3DDevice()->GetDescriptorHandleIncrementSize(desc.Type);
 	}
 
 	DescriptorHeap::~DescriptorHeap()

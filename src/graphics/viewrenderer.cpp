@@ -44,7 +44,7 @@ namespace vkr::Graphics
 	void ViewRenderer::ForwardPass(View& view)
 	{
 		const ViewRenderData& renderData = view.GetRenderData();
-		Ref<vkr::Render::Context> ctx = Render::GetDevice().GetContext(vkr::Render::CONTEXT_TYPE_GRAPHICS);
+		Ref<vkr::Render::Context> ctx = Render::GetDevice()->GetContext(vkr::Render::CONTEXT_TYPE_GRAPHICS);
 		ctx->Begin();
 
 		//Transition to RT the output
@@ -104,7 +104,7 @@ namespace vkr::Graphics
 			data.Color = Vector3f(1, 0, 0);
 			data.TextureDescriptor = mesh.m_Material->GetTexture() ? mesh.m_Material->GetTexture()->GetIndex() : 0;
 
-			auto cbuffer = Render::GetDevice().GetTempBuffer(sizeof(ConstantData),sizeof(data), (void*)&data);
+			auto cbuffer = Render::GetDevice()->GetTempBuffer(sizeof(ConstantData),sizeof(data), (void*)&data);
 			std::vector<vkr::Render::Buffer*> buffers;
 			std::vector<uint64_t> offsets;
 			buffers.push_back(cbuffer.m_Buffer);
@@ -139,7 +139,7 @@ namespace vkr::Graphics
 	void ViewRenderer::DepthPrepass(View& view)
 	{
 		const ViewRenderData& renderData = view.GetRenderData();
-		Ref<vkr::Render::Context> ctx = Render::GetDevice().GetContext(vkr::Render::CONTEXT_TYPE_GRAPHICS);
+		Ref<vkr::Render::Context> ctx = Render::GetDevice()->GetContext(vkr::Render::CONTEXT_TYPE_GRAPHICS);
 		ctx->Begin();
 
 		//Transition DS to write
@@ -186,7 +186,7 @@ namespace vkr::Graphics
 			data.Color = Vector3f(1, 0, 0);
 			data.TextureDescriptor = mesh.m_Material->GetTexture() ? mesh.m_Material->GetTexture()->GetIndex() : 0; 
 
-			auto cbuffer = Render::GetDevice().GetTempBuffer(sizeof(ConstantData), sizeof(data), (void*)&data);
+			auto cbuffer = Render::GetDevice()->GetTempBuffer(sizeof(ConstantData), sizeof(data), (void*)&data);
 			std::vector<vkr::Render::Buffer*> buffers;
 			std::vector<uint64_t> offsets;
 			buffers.push_back(cbuffer.m_Buffer);

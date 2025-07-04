@@ -21,7 +21,7 @@ namespace vkr::Render
 			break;
 		}
 
-		ID3D12Device* device = GetDevice().GetD3DDevice();
+		ID3D12Device* device = GetDevice()->GetD3DDevice();
 		device->CreateCommandAllocator(cmdListType, IID_PPV_ARGS(&m_Allocator));
 		device->CreateCommandList(0, cmdListType, m_Allocator.Get(), nullptr, IID_PPV_ARGS(&m_CommandList));
 		m_CommandList->Close();
