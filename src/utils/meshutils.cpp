@@ -5,54 +5,68 @@
 
 namespace vkr
 {
-	constexpr Vector3f DefaultCubeVertices[] = 
-	{ 
-		// Front face
-		Vector3f(-0.5f, -0.5f, -0.5f), 
-		Vector3f(-0.5f,  0.5f, -0.5f), 
-		Vector3f( 0.5f,  0.5f, -0.5f), 
-		Vector3f( 0.5f, -0.5f, -0.5f),
-
-		// Back face
-		Vector3f(-0.5f, -0.5f,  0.5f), 
-		Vector3f(-0.5f,  0.5f,  0.5f), 
-		Vector3f( 0.5f,  0.5f,  0.5f),
-		Vector3f( 0.5f, -0.5f,  0.5f) 
+	struct CubeVertex
+	{
+		Vector3f position;
+		Vector3f normal;
+		Vector2f uv;
 	};
 
-	constexpr uint16_t DefaultCubeIndices[] = 
+	constexpr CubeVertex DefaultCubeVertices[24] =
 	{
-		// Front face
-		0, 1, 2,
-		0, 2, 3,
+		//-- +Z (front) ---------------------
+		{{-0.5f,-0.5f,-0.5f}, { 0.0f, 0.0f,-1.0f}, {0.0f,0.0f}},
+		{{-0.5f, 0.5f,-0.5f}, { 0.0f, 0.0f,-1.0f}, {0.0f,1.0f}},
+		{{ 0.5f, 0.5f,-0.5f}, { 0.0f, 0.0f,-1.0f}, {1.0f,1.0f}},
+		{{ 0.5f,-0.5f,-0.5f}, { 0.0f, 0.0f,-1.0f}, {1.0f,0.0f}},
 
-		// Back face
-		4, 6, 5,
-		4, 7, 6,
+		//-- –Z (back) ----------------------
+		{{ 0.5f,-0.5f, 0.5f}, { 0.0f, 0.0f, 1.0f}, {0.0f,0.0f}},
+		{{ 0.5f, 0.5f, 0.5f}, { 0.0f, 0.0f, 1.0f}, {0.0f,1.0f}},
+		{{-0.5f, 0.5f, 0.5f}, { 0.0f, 0.0f, 1.0f}, {1.0f,1.0f}},
+		{{-0.5f,-0.5f, 0.5f}, { 0.0f, 0.0f, 1.0f}, {1.0f,0.0f}},
 
-		// Left face
-		4, 5, 1,
-		4, 1, 0,
+		//-- –X (left) ----------------------
+		{{-0.5f,-0.5f, 0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f,0.0f}},
+		{{-0.5f, 0.5f, 0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f,1.0f}},
+		{{-0.5f, 0.5f,-0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f,1.0f}},
+		{{-0.5f,-0.5f,-0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f,0.0f}},
 
-		// Right face
-		3, 2, 6,
-		3, 6, 7,
+		//-- +X (right) ---------------------
+		{{ 0.5f,-0.5f,-0.5f}, { 1.0f, 0.0f, 0.0f}, {0.0f,0.0f}},
+		{{ 0.5f, 0.5f,-0.5f}, { 1.0f, 0.0f, 0.0f}, {0.0f,1.0f}},
+		{{ 0.5f, 0.5f, 0.5f}, { 1.0f, 0.0f, 0.0f}, {1.0f,1.0f}},
+		{{ 0.5f,-0.5f, 0.5f}, { 1.0f, 0.0f, 0.0f}, {1.0f,0.0f}},
 
-		// Top face
-		1, 5, 6,
-		1, 6, 2,
+		//-- +Y (top) -----------------------
+		{{-0.5f, 0.5f,-0.5f}, { 0.0f, 1.0f, 0.0f}, {0.0f,0.0f}},
+		{{-0.5f, 0.5f, 0.5f}, { 0.0f, 1.0f, 0.0f}, {0.0f,1.0f}},
+		{{ 0.5f, 0.5f, 0.5f}, { 0.0f, 1.0f, 0.0f}, {1.0f,1.0f}},
+		{{ 0.5f, 0.5f,-0.5f}, { 0.0f, 1.0f, 0.0f}, {1.0f,0.0f}},
 
-		// Bottom face
-		4, 0, 3,
-		4, 3, 7
+		//-- –Y (bottom) --------------------
+		{{-0.5f,-0.5f, 0.5f}, { 0.0f,-1.0f, 0.0f}, {0.0f,0.0f}},
+		{{-0.5f,-0.5f,-0.5f}, { 0.0f,-1.0f, 0.0f}, {0.0f,1.0f}},
+		{{ 0.5f,-0.5f,-0.5f}, { 0.0f,-1.0f, 0.0f}, {1.0f,1.0f}},
+		{{ 0.5f,-0.5f, 0.5f}, { 0.0f,-1.0f, 0.0f}, {1.0f,0.0f}}
+	};
+
+	constexpr uint16_t DefaultCubeIndices[36] =
+	{
+		0,1,2,    0,2,3,    // +Z
+		4,5,6,    4,6,7,    // –Z
+		8,9,10,   8,10,11,  // –X
+		12,13,14, 12,14,15, // +X
+		16,17,18, 16,18,19, // +Y
+		20,21,22, 20,22,23  // –Y
 	};
 
 	Ref<Graphics::Mesh> vkr::CreateCubeMesh()
 	{
 		Render::BufferDesc vtxbufferdesc;
 		vtxbufferdesc.m_CpuWritable = true;
-		vtxbufferdesc.m_ElementCount = sizeof(DefaultCubeVertices) / sizeof(Vector3f);
-		vtxbufferdesc.m_ElementSize = sizeof(Vector3f);
+		vtxbufferdesc.m_ElementCount = sizeof(DefaultCubeVertices) / sizeof(CubeVertex);
+		vtxbufferdesc.m_ElementSize = sizeof(CubeVertex);
 		Ref<Render::Buffer> vtxbuffer = Render::GetDevice().CreateBuffer(vtxbufferdesc, sizeof(DefaultCubeVertices), &DefaultCubeVertices);
 		if (!vtxbuffer)
 			return nullptr;

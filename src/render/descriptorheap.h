@@ -26,6 +26,7 @@ namespace vkr::Render
 		void Release(const ResourceDescriptor& descriptor);
 
 		uint32_t GetDescriptorSize() const;
+		ID3D12DescriptorHeap* GetD3DDescriptorHeap() const;
 
 	private:
 		ComPtr<ID3D12DescriptorHeap> m_D3DHeap;

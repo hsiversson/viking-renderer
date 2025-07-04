@@ -3,7 +3,7 @@
 
 namespace vkr::Render
 {
-	class Texture;
+	class TextureView;
 	class Sampler;
 	class PipelineState;
 }
@@ -26,9 +26,12 @@ namespace vkr::Graphics
 		void SetDefaultPipelineState(Ref<Render::PipelineState> pso) { m_DefaultPipelineState = pso; }
 		Ref<Render::PipelineState> GetDefaultPipelineState() const { return m_DefaultPipelineState; }
 
+		void AddTexture(const Ref<Render::TextureView>& tex);
+		Render::TextureView* GetTexture() const;
+
 	private:
 		// Make this parameterized?
-		std::vector<Ref<Render::Texture>> m_Textures;
+		std::vector<Ref<Render::TextureView>> m_Textures;
 		//std::vector<Ref<Render::Sampler>> m_Samplers; // This should probably not be stored, but rather requested from device to be able to handle dynamic mip biasing.
 
 		// In the future we would like a full fledged PSO management system

@@ -12,53 +12,55 @@ namespace vkr::Render
 	
 	bool TextureLoader_DDS::LoadTexture(TextureDesc& outDesc, TextureData& outData, const std::filesystem::path& filepath)
 	{
-		DirectX::ScratchImage scratch = {};
-		HRESULT hr = DirectX::LoadFromDDSFileEx(filepath.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, nullptr, scratch);
+		DirectX::DDS_FLAGS flags = DirectX::DDS_FLAGS_FORCE_DX10_EXT;
+		DirectX::TexMetadata metaData;
+		DirectX::ScratchImage scratch;
+
+		HRESULT hr = DirectX::LoadFromDDSFile(filepath.c_str(), flags, &metaData, scratch);
 		if (FAILED(hr))
 			return false;
 
-		const DirectX::Image* img = scratch.GetImages();
-		size_t imgCount = scratch.GetImageCount();
+		const DirectX::Image* images = scratch.GetImages();
+		const size_t numImages = scratch.GetImageCount();
 
-		if (!img || imgCount == 0)
-			return false;
-
-		// We'll just read the first image slice here (most common case)
-		const DirectX::Image& baseImage = img[0];
-
-		// Fill outDesc
-		switch (scratch.GetMetadata().dimension)
+		for (size_t i = 0; i < numImages; ++i)
 		{
-		case DirectX::TEX_DIMENSION_TEXTURE1D:
-			outDesc.m_Dimension = ResourceDimension::Texture1D;
-			break;
-		case DirectX::TEX_DIMENSION_TEXTURE2D:
-			outDesc.m_Dimension = ResourceDimension::Texture2D;
-			break;
-		case DirectX::TEX_DIMENSION_TEXTURE3D:
-			outDesc.m_Dimension = ResourceDimension::Texture3D;
-			break;
-		default:
-			assert(false);
-			return false;
+			const DirectX::Image& image = images[i];
+			if (i == 0)
+			{
+				switch (scratch.GetMetadata().dimension)
+				{
+				case DirectX::TEX_DIMENSION_TEXTURE1D:
+					outDesc.m_Dimension = ResourceDimension::Texture1D;
+					break;
+				case DirectX::TEX_DIMENSION_TEXTURE2D:
+					outDesc.m_Dimension = ResourceDimension::Texture2D;
+					break;
+				case DirectX::TEX_DIMENSION_TEXTURE3D:
+					outDesc.m_Dimension = ResourceDimension::Texture3D;
+					break;
+				default:
+					assert(false);
+					return false;
+				}
+
+				outDesc.m_Size.x = static_cast<uint32_t>(image.width);
+				outDesc.m_Size.y = static_cast<uint32_t>(image.height);
+				outDesc.m_Size.z = static_cast<uint32_t>(metaData.depth);
+				outDesc.m_ArraySize = static_cast<uint16_t>(metaData.arraySize);
+				outDesc.m_Format = D3DConvertFormat(metaData.format);
+				outDesc.m_MipLevels = metaData.mipLevels;
+				outDesc.m_Writable = false; // DDS files are usually read-only
+			}
+
+			TextureData::Subresource mipData;
+			mipData.m_Data.resize(image.slicePitch);
+			mipData.m_RowPitch = image.rowPitch;
+			mipData.m_SlicePitch = image.slicePitch;
+			memcpy(mipData.m_Data.data(), image.pixels, image.slicePitch);
+
+			outData.m_Subresources.push_back(mipData);
 		}
-
-		outDesc.m_Size.x = static_cast<uint32_t>(baseImage.width);
-		outDesc.m_Size.y = static_cast<uint32_t>(baseImage.height);
-		outDesc.m_Size.z = 1;
-		outDesc.m_ArraySize = static_cast<uint16_t>(scratch.GetMetadata().arraySize);
-		outDesc.m_Format = D3DConvertFormat(scratch.GetMetadata().format);
-		outDesc.m_CalculateMips = (scratch.GetMetadata().mipLevels > 1);
-		outDesc.m_Writable = false; // DDS files are usually read-only
-
-		// Copy pixel data into outData
-		// Total bytes = sum of all image slices * bytes per slice
-		size_t totalBytes = scratch.GetPixelsSize();
-		outData.m_Data.resize(totalBytes);
-
-		// Copy all pixel data (including all mip levels and array slices)
-		memcpy(outData.m_Data.data(), scratch.GetPixels(), totalBytes);
-		outData.m_ByteSize = static_cast<uint32_t>(totalBytes);
 
 		return true;
 	}

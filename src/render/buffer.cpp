@@ -1,13 +1,12 @@
 #include "buffer.h"
 
 #include "device.h"
-
-static constexpr D3D12_HEAP_PROPERTIES g_UploadHeapProps{ D3D12_HEAP_TYPE_UPLOAD, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1 };
-static constexpr D3D12_HEAP_PROPERTIES g_DefaultHeapProps{ D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1 };
+#include "d3dconvert.h"
 
 namespace vkr::Render
 {
 	Buffer::Buffer()
+		: m_DataPtr(nullptr)
 	{
 
 	}
@@ -23,24 +22,23 @@ namespace vkr::Render
 
 		//For now allocate resource in place. Later well see how we do pooling
 
-		D3D12_RESOURCE_DESC1 bufferDesc = {};
-		bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		bufferDesc.Alignment = 0;
-		bufferDesc.Width = desc.ByteSize();
-		bufferDesc.Height = 1;
-		bufferDesc.DepthOrArraySize = 1;
-		bufferDesc.MipLevels = 1;
-		bufferDesc.Format = DXGI_FORMAT_UNKNOWN;
-		bufferDesc.SampleDesc.Count = 1;
-		bufferDesc.SampleDesc.Quality = 0;
-		bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		bufferDesc.Flags = desc.m_Writable ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
-
-		const D3D12_HEAP_PROPERTIES& heapProps = desc.m_CpuWritable ? g_UploadHeapProps : g_DefaultHeapProps;
+		const D3D12_RESOURCE_DESC1 bufferDesc = D3DConvertBufferDesc(desc);
+		const D3D12_HEAP_PROPERTIES& heapProps = desc.m_CpuWritable ? D3DGetUploadHeapProperties() : D3DGetDefaultHeapProperties();
 		HRESULT hr = GetDevice().GetD3DDevice10()->CreateCommittedResource3(&heapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc, D3D12_BARRIER_LAYOUT_UNDEFINED, nullptr, nullptr, 0, nullptr, IID_PPV_ARGS(&m_Resource));
 		if (FAILED(hr))
 		{
 			return false;
+		}
+
+		m_StateTracking.m_CurrentAccess = RESOURCE_STATE_ACCESS_COMMON;
+		m_StateTracking.m_CurrentSync = RESOURCE_STATE_SYNC_ALL;
+		m_StateTracking.m_CurrentLayout = RESOURCE_STATE_LAYOUT_UNDEFINED;
+
+		if (desc.m_CpuWritable)
+		{
+			// Always keep buffers on the upload heap mapped for write.
+			static constexpr D3D12_RANGE readRange = { 0 };
+			m_Resource->Map(0, &readRange, (void**)&m_DataPtr);
 		}
 
 		if (initialData)
@@ -48,10 +46,12 @@ namespace vkr::Render
 			UploadData(0, initialDataSize, initialData);
 		}
 
-		m_StateTracking.m_CurrentAccess = RESOURCE_STATE_ACCESS_COMMON;
-		m_StateTracking.m_CurrentSync = RESOURCE_STATE_SYNC_ALL;
-		m_StateTracking.m_CurrentLayout = RESOURCE_STATE_LAYOUT_UNDEFINED;
 		return true;
+	}
+
+	uint8_t* Buffer::GetDataPtr() const
+	{
+		return m_DataPtr;
 	}
 
 	const BufferDesc& Buffer::GetDesc() const
@@ -61,15 +61,9 @@ namespace vkr::Render
 
 	void Buffer::UploadData(uint64_t offset, uint32_t byteSize, const void* data)
 	{
-		static constexpr D3D12_RANGE readRange = { 0 };
-		if (m_Desc.m_CpuWritable)
+		if (m_DataPtr)
 		{
-			// should we keep the resource mapped always if write on cpu is true?
-
-			uint8_t* dataPtr;
-			m_Resource->Map(0, &readRange, (void**)&dataPtr);
-			memcpy(dataPtr + offset, data, byteSize);
-			m_Resource->Unmap(0, nullptr);
+			memcpy(m_DataPtr + offset, data, byteSize);
 		}
 		//else if (isRenderThread)
 		//{
@@ -84,4 +78,67 @@ namespace vkr::Render
 		//}
 	}
 
+	TempBufferAllocator::TempBufferAllocator(uint64_t bufferSizeBytes, uint64_t alignment)
+		: m_Capacity(bufferSizeBytes)
+		, m_Alignment(alignment)
+		, m_FrameStart(UINT64_MAX)
+		, m_Head(0)
+		, m_Tail(0)
+	{
+	}
+
+	void TempBufferAllocator::BeginFrame()
+	{
+		// Capture where the chunk will start.
+		m_FrameStart = m_Head.load(std::memory_order_relaxed);
+	}
+
+	uint64_t TempBufferAllocator::Allocate(uint64_t size)
+	{
+		size = Align(size, m_Alignment);
+
+		while (true)
+		{
+			uint64_t oldHead = m_Head.load(std::memory_order_relaxed);
+			uint64_t start = oldHead;
+			uint64_t end = start + size;
+
+			uint64_t startMod = start % m_Capacity;
+			if (startMod + size > m_Capacity)
+			{
+				uint64_t pad = m_Capacity - startMod;
+				start += pad;
+				end += pad;
+				startMod = 0;
+			}
+
+			uint64_t safeTail = m_Tail.load(std::memory_order_acquire);
+			if (end - safeTail > m_Capacity)
+				return UINT64_MAX;                  // out of space, caller must flush
+
+			if (m_Head.compare_exchange_weak(oldHead, end, std::memory_order_release, std::memory_order_relaxed))
+			{
+				return startMod;
+			}
+		}
+	}
+
+	void TempBufferAllocator::EndFrame(Event event)
+	{
+		uint64_t end = m_Head.load(std::memory_order_relaxed);
+		m_Blocks.push_back({ m_FrameStart, end, event });
+		m_FrameStart = UINT64_MAX;
+
+		GarbageCollect();
+	}
+	
+	void TempBufferAllocator::GarbageCollect()
+	{
+		while (!m_Blocks.empty() && !m_Blocks.front().event.IsPending())
+		{
+			const FrameBlock& block = m_Blocks.front();
+			m_Tail.store(block.end, std::memory_order_release);
+			m_Blocks.pop_front();
+		}
+	}
 }

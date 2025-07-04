@@ -70,16 +70,18 @@ namespace vkr::Render
 	{
 		if (AllocateDescriptor())
 		{
+			const TextureDesc& textureDesc = resource->m_TextureDesc;
+
 			if (desc.m_Writable)
 			{
 				D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-				uavDesc.Format = D3DConvertFormat(resource->m_TextureDesc.m_Format);
-				if (resource->m_TextureDesc.m_Dimension == ResourceDimension::Texture1D)
+				uavDesc.Format = D3DConvertFormat(textureDesc.m_Format);
+				if (textureDesc.m_Dimension == ResourceDimension::Texture1D)
 				{
 					uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
 					uavDesc.Texture1D.MipSlice = desc.m_Mip;
 				}
-				else if (resource->m_TextureDesc.m_Dimension == ResourceDimension::Texture2D)
+				else if (textureDesc.m_Dimension == ResourceDimension::Texture2D)
 				{
 					uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 					uavDesc.Texture2D.PlaneSlice = 0;
@@ -90,18 +92,20 @@ namespace vkr::Render
 			else
 			{
 				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-				srvDesc.Format = D3DConvertFormat(resource->m_TextureDesc.m_Format);
+				srvDesc.Format = D3DConvertFormat(textureDesc.m_Format);
 				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-				if (resource->m_TextureDesc.m_Dimension == ResourceDimension::Texture1D)
+				if (textureDesc.m_Dimension == ResourceDimension::Texture1D)
 				{
 					srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
-					srvDesc.Texture1D.MipLevels = desc.m_Mip;
+					srvDesc.Texture1D.MipLevels = textureDesc.m_MipLevels;
+					srvDesc.Texture1D.MostDetailedMip = desc.m_Mip;
 				}
-				else if (resource->m_TextureDesc.m_Dimension == ResourceDimension::Texture2D)
+				else if (textureDesc.m_Dimension == ResourceDimension::Texture2D)
 				{
 					srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 					srvDesc.Texture2D.PlaneSlice = 0;
-					srvDesc.Texture2D.MostDetailedMip = 0;
+					srvDesc.Texture2D.MipLevels = textureDesc.m_MipLevels;
+					srvDesc.Texture2D.MostDetailedMip = desc.m_Mip;
 					srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 				}
 				GetDevice().GetD3DDevice()->CreateShaderResourceView(resource->GetD3DResource(), &srvDesc, m_D3DHandle);

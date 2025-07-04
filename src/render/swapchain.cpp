@@ -108,7 +108,6 @@ namespace vkr::Render
 			rtDesc.m_ArraySize = 1;
 			rtDesc.m_Format = D3DConvertFormat(desc.Format);
 			rtDesc.m_AllowDepthStencil = false;
-			rtDesc.m_CalculateMips = false;
 
 			ResourceStateTracking initialState;
 			initialState.m_CurrentAccess = RESOURCE_STATE_ACCESS_COMMON;

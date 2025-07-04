@@ -8,18 +8,23 @@ namespace vkr::Render
 	{
 		Vector3u m_Size = { 1, 1, 1 };
 		uint16_t m_ArraySize = 1;
+		uint16_t m_MipLevels = UINT16_MAX;
 		Format m_Format = FORMAT_UNKNOWN;
 		ResourceDimension m_Dimension = ResourceDimension::Texture2D;
 		bool m_Writable = false;
 		bool m_AllowRenderTarget = false;
 		bool m_AllowDepthStencil = false;
-		bool m_CalculateMips = false;
 	};
 
 	struct TextureData
 	{
-		std::vector<uint8_t> m_Data;
-		uint32_t m_ByteSize;
+		struct Subresource
+		{
+			std::vector<uint8_t> m_Data;
+			uint64_t m_RowPitch;
+			uint64_t m_SlicePitch;
+		};
+		std::vector<Subresource> m_Subresources;
 	};
 
 	class Texture : public Resource

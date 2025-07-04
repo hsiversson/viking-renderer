@@ -2,7 +2,7 @@
 
 namespace vkr::Render
 {
-	uint32_t GetFormatNumBits(Format format)
+	uint32_t GetFormatBitsPerPixel(Format format)
 	{
 		switch (format)
 		{
@@ -66,13 +66,47 @@ namespace vkr::Render
 		case FORMAT_R8_SNORM:
 		case FORMAT_R8_SINT:
 		case FORMAT_R8_UINT:
+		case FORMAT_BC2:
+		case FORMAT_BC3:
+		case FORMAT_BC5_UNORM:
+		case FORMAT_BC5_SNORM:
+		case FORMAT_BC6_UFLOAT:
+		case FORMAT_BC6_SFLOAT:
+		case FORMAT_BC7:
+		case FORMAT_BC7_SRGB:
 			return 8;
+
+		case FORMAT_BC1:
+		case FORMAT_BC4_UNORM:
+		case FORMAT_BC4_SNORM:
+			return 4;
 		};
 	}
 
-	uint32_t GetFormatByteSize(Format format)
+	uint32_t GetFormatBytesPerPixel(Format format)
 	{
-		return GetFormatNumBits(format) / 8;
+		return GetFormatBitsPerPixel(format) / 8;
+	}
+
+	uint32_t GetFormatBlockSize(Format format)
+	{
+		switch (format)
+		{
+		case FORMAT_BC1:
+		case FORMAT_BC2:
+		case FORMAT_BC3:
+		case FORMAT_BC4_UNORM:
+		case FORMAT_BC4_SNORM:
+		case FORMAT_BC5_UNORM:
+		case FORMAT_BC5_SNORM:
+		case FORMAT_BC6_UFLOAT:
+		case FORMAT_BC6_SFLOAT:
+		case FORMAT_BC7:
+		case FORMAT_BC7_SRGB:
+			return 4;
+		default:
+			return 1;
+		}
 	}
 }
 

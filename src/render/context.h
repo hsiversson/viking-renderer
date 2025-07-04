@@ -93,6 +93,7 @@ namespace vkr::Render
 		void ClearDepthStencil(Ref<DepthStencilView> dsv, float clearValue);
 
 		ContextType GetType() const;
+		CommandList* GetCommandList() const;
 
 	private:
 		struct DrawState

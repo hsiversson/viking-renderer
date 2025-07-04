@@ -28,12 +28,34 @@ namespace vkr::Render
 		D3D12_ROOT_SIGNATURE_DESC Desc;
 		Desc.NumParameters = desc.m_NumConstantBufferSlots;
 		Desc.pParameters = RootParams;
-		Desc.NumStaticSamplers = 0;
-		Desc.pStaticSamplers = nullptr;
+
+		D3D12_STATIC_SAMPLER_DESC staticSamplerDescs[2];
+		staticSamplerDescs[0] = {};
+		staticSamplerDescs[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		staticSamplerDescs[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		staticSamplerDescs[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		staticSamplerDescs[0].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+		staticSamplerDescs[0].MaxLOD = D3D12_FLOAT32_MAX;
+		staticSamplerDescs[0].ShaderRegister = 0;
+		staticSamplerDescs[0].RegisterSpace = 0;
+		staticSamplerDescs[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+		staticSamplerDescs[1] = {};
+		staticSamplerDescs[1].AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		staticSamplerDescs[1].AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		staticSamplerDescs[1].AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		staticSamplerDescs[1].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+		staticSamplerDescs[1].MaxLOD = D3D12_FLOAT32_MAX;
+		staticSamplerDescs[1].ShaderRegister = 1;
+		staticSamplerDescs[1].RegisterSpace = 0;
+		staticSamplerDescs[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+		Desc.NumStaticSamplers = 2;
+		Desc.pStaticSamplers = staticSamplerDescs;
+
 		Desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
-		Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-		//Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
-		//Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
+		Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
+		Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
 
 		switch (desc.m_PipelineUsage)
 		{

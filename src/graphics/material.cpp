@@ -15,4 +15,17 @@ namespace vkr::Graphics
 
 	}
 
+	void Material::AddTexture(const Ref<Render::TextureView>& tex)
+	{
+		m_Textures.push_back(tex);
+	}
+
+	Render::TextureView* Material::GetTexture() const
+	{
+		if (m_Textures.empty())
+			return nullptr;
+
+		return m_Textures[0].get();
+	}
+
 }

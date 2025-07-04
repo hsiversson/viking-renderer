@@ -94,10 +94,10 @@ namespace vkr::Graphics
 
 	bool View::InitTargets()
 	{
-		Render::TextureDesc depthStencilDesc;
+		Render::TextureDesc depthStencilDesc = {};
 		depthStencilDesc.m_Dimension = Render::ResourceDimension::Texture2D;
 		depthStencilDesc.m_Size = { m_MaxRenderSize.x, m_MaxRenderSize.y, 0 };
-		depthStencilDesc.m_CalculateMips = false;
+		depthStencilDesc.m_MipLevels = 1;
 		depthStencilDesc.m_AllowDepthStencil = true;
 		depthStencilDesc.m_Format = Render::FORMAT_D32_FLOAT;
 		m_DepthBuffer = Render::GetDevice().CreateTexture(depthStencilDesc);

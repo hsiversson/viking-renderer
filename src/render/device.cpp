@@ -131,6 +131,7 @@ namespace vkr::Render
 		}
 		else
 		{
+			assert(false && "invalid extension");
 			return nullptr;
 		}
 
@@ -138,6 +139,7 @@ namespace vkr::Render
 		TextureData textureData = {};
 		if (!loader->LoadTexture(textureDesc, textureData, filepath))
 		{
+			assert(false && "failed to load texture");
 			return nullptr;
 		}
 
@@ -153,6 +155,7 @@ namespace vkr::Render
 		textureView = MakeRef<TextureView>();
 		if (!textureView->Init(desc, resource))
 		{
+			assert(false && "failed to create texture view");
 			return nullptr;
 		}
 		return textureView;

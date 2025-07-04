@@ -71,18 +71,23 @@ namespace vkr
 	{
 		//////////////////////////////////////////////////
 		// these parts should not be in application
+
+		m_RenderDevice->BeginFrame();
+
 		Ref<Graphics::Camera> camera = MakeRef<Graphics::Camera>();
 		Mat43 camtransform = Compose(Mat33::Identity(), Vector3f(0, 0.0f, -2.0f));
 		camera->SetLocalTransform(camtransform);
 		camera->SetupPerspective(std::numbers::pi / 2.0f, (float)m_WindowSize.x / (float)m_WindowSize.y, 0.1f, 1000.0f);
 
-		Ref<Render::Shader> VS = m_RenderDevice->CreateShader("../../../content/shaders/simpleforwardtestVS.hlsl", L"MainVS", vkr::Render::SHADER_STAGE_VERTEX, vkr::Render::ShaderModel::SM_6_0);
-		Ref<Render::Shader> PS = m_RenderDevice->CreateShader("../../../content/shaders/simpleforwardtestPS.hlsl", L"MainPS", vkr::Render::SHADER_STAGE_PIXEL, vkr::Render::ShaderModel::SM_6_0);
+		Ref<Render::Shader> VS = m_RenderDevice->CreateShader("../../../content/shaders/simpleforwardtestVS.hlsl", L"MainVS", vkr::Render::SHADER_STAGE_VERTEX);
+		Ref<Render::Shader> PS = m_RenderDevice->CreateShader("../../../content/shaders/simpleforwardtestPS.hlsl", L"MainPS", vkr::Render::SHADER_STAGE_PIXEL);
 
 		Render::PipelineStateDesc defpsodesc;
 		defpsodesc.m_Type = vkr::Render::PIPELINE_STATE_TYPE_DEFAULT;
 		defpsodesc.Default.m_PrimitiveType = vkr::Render::PRIMITIVE_TYPE_TRIANGLE;
 		defpsodesc.Default.m_VertexLayout.m_Attributes.insert({ vkr::Render::VertexAttribute::TYPE_POSITION, 0, 0, vkr::Render::FORMAT_RGB32_FLOAT });
+		defpsodesc.Default.m_VertexLayout.m_Attributes.insert({ vkr::Render::VertexAttribute::TYPE_NORMAL, 0, 0, vkr::Render::FORMAT_RGB32_FLOAT });
+		defpsodesc.Default.m_VertexLayout.m_Attributes.insert({ vkr::Render::VertexAttribute::TYPE_UV, 0, 0, vkr::Render::FORMAT_RG32_FLOAT });
 		defpsodesc.Default.m_VertexShader = VS.get();
 		defpsodesc.Default.m_PixelShader = PS.get();
 		defpsodesc.Default.m_RasterizerState = { vkr::Render::FACE_CULL_MODE_BACK, false, false, false };
@@ -96,6 +101,8 @@ namespace vkr
 		depthpsodesc.m_Type = vkr::Render::PIPELINE_STATE_TYPE_DEFAULT;
 		depthpsodesc.Default.m_PrimitiveType = vkr::Render::PRIMITIVE_TYPE_TRIANGLE;
 		depthpsodesc.Default.m_VertexLayout.m_Attributes.insert({ vkr::Render::VertexAttribute::TYPE_POSITION, 0, 0, vkr::Render::FORMAT_RGB32_FLOAT });
+		depthpsodesc.Default.m_VertexLayout.m_Attributes.insert({ vkr::Render::VertexAttribute::TYPE_NORMAL, 0, 0, vkr::Render::FORMAT_RGB32_FLOAT });
+		depthpsodesc.Default.m_VertexLayout.m_Attributes.insert({ vkr::Render::VertexAttribute::TYPE_UV, 0, 0, vkr::Render::FORMAT_RG32_FLOAT });
 		depthpsodesc.Default.m_VertexShader = VS.get();
 		depthpsodesc.Default.m_PixelShader = nullptr;
 		depthpsodesc.Default.m_RasterizerState = { vkr::Render::FACE_CULL_MODE_BACK, false, false, false };
@@ -109,6 +116,13 @@ namespace vkr
 		cubematerial->SetDefaultPipelineState(cubemainpso);
 		cubematerial->SetDepthPipelineState(cubedepthpso);
 
+		Ref<Render::Texture> testTex = m_RenderDevice->LoadTexture("../../../content/textures/test_texture.dds");
+
+		Render::TextureViewDesc texViewDesc = {};
+		Ref<Render::TextureView> textTexView = m_RenderDevice->CreateTextureView(texViewDesc, testTex);
+
+		cubematerial->AddTexture(textTexView);
+
 		Graphics::Model::Part part;
 		part.m_Material = cubematerial;
 		part.m_Mesh = vkr::CreateCubeMesh();
@@ -118,6 +132,8 @@ namespace vkr
 		Ref<Graphics::ModelObject> modelinst = MakeRef<Graphics::ModelObject>();
 		modelinst->SetModel(cube);
 		m_Scene->AddObject(modelinst);
+
+		m_RenderDevice->EndFrame();
 		//////////////////////////////////////////////////
 
 		bool running = true;

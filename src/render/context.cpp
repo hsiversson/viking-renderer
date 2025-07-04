@@ -224,6 +224,13 @@ namespace vkr::Render
 			}
 			if (CurrentState.m_RootSignature != NewState.m_RootSignature)
 			{
+				ID3D12DescriptorHeap* descriptorHeaps[2] = 
+				{ 
+					GetDevice().GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SHADER_RESOURCE)->GetD3DDescriptorHeap(),
+					GetDevice().GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SAMPLER)->GetD3DDescriptorHeap()
+				};
+				m_CurrentD3DCommandList->SetDescriptorHeaps(2, descriptorHeaps);
+
 				if (NewState.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE)
 				{
 					m_CurrentD3DCommandList->SetComputeRootSignature(NewState.m_RootSignature->GetD3DRootSignature());
@@ -314,6 +321,11 @@ namespace vkr::Render
 	ContextType Context::GetType() const
 	{
 		return m_Type;
+	}
+
+	CommandList* Context::GetCommandList() const
+	{
+		return m_CommandList.get();
 	}
 
 	void Context::BindRenderTargets(Ref<RenderTargetView>* rtviews, size_t viewCount)

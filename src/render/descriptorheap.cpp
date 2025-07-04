@@ -63,6 +63,7 @@ namespace vkr::Render
 
 			descriptor.m_D3DHandle = m_D3DHeap->GetCPUDescriptorHandleForHeapStart();
 			descriptor.m_D3DHandle.ptr += index * m_DescriptorSize;
+			descriptor.m_DescriptorIndex = index;
 		}
 		else
 		{
@@ -80,5 +81,10 @@ namespace vkr::Render
 	uint32_t DescriptorHeap::GetDescriptorSize() const
 	{
 		return m_DescriptorSize;
+	}
+
+	ID3D12DescriptorHeap* DescriptorHeap::GetD3DDescriptorHeap() const
+	{
+		return m_D3DHeap.Get();
 	}
 }

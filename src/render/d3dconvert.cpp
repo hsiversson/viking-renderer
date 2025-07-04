@@ -1,4 +1,6 @@
 #include "d3dconvert.h"
+#include "texture.h"
+#include "buffer.h"
 
 namespace vkr::Render
 {
@@ -98,6 +100,30 @@ namespace vkr::Render
 			return DXGI_FORMAT_R8_SINT;
 		case FORMAT_R8_UINT:
 			return DXGI_FORMAT_R8_UINT;
+
+		case FORMAT_BC1:
+			return DXGI_FORMAT_BC1_UNORM;
+		case FORMAT_BC2:
+			return DXGI_FORMAT_BC2_UNORM;
+		case FORMAT_BC3:
+			return DXGI_FORMAT_BC3_UNORM;
+		case FORMAT_BC4_UNORM:
+			return DXGI_FORMAT_BC4_UNORM;
+		case FORMAT_BC4_SNORM:
+			return DXGI_FORMAT_BC4_SNORM;
+		case FORMAT_BC5_UNORM:
+			return DXGI_FORMAT_BC5_UNORM;
+		case FORMAT_BC5_SNORM:
+			return DXGI_FORMAT_BC5_SNORM;
+		case FORMAT_BC6_UFLOAT:
+			return DXGI_FORMAT_BC6H_UF16;
+		case FORMAT_BC6_SFLOAT:
+			return DXGI_FORMAT_BC6H_SF16;
+		case FORMAT_BC7:
+			return DXGI_FORMAT_BC7_UNORM;
+		case FORMAT_BC7_SRGB:
+			return DXGI_FORMAT_BC7_UNORM_SRGB;
+
 		case FORMAT_UNKNOWN:
 		default:
 			return DXGI_FORMAT_UNKNOWN;
@@ -200,6 +226,30 @@ namespace vkr::Render
 			return FORMAT_R8_SINT;
 		case DXGI_FORMAT_R8_UINT:
 			return FORMAT_R8_UINT;
+
+		case DXGI_FORMAT_BC1_UNORM:
+			return FORMAT_BC1;
+		case DXGI_FORMAT_BC2_UNORM:
+			return FORMAT_BC2;
+		case DXGI_FORMAT_BC3_UNORM:
+			return FORMAT_BC3;
+		case DXGI_FORMAT_BC4_UNORM:
+			return FORMAT_BC4_UNORM;
+		case DXGI_FORMAT_BC4_SNORM:
+			return FORMAT_BC4_SNORM;
+		case DXGI_FORMAT_BC5_UNORM:
+			return FORMAT_BC5_UNORM;
+		case DXGI_FORMAT_BC5_SNORM:
+			return FORMAT_BC5_SNORM;
+		case DXGI_FORMAT_BC6H_UF16:
+			return FORMAT_BC6_UFLOAT;
+		case DXGI_FORMAT_BC6H_SF16:
+			return FORMAT_BC6_SFLOAT;
+		case DXGI_FORMAT_BC7_UNORM:
+			return FORMAT_BC7;
+		case DXGI_FORMAT_BC7_UNORM_SRGB:
+			return FORMAT_BC7_SRGB;
+
 		case DXGI_FORMAT_UNKNOWN:
 		default:
 			return FORMAT_UNKNOWN;
@@ -262,6 +312,142 @@ namespace vkr::Render
 		}
 	}
 
+	D3D12_BLEND_OP D3DConvertBlendOp(BlendOp blendOp)
+	{
+		switch (blendOp)
+		{
+		case BLEND_OP_ADD:
+			return D3D12_BLEND_OP_ADD;
+		case BLEND_OP_SUBTRACT:
+			return D3D12_BLEND_OP_SUBTRACT;
+		case BLEND_OP_REV_SUBTRACT:
+			return D3D12_BLEND_OP_REV_SUBTRACT;
+		case BLEND_OP_MIN:
+			return D3D12_BLEND_OP_MIN;
+		case BLEND_OP_MAX:
+			return D3D12_BLEND_OP_MAX;
+		default:
+			assert(false);
+			return D3D12_BLEND_OP_ADD;
+		}
+	}
+
+	vkr::Render::BlendOp D3DConvertBlendOp(D3D12_BLEND_OP blendOp)
+	{
+		switch (blendOp)
+		{
+		case D3D12_BLEND_OP_ADD:
+			return BLEND_OP_ADD;
+		case D3D12_BLEND_OP_SUBTRACT:
+			return BLEND_OP_SUBTRACT;
+		case D3D12_BLEND_OP_REV_SUBTRACT:
+			return BLEND_OP_REV_SUBTRACT;
+		case D3D12_BLEND_OP_MIN:
+			return BLEND_OP_MIN;
+		case D3D12_BLEND_OP_MAX:
+			return BLEND_OP_MAX;
+		default:
+			assert(false);
+			return BLEND_OP_ADD;
+		}
+	}
+
+	D3D12_BLEND D3DConvertBlendArg(BlendArg blendArg)
+	{
+		switch (blendArg)
+		{
+		case BLEND_ZERO:
+			return D3D12_BLEND_ZERO;
+		case BLEND_ONE:
+			return D3D12_BLEND_ONE;
+		case BLEND_SRC_COLOR:
+			return D3D12_BLEND_SRC_COLOR;
+		case BLEND_INV_SRC_COLOR:
+			return D3D12_BLEND_INV_SRC_COLOR;
+		case BLEND_SRC_ALPHA:
+			return D3D12_BLEND_SRC_ALPHA;
+		case BLEND_INV_SRC_ALPHA:
+			return D3D12_BLEND_INV_SRC_ALPHA;
+		case BLEND_DEST_ALPHA:
+			return D3D12_BLEND_DEST_ALPHA;
+		case BLEND_INV_DEST_ALPHA:
+			return D3D12_BLEND_INV_DEST_ALPHA;
+		case BLEND_DEST_COLOR:
+			return D3D12_BLEND_DEST_COLOR;
+		case BLEND_INV_DEST_COLOR:
+			return D3D12_BLEND_INV_DEST_COLOR;
+		case BLEND_SRC_ALPHA_SAT:
+			return D3D12_BLEND_SRC_ALPHA_SAT;
+		case BLEND_BLEND_FACTOR:
+			return D3D12_BLEND_BLEND_FACTOR;
+		case BLEND_INV_BLEND_FACTOR:
+			return D3D12_BLEND_INV_BLEND_FACTOR;
+		case BLEND_SRC1_COLOR:
+			return D3D12_BLEND_SRC1_COLOR;
+		case BLEND_INV_SRC1_COLOR:
+			return D3D12_BLEND_INV_SRC1_COLOR;
+		case BLEND_SRC1_ALPHA:
+			return D3D12_BLEND_SRC1_ALPHA;
+		case BLEND_INV_SRC1_ALPHA:
+			return D3D12_BLEND_INV_SRC1_ALPHA;
+		case BLEND_ALPHA_FACTOR:
+			return D3D12_BLEND_ALPHA_FACTOR;
+		case BLEND_INV_ALPHA_FACTOR:
+			return D3D12_BLEND_INV_ALPHA_FACTOR;
+		default:
+			checkNoEntry();
+			return D3D12_BLEND_ALPHA_FACTOR;
+		}
+	}
+
+	BlendArg D3DConvertBlendArg(D3D12_BLEND blendArg)
+	{
+		switch (blendArg)
+		{
+		case D3D12_BLEND_ZERO:
+			return BLEND_ZERO;
+		case D3D12_BLEND_ONE:
+			return BLEND_ONE;
+		case D3D12_BLEND_SRC_COLOR:
+			return BLEND_SRC_COLOR;
+		case D3D12_BLEND_INV_SRC_COLOR:
+			return BLEND_INV_SRC_COLOR;
+		case D3D12_BLEND_SRC_ALPHA:
+			return BLEND_SRC_ALPHA;
+		case D3D12_BLEND_INV_SRC_ALPHA:
+			return BLEND_INV_SRC_ALPHA;
+		case D3D12_BLEND_DEST_ALPHA:
+			return BLEND_DEST_ALPHA;
+		case D3D12_BLEND_INV_DEST_ALPHA:
+			return BLEND_INV_DEST_ALPHA;
+		case D3D12_BLEND_DEST_COLOR:
+			return BLEND_DEST_COLOR;
+		case D3D12_BLEND_INV_DEST_COLOR:
+			return BLEND_INV_DEST_COLOR;
+		case D3D12_BLEND_SRC_ALPHA_SAT:
+			return BLEND_SRC_ALPHA_SAT;
+		case D3D12_BLEND_BLEND_FACTOR:
+			return BLEND_BLEND_FACTOR;
+		case D3D12_BLEND_INV_BLEND_FACTOR:
+			return BLEND_INV_BLEND_FACTOR;
+		case D3D12_BLEND_SRC1_COLOR:
+			return BLEND_SRC1_COLOR;
+		case D3D12_BLEND_INV_SRC1_COLOR:
+			return BLEND_INV_SRC1_COLOR;
+		case D3D12_BLEND_SRC1_ALPHA:
+			return BLEND_SRC1_ALPHA;
+		case D3D12_BLEND_INV_SRC1_ALPHA:
+			return BLEND_INV_SRC1_ALPHA;
+		case D3D12_BLEND_ALPHA_FACTOR:
+			return BLEND_ALPHA_FACTOR;
+		case D3D12_BLEND_INV_ALPHA_FACTOR:
+			return BLEND_INV_ALPHA_FACTOR;
+		default:
+			checkNoEntry();
+			return BLEND_ALPHA_FACTOR;
+		}
+	}
+	
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE D3DConvertPrimitiveType(PrimitiveType primitiveType)
 	{
 		switch (primitiveType)
@@ -291,6 +477,70 @@ namespace vkr::Render
 		default:
 			assert(false);
 			return PRIMITIVE_TYPE_TRIANGLE;
+		}
+	}
+
+	D3D12_PRIMITIVE_TOPOLOGY D3DConvertPrimitiveTopology(PrimitiveTopology topologyType)
+	{
+		switch (topologyType)
+		{
+		case PRIMITIVE_TOPOLOGY_LINELIST:
+			return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+		case PRIMITIVE_TOPOLOGY_UNDEFINED:
+			return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+		case PRIMITIVE_TOPOLOGY_POINTLIST:
+			return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+		case PRIMITIVE_TOPOLOGY_LINESTRIP:
+			return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
+		case PRIMITIVE_TOPOLOGY_TRIANGLELIST:
+			return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		case PRIMITIVE_TOPOLOGY_TRIANGLESTRIP:
+			return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+		case PRIMITIVE_TOPOLOGY_TRIANGLEFAN:
+			return D3D_PRIMITIVE_TOPOLOGY_TRIANGLEFAN;
+		case PRIMITIVE_TOPOLOGY_LINELIST_ADJ:
+			return D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
+		case PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ:
+			return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ;
+		case PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ:
+			return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
+		case PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ:
+			return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ;
+		default:
+			assert(false);
+			return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+		}
+	}
+
+	PrimitiveTopology D3DConvertPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY topologyType)
+	{
+		switch (topologyType)
+		{
+		case D3D_PRIMITIVE_TOPOLOGY_UNDEFINED:
+			return PRIMITIVE_TOPOLOGY_UNDEFINED;
+		case D3D_PRIMITIVE_TOPOLOGY_LINELIST:
+			return PRIMITIVE_TOPOLOGY_LINELIST;
+		case D3D_PRIMITIVE_TOPOLOGY_POINTLIST:
+			return PRIMITIVE_TOPOLOGY_POINTLIST;
+		case D3D_PRIMITIVE_TOPOLOGY_LINESTRIP:
+			return PRIMITIVE_TOPOLOGY_LINESTRIP;
+		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST:
+			return PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP:
+			return PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLEFAN:
+			return PRIMITIVE_TOPOLOGY_TRIANGLEFAN;
+		case D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ:
+			return PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
+		case D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ:
+			return PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ;
+		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ:
+			return PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
+		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ:
+			return PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ;
+		default:
+			assert(false);
+			return PRIMITIVE_TOPOLOGY_UNDEFINED;
 		}
 	}
 
@@ -479,205 +729,97 @@ namespace vkr::Render
 			return RESOURCE_STATE_LAYOUT_UNDEFINED;
 		}
 	}
-
-	D3D12_PRIMITIVE_TOPOLOGY D3DConvertPrimitiveTopology(PrimitiveTopology topologyType)
+	
+	D3D12_RESOURCE_DESC1 D3DConvertTextureDesc(const TextureDesc& desc)
 	{
-		switch (topologyType)
+		D3D12_RESOURCE_DESC1 textureDesc = {};
+		switch (desc.m_Dimension)
 		{
-		case PRIMITIVE_TOPOLOGY_LINELIST:
-			return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
-		case PRIMITIVE_TOPOLOGY_UNDEFINED:
-			return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
-		case PRIMITIVE_TOPOLOGY_POINTLIST:
-			return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
-		case PRIMITIVE_TOPOLOGY_LINESTRIP:
-			return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
-		case PRIMITIVE_TOPOLOGY_TRIANGLELIST:
-			return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		case PRIMITIVE_TOPOLOGY_TRIANGLESTRIP:
-			return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
-		case PRIMITIVE_TOPOLOGY_TRIANGLEFAN:
-			return D3D_PRIMITIVE_TOPOLOGY_TRIANGLEFAN;
-		case PRIMITIVE_TOPOLOGY_LINELIST_ADJ:
-			return D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
-		case PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ:
-			return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ;
-		case PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ:
-			return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
-		case PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ:
-			return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ;
+		case ResourceDimension::Texture1D:
+			textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE1D;
+			break;
+		case ResourceDimension::Texture2D:
+			textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+			break;
+		case ResourceDimension::Texture3D:
+			textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+			break;
 		default:
 			assert(false);
-			return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+			return D3D12_RESOURCE_DESC1{};
 		}
+
+		textureDesc.Format = D3DConvertFormat(desc.m_Format);
+		textureDesc.Width = desc.m_Size.x;
+		textureDesc.Height = desc.m_Size.y;
+		textureDesc.DepthOrArraySize = desc.m_Dimension == ResourceDimension::Texture3D ? desc.m_Size.z : desc.m_ArraySize;
+		textureDesc.Alignment = 0;
+		textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		textureDesc.SampleDesc.Count = 1;
+		textureDesc.SampleDesc.Quality = 0;
+		textureDesc.MipLevels = desc.m_MipLevels;
+		if (textureDesc.MipLevels == UINT16_MAX)
+		{
+			uint32_t maxDim = std::max(desc.m_Size.x, desc.m_Size.y);
+			textureDesc.MipLevels = std::floor(std::log2(maxDim)) + 1;
+		}
+
+		textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+		if (desc.m_Writable)
+		{
+			textureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+		}
+		if (desc.m_AllowRenderTarget)
+		{
+			textureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+		}
+		if (desc.m_AllowDepthStencil)
+		{
+			textureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+		}
+
+		return textureDesc;
 	}
 
-	vkr::Render::PrimitiveTopology D3DConvertPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY topologyType)
+	D3D12_RESOURCE_DESC1 D3DConvertBufferDesc(const BufferDesc& desc)
 	{
-		switch (topologyType)
-		{
-		case D3D_PRIMITIVE_TOPOLOGY_UNDEFINED:
-			return PRIMITIVE_TOPOLOGY_UNDEFINED;
-		case D3D_PRIMITIVE_TOPOLOGY_LINELIST:
-			return PRIMITIVE_TOPOLOGY_LINELIST;
-		case D3D_PRIMITIVE_TOPOLOGY_POINTLIST:
-			return PRIMITIVE_TOPOLOGY_POINTLIST;
-		case D3D_PRIMITIVE_TOPOLOGY_LINESTRIP:
-			return PRIMITIVE_TOPOLOGY_LINESTRIP;
-		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST:
-			return PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP:
-			return PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
-		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLEFAN:
-			return PRIMITIVE_TOPOLOGY_TRIANGLEFAN;
-		case D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ:
-			return PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
-		case D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ:
-			return PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ;
-		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ:
-			return PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
-		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ:
-			return PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ;
-		default:
-			assert(false);
-			return PRIMITIVE_TOPOLOGY_UNDEFINED;
-		}
+		D3D12_RESOURCE_DESC1 bufferDesc = {};
+		bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		bufferDesc.Width = desc.ByteSize();
+		bufferDesc.Height = 1;
+		bufferDesc.DepthOrArraySize = 1;
+		bufferDesc.MipLevels = 1;
+		bufferDesc.Format = DXGI_FORMAT_UNKNOWN;
+		bufferDesc.SampleDesc.Count = 1;
+		bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		bufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+		if (desc.m_Writable)
+			bufferDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+
+		return bufferDesc;
 	}
 
-	D3D12_BLEND_OP D3DConvertBlendOp(BlendOp blendOp)
+	D3D12_HEAP_PROPERTIES D3DGetDefaultHeapProperties()
 	{
-		switch (blendOp)
-		{
-		case BLEND_OP_ADD:
-			return D3D12_BLEND_OP_ADD;
-		case BLEND_OP_SUBTRACT:
-			return D3D12_BLEND_OP_SUBTRACT;
-		case BLEND_OP_REV_SUBTRACT:
-			return D3D12_BLEND_OP_REV_SUBTRACT;
-		case BLEND_OP_MIN:
-			return D3D12_BLEND_OP_MIN;
-		case BLEND_OP_MAX:
-			return D3D12_BLEND_OP_MAX;
-		default:
-			assert(false);
-			return D3D12_BLEND_OP_ADD;
-		}
+		D3D12_HEAP_PROPERTIES heapProps = {};
+		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+		heapProps.CreationNodeMask = 1;
+		heapProps.VisibleNodeMask = 1;
+		return heapProps;
 	}
 
-	vkr::Render::BlendOp D3DConvertBlendOp(D3D12_BLEND_OP blendOp)
+	D3D12_HEAP_PROPERTIES D3DGetUploadHeapProperties()
 	{
-		switch (blendOp)
-		{
-		case D3D12_BLEND_OP_ADD:
-			return BLEND_OP_ADD;
-		case D3D12_BLEND_OP_SUBTRACT:
-			return BLEND_OP_SUBTRACT;
-		case D3D12_BLEND_OP_REV_SUBTRACT:
-			return BLEND_OP_REV_SUBTRACT;
-		case D3D12_BLEND_OP_MIN:
-			return BLEND_OP_MIN;
-		case D3D12_BLEND_OP_MAX:
-			return BLEND_OP_MAX;
-		default:
-			assert(false);
-			return BLEND_OP_ADD;
-		}
-	}
-
-	D3D12_BLEND D3DConvertBlendArg(BlendArg blendArg)
-	{
-		switch (blendArg)
-		{
-		case BLEND_ZERO:
-			return D3D12_BLEND_ZERO;
-		case BLEND_ONE:
-			return D3D12_BLEND_ONE;
-		case BLEND_SRC_COLOR:
-			return D3D12_BLEND_SRC_COLOR;
-		case BLEND_INV_SRC_COLOR:
-			return D3D12_BLEND_INV_SRC_COLOR;
-		case BLEND_SRC_ALPHA:
-			return D3D12_BLEND_SRC_ALPHA;
-		case BLEND_INV_SRC_ALPHA:
-			return D3D12_BLEND_INV_SRC_ALPHA;
-		case BLEND_DEST_ALPHA:
-			return D3D12_BLEND_DEST_ALPHA;
-		case BLEND_INV_DEST_ALPHA:
-			return D3D12_BLEND_INV_DEST_ALPHA;
-		case BLEND_DEST_COLOR:
-			return D3D12_BLEND_DEST_COLOR;
-		case BLEND_INV_DEST_COLOR:
-			return D3D12_BLEND_INV_DEST_COLOR;
-		case BLEND_SRC_ALPHA_SAT:
-			return D3D12_BLEND_SRC_ALPHA_SAT;
-		case BLEND_BLEND_FACTOR:
-			return D3D12_BLEND_BLEND_FACTOR;
-		case BLEND_INV_BLEND_FACTOR:
-			return D3D12_BLEND_INV_BLEND_FACTOR;
-		case BLEND_SRC1_COLOR:
-			return D3D12_BLEND_SRC1_COLOR;
-		case BLEND_INV_SRC1_COLOR:
-			return D3D12_BLEND_INV_SRC1_COLOR;
-		case BLEND_SRC1_ALPHA:
-			return D3D12_BLEND_SRC1_ALPHA;
-		case BLEND_INV_SRC1_ALPHA:
-			return D3D12_BLEND_INV_SRC1_ALPHA;
-		case BLEND_ALPHA_FACTOR:
-			return D3D12_BLEND_ALPHA_FACTOR;
-		case BLEND_INV_ALPHA_FACTOR:
-			return D3D12_BLEND_INV_ALPHA_FACTOR;
-		default:
-			checkNoEntry();
-			return D3D12_BLEND_ALPHA_FACTOR;
-		}
-	}
-
-	vkr::Render::BlendArg D3DConvertBlendArg(D3D12_BLEND blendArg)
-	{
-		switch (blendArg)
-		{
-		case D3D12_BLEND_ZERO:
-			return BLEND_ZERO;
-		case D3D12_BLEND_ONE:
-			return BLEND_ONE;
-		case D3D12_BLEND_SRC_COLOR:
-			return BLEND_SRC_COLOR;
-		case D3D12_BLEND_INV_SRC_COLOR:
-			return BLEND_INV_SRC_COLOR;
-		case D3D12_BLEND_SRC_ALPHA:
-			return BLEND_SRC_ALPHA;
-		case D3D12_BLEND_INV_SRC_ALPHA:
-			return BLEND_INV_SRC_ALPHA;
-		case D3D12_BLEND_DEST_ALPHA:
-			return BLEND_DEST_ALPHA;
-		case D3D12_BLEND_INV_DEST_ALPHA:
-			return BLEND_INV_DEST_ALPHA;
-		case D3D12_BLEND_DEST_COLOR:
-			return BLEND_DEST_COLOR;
-		case D3D12_BLEND_INV_DEST_COLOR:
-			return BLEND_INV_DEST_COLOR;
-		case D3D12_BLEND_SRC_ALPHA_SAT:
-			return BLEND_SRC_ALPHA_SAT;
-		case D3D12_BLEND_BLEND_FACTOR:
-			return BLEND_BLEND_FACTOR;
-		case D3D12_BLEND_INV_BLEND_FACTOR:
-			return BLEND_INV_BLEND_FACTOR;
-		case D3D12_BLEND_SRC1_COLOR:
-			return BLEND_SRC1_COLOR;
-		case D3D12_BLEND_INV_SRC1_COLOR:
-			return BLEND_INV_SRC1_COLOR;
-		case D3D12_BLEND_SRC1_ALPHA:
-			return BLEND_SRC1_ALPHA;
-		case D3D12_BLEND_INV_SRC1_ALPHA:
-			return BLEND_INV_SRC1_ALPHA;
-		case D3D12_BLEND_ALPHA_FACTOR:
-			return BLEND_ALPHA_FACTOR;
-		case D3D12_BLEND_INV_ALPHA_FACTOR:
-			return BLEND_INV_ALPHA_FACTOR;
-		default:
-			checkNoEntry();
-			return BLEND_ALPHA_FACTOR;
-		}
+		D3D12_HEAP_PROPERTIES heapProps = {};
+		heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+		heapProps.CreationNodeMask = 1;
+		heapProps.VisibleNodeMask = 1;
+		return heapProps;
 	}
 
 }

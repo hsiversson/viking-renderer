@@ -91,16 +91,18 @@ namespace vkr::Graphics
 			ctx->SetPrimitiveTopology(mesh.m_Mesh->GetTopology());
 			ctx->BindPSO(mesh.m_Material->GetDefaultPipelineState());
 
-			struct alignas(16) ConstantData 
+			struct alignas(16) ConstantData
 			{
 				Mat44 ViewProjection; // 64 bytes
 				Mat44 World; // 64 bytes
-				Vector4f Color; // 16 bytes
+				Vector3f Color;
+				uint32_t TextureDescriptor; // 16 bytes
 			};
 			ConstantData data;
 			data.ViewProjection = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
 			data.World = mesh.m_Transform;
-			data.Color = Vector4f(1, 0, 0, 1);
+			data.Color = Vector3f(1, 0, 0);
+			data.TextureDescriptor = mesh.m_Material->GetTexture() ? mesh.m_Material->GetTexture()->GetIndex() : 0;
 
 			auto cbuffer = Render::GetDevice().GetTempBuffer(sizeof(ConstantData),sizeof(data), (void*)&data);
 			std::vector<vkr::Render::Buffer*> buffers;
@@ -175,12 +177,14 @@ namespace vkr::Graphics
 			{
 				Mat44 ViewProjection; // 64 bytes
 				Mat44 World; // 64 bytes
-				Vector4f Color; // 16 bytes
+				Vector3f Color; 
+				uint32_t TextureDescriptor; // 16 bytes
 			};
 			ConstantData data;
 			data.ViewProjection = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
 			data.World = mesh.m_Transform;
-			data.Color = Vector4f(1, 0, 0, 1);
+			data.Color = Vector3f(1, 0, 0);
+			data.TextureDescriptor = mesh.m_Material->GetTexture() ? mesh.m_Material->GetTexture()->GetIndex() : 0; 
 
 			auto cbuffer = Render::GetDevice().GetTempBuffer(sizeof(ConstantData), sizeof(data), (void*)&data);
 			std::vector<vkr::Render::Buffer*> buffers;

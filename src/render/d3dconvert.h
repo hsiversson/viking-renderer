@@ -3,6 +3,9 @@
 
 namespace vkr::Render
 {
+	struct TextureDesc;
+	struct BufferDesc;
+
 	DXGI_FORMAT D3DConvertFormat(Format format);
 	Format D3DConvertFormat(DXGI_FORMAT format);
 
@@ -29,4 +32,10 @@ namespace vkr::Render
 
 	D3D12_BARRIER_LAYOUT D3DConvertResourceStateLayout(ResourceStateLayout layout);
 	ResourceStateLayout D3DConvertResourceStateLayout(D3D12_BARRIER_LAYOUT layout);
+
+	D3D12_RESOURCE_DESC1 D3DConvertTextureDesc(const TextureDesc& desc);
+	D3D12_RESOURCE_DESC1 D3DConvertBufferDesc(const BufferDesc& desc);
+
+	D3D12_HEAP_PROPERTIES D3DGetDefaultHeapProperties();
+	D3D12_HEAP_PROPERTIES D3DGetUploadHeapProperties();
 }

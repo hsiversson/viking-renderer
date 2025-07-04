@@ -67,10 +67,23 @@ namespace vkr::Render
 		FORMAT_R8_SNORM,
 		FORMAT_R8_SINT,
 		FORMAT_R8_UINT,
+
+		FORMAT_BC1,
+		FORMAT_BC2,
+		FORMAT_BC3,
+		FORMAT_BC4_UNORM,
+		FORMAT_BC4_SNORM,
+		FORMAT_BC5_UNORM,
+		FORMAT_BC5_SNORM,
+		FORMAT_BC6_UFLOAT,
+		FORMAT_BC6_SFLOAT,
+		FORMAT_BC7,
+		FORMAT_BC7_SRGB,
 	};
 
-	uint32_t GetFormatNumBits(Format format);
-	uint32_t GetFormatByteSize(Format format);
+	uint32_t GetFormatBitsPerPixel(Format format);
+	uint32_t GetFormatBytesPerPixel(Format format);
+	uint32_t GetFormatBlockSize(Format format);
 
 	enum FaceCullMode : uint8_t
 	{
