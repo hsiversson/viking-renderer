@@ -54,8 +54,10 @@ namespace vkr::Render
 		TempBufferAllocator(uint64_t bufferSizeBytes, uint64_t alignment = 256);
 
 		void StartChunk();
-		uint64_t Allocate(uint64_t size);
+		bool Allocate(uint64_t size, TempBuffer& outBuf);
 		void EndChunk(Event event);
+
+		uint64_t GetCapacity() const;
 
 	private:
 		void GarbageCollect();
@@ -68,5 +70,7 @@ namespace vkr::Render
 		std::atomic<uint64_t> m_Head;   // producer – many threads
 		std::atomic<uint64_t> m_Tail;   // consumer – 1 thread
 		std::deque<Chunk> m_Chunks;
+
+		Ref<Buffer> m_Buffer;
 	};
 }

@@ -85,6 +85,13 @@ namespace vkr::Render
 		, m_Head(0)
 		, m_Tail(0)
 	{
+		BufferDesc tempBufferDesc = {};
+		tempBufferDesc.m_CpuWritable = true;
+		tempBufferDesc.m_Writable = false;
+		tempBufferDesc.m_ElementCount = bufferSizeBytes;
+		tempBufferDesc.m_ElementSize = 1;
+		tempBufferDesc.m_Format = FORMAT_UNKNOWN;
+		m_Buffer = GetDevice()->CreateBuffer(tempBufferDesc);
 	}
 
 	void TempBufferAllocator::StartChunk()
@@ -93,7 +100,7 @@ namespace vkr::Render
 		m_ChunkStart = m_Head.load(std::memory_order_relaxed);
 	}
 
-	uint64_t TempBufferAllocator::Allocate(uint64_t size)
+	bool TempBufferAllocator::Allocate(uint64_t size, TempBuffer& outBuf)
 	{
 		size = Align(size, m_Alignment);
 
@@ -114,11 +121,13 @@ namespace vkr::Render
 
 			uint64_t safeTail = m_Tail.load(std::memory_order_acquire);
 			if (end - safeTail > m_Capacity)
-				return UINT64_MAX;                  // out of space, caller must flush
+				return false;                  // out of space, caller must flush
 
 			if (m_Head.compare_exchange_weak(oldHead, end, std::memory_order_release, std::memory_order_relaxed))
 			{
-				return startMod;
+				outBuf.m_Offset = startMod;
+				outBuf.m_Buffer = m_Buffer.get();
+				return true;
 			}
 		}
 	}
@@ -132,6 +141,11 @@ namespace vkr::Render
 		GarbageCollect();
 	}
 	
+	uint64_t TempBufferAllocator::GetCapacity() const
+	{
+		return m_Capacity;
+	}
+
 	void TempBufferAllocator::GarbageCollect()
 	{
 		while (!m_Chunks.empty() && !m_Chunks.front().event.IsPending())

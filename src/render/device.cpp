@@ -59,7 +59,7 @@ namespace vkr::Render
 		InitRootSignatures();
 		InitTextureLoaders();
 		InitCommandQueues();
-		InitTempBuffer();
+		m_TempBufferAllocator = MakeUnique<TempBufferAllocator>(1 * 1024 * 1024);
 		return true;
 	}
 
@@ -71,6 +71,9 @@ namespace vkr::Render
 	void Device::EndFrame()
 	{
 		m_TempBufferAllocator->EndChunk(GetCommandQueue(CONTEXT_TYPE_PRESENT)->Signal());
+
+		// TODO: add end chunk to all temp buffers pending delete
+		// TODO: garbage collect temp buffers pending delete
 	}
 
 	Ref<Context> Device::CreateContext(ContextType contextType)
@@ -214,19 +217,24 @@ namespace vkr::Render
 
 	TempBuffer Device::GetTempBuffer(uint32_t byteSize, uint32_t initialDataSize, const void* initialData)
 	{
-		auto Align = [](uint32_t value, uint32_t alignment)
-			{
-				return ((value + alignment - 1) / alignment) * alignment;
-			};
-
 		// 256 is mainly for constant buffers though. We should align differently based on buffer usage
 		const uint32_t size = Align(byteSize, 256);
-		uint64_t offset = m_TempBufferAllocator->Allocate(size);
-		assert(offset < UINT64_MAX && "Allocator is full.");
 
 		TempBuffer outTempBuffer;
-		outTempBuffer.m_Buffer = m_TempBuffer.get();
-		outTempBuffer.m_Offset = offset;
+		if (!m_TempBufferAllocator->Allocate(size, outTempBuffer))
+		{
+			uint32_t currentBufferSize = m_TempBufferAllocator->GetCapacity();
+			uint32_t newSize = ((size - currentBufferSize) + currentBufferSize) * 2;
+
+			m_TempBuffersPendingDelete.push_back(std::move(m_TempBufferAllocator));
+
+			m_TempBufferAllocator = MakeUnique<TempBufferAllocator>(size);
+			if (!m_TempBufferAllocator->Allocate(size, outTempBuffer))
+			{
+				assert(false);
+				return TempBuffer();
+			}
+		}
 
 		if (initialData)
 		{
@@ -379,19 +387,6 @@ namespace vkr::Render
 		m_DescriptorHeaps[DESCRIPTOR_HEAP_TYPE_SAMPLER] = MakeUnique<DescriptorHeap>(DESCRIPTOR_HEAP_TYPE_SAMPLER, 128);
 		m_DescriptorHeaps[DESCRIPTOR_HEAP_TYPE_RENDER_TARGET] = MakeUnique<DescriptorHeap>(DESCRIPTOR_HEAP_TYPE_RENDER_TARGET, 512);
 		m_DescriptorHeaps[DESCRIPTOR_HEAP_TYPE_DEPTH_STENCIL] = MakeUnique<DescriptorHeap>(DESCRIPTOR_HEAP_TYPE_DEPTH_STENCIL, 16);
-	}
-
-	void Device::InitTempBuffer()
-	{
-		BufferDesc tempBufferDesc = {};
-		tempBufferDesc.m_CpuWritable = true;
-		tempBufferDesc.m_Writable = false;
-		tempBufferDesc.m_ElementCount = 8 * 1024 * 1024; // 8MB should be enough for now
-		tempBufferDesc.m_ElementSize = 1;
-		tempBufferDesc.m_Format = FORMAT_UNKNOWN;
-		m_TempBuffer = CreateBuffer(tempBufferDesc);
-
-		m_TempBufferAllocator = MakeUnique<TempBufferAllocator>(tempBufferDesc.m_ElementCount);
 	}
 
 	Ref<Buffer> Device::CreateRaytracingAccelerationStructure(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC& buildDesc)

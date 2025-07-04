@@ -78,7 +78,6 @@ namespace vkr::Render
 		void InitTextureLoaders();
 		void InitCommandQueues();
 		void InitDescriptorHeaps();
-		void InitTempBuffer();
 
 		Ref<Buffer> CreateRaytracingAccelerationStructure(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC& buildDesc);
 
@@ -102,8 +101,8 @@ namespace vkr::Render
 		UniquePtr<DescriptorHeap> m_DescriptorHeaps[RESOURCE_DESCRIPTOR_TYPE_COUNT];
 
 		// Temp buffers
-		Ref<Buffer> m_TempBuffer;
 		UniquePtr<TempBufferAllocator> m_TempBufferAllocator;
+		std::vector<UniquePtr<TempBufferAllocator>> m_TempBuffersPendingDelete;
 
 		static Device* g_Instance;
 	};
