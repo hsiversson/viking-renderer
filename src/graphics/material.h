@@ -1,18 +1,22 @@
 #pragma once
 #include "core/types.h"
+#include "render/renderstates.h"
 
 namespace vkr::Render
 {
 	class TextureView;
 	class Sampler;
 	class PipelineState;
+	class Shader;
 }
 
 namespace vkr::Graphics
 {
 	struct MaterialDesc
 	{
-
+		std::vector<std::filesystem::path> m_TexturePaths;
+		bool m_FrontCounterClockwise;
+		bool m_TwoSided;
 	};
 
 	class Material
@@ -21,21 +25,28 @@ namespace vkr::Graphics
 		Material();
 		~Material();
 
-		void SetDepthPipelineState(Ref<Render::PipelineState> pso) { m_DepthPipelineState = pso; }
-		Ref<Render::PipelineState> GetDepthPipelineState() const { return m_DepthPipelineState; }
-		void SetDefaultPipelineState(Ref<Render::PipelineState> pso) { m_DefaultPipelineState = pso; }
-		Ref<Render::PipelineState> GetDefaultPipelineState() const { return m_DefaultPipelineState; }
+		bool Init(const MaterialDesc& desc);
 
-		void AddTexture(const Ref<Render::TextureView>& tex);
-		Render::TextureView* GetTexture() const;
+		Ref<Render::PipelineState> GetDepthPipelineState(const Render::VertexLayout& vertexLayout);
+		Ref<Render::PipelineState> GetDefaultPipelineState(const Render::VertexLayout& vertexLayout);
+		Render::TextureView* GetTexture(uint32_t index) const;
 
 	private:
+		Ref<Render::PipelineState> GetOrCreatePSO(const Render::VertexLayout& vertexLayout, bool depthOnly);
+
+	private:
+		Ref<Render::Shader> m_PixelShader;
+
+		using CachedPSOs = std::unordered_map<Render::VertexLayout, Ref<Render::PipelineState>>;
+		CachedPSOs m_DefaultPSOs;
+		CachedPSOs m_DepthOnlyPSOs;
+
 		// Make this parameterized?
 		std::vector<Ref<Render::TextureView>> m_Textures;
-		//std::vector<Ref<Render::Sampler>> m_Samplers; // This should probably not be stored, but rather requested from device to be able to handle dynamic mip biasing.
 
-		// In the future we would like a full fledged PSO management system
-		Ref<Render::PipelineState> m_DepthPipelineState;
-		Ref<Render::PipelineState> m_DefaultPipelineState;
+		bool m_FrontCounterClockwise;
+		bool m_TwoSided;
+
+		//std::vector<Ref<Render::Sampler>> m_Samplers; // This should probably not be stored, but rather requested from device to be able to handle dynamic mip biasing.
 	};
 };

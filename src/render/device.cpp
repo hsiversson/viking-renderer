@@ -102,6 +102,16 @@ namespace vkr::Render
 		return shader;
 	}
 
+	Ref<Shader> Device::CreateShaderFromString(const std::string& sourceCode, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel)
+	{
+		Ref<Shader> shader = MakeRef<Shader>();
+		if (!m_ShaderCompiler->CompileFromMemory(*shader, sourceCode, entryPoint, stage, shaderModel))
+		{
+			return nullptr;
+		}
+		return shader;
+	}
+
 	Ref<PipelineState> Device::CreatePipelineState(const PipelineStateDesc& desc)
 	{
 		Ref<PipelineState> pipelineState = MakeRef<PipelineState>();

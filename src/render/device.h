@@ -48,6 +48,7 @@ namespace vkr::Render
 		Ref<SwapChain> CreateSwapChain(void* windowHandle, const Vector2u& size);
 
 		Ref<Shader> CreateShader(const std::filesystem::path& filepath, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel = ShaderModel::SM_6_6);
+		Ref<Shader> CreateShaderFromString(const std::string& sourceCode, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel = ShaderModel::SM_6_6);
 		Ref<PipelineState> CreatePipelineState(const PipelineStateDesc& desc);
 
 		Ref<Texture> CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr);

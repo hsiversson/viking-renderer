@@ -5,50 +5,121 @@
 
 namespace vkr
 {
-	struct CubeVertex
+	constexpr Vector3f DefaultCubePositions[24] =
 	{
-		Vector3f position;
-		Vector3f normal;
-		Vector2f uv;
+		// +Z (front)
+		{-0.5f,-0.5f,-0.5f},
+		{-0.5f, 0.5f,-0.5f},
+		{ 0.5f, 0.5f,-0.5f},
+		{ 0.5f,-0.5f,-0.5f},
+
+		// –Z (back)
+		{ 0.5f,-0.5f, 0.5f},
+		{ 0.5f, 0.5f, 0.5f},
+		{-0.5f, 0.5f, 0.5f},
+		{-0.5f,-0.5f, 0.5f},
+
+		// –X (left)
+		{-0.5f,-0.5f, 0.5f},
+		{-0.5f, 0.5f, 0.5f},
+		{-0.5f, 0.5f,-0.5f},
+		{-0.5f,-0.5f,-0.5f},
+
+		// +X (right)
+		{ 0.5f,-0.5f,-0.5f},
+		{ 0.5f, 0.5f,-0.5f},
+		{ 0.5f, 0.5f, 0.5f},
+		{ 0.5f,-0.5f, 0.5f},
+
+		// +Y (top)
+		{-0.5f, 0.5f,-0.5f},
+		{-0.5f, 0.5f, 0.5f},
+		{ 0.5f, 0.5f, 0.5f},
+		{ 0.5f, 0.5f,-0.5f},
+
+		// –Y (bottom)
+		{-0.5f,-0.5f, 0.5f},
+		{-0.5f,-0.5f,-0.5f},
+		{ 0.5f,-0.5f,-0.5f},
+		{ 0.5f,-0.5f, 0.5f}
 	};
 
-	constexpr CubeVertex DefaultCubeVertices[24] =
+	constexpr Vector3f DefaultCubeNormals[24] =
 	{
-		//-- +Z (front) ---------------------
-		{{-0.5f,-0.5f,-0.5f}, { 0.0f, 0.0f,-1.0f}, {0.0f,0.0f}},
-		{{-0.5f, 0.5f,-0.5f}, { 0.0f, 0.0f,-1.0f}, {0.0f,1.0f}},
-		{{ 0.5f, 0.5f,-0.5f}, { 0.0f, 0.0f,-1.0f}, {1.0f,1.0f}},
-		{{ 0.5f,-0.5f,-0.5f}, { 0.0f, 0.0f,-1.0f}, {1.0f,0.0f}},
+		// +Z (front)
+		{ 0.0f, 0.0f,-1.0f},
+		{ 0.0f, 0.0f,-1.0f},
+		{ 0.0f, 0.0f,-1.0f},
+		{ 0.0f, 0.0f,-1.0f},
 
-		//-- –Z (back) ----------------------
-		{{ 0.5f,-0.5f, 0.5f}, { 0.0f, 0.0f, 1.0f}, {0.0f,0.0f}},
-		{{ 0.5f, 0.5f, 0.5f}, { 0.0f, 0.0f, 1.0f}, {0.0f,1.0f}},
-		{{-0.5f, 0.5f, 0.5f}, { 0.0f, 0.0f, 1.0f}, {1.0f,1.0f}},
-		{{-0.5f,-0.5f, 0.5f}, { 0.0f, 0.0f, 1.0f}, {1.0f,0.0f}},
+		// –Z (back)
+		{ 0.0f, 0.0f, 1.0f},
+		{ 0.0f, 0.0f, 1.0f},
+		{ 0.0f, 0.0f, 1.0f},
+		{ 0.0f, 0.0f, 1.0f},
 
-		//-- –X (left) ----------------------
-		{{-0.5f,-0.5f, 0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f,0.0f}},
-		{{-0.5f, 0.5f, 0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f,1.0f}},
-		{{-0.5f, 0.5f,-0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f,1.0f}},
-		{{-0.5f,-0.5f,-0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f,0.0f}},
+		// –X (left)
+		{-1.0f, 0.0f, 0.0f},
+		{-1.0f, 0.0f, 0.0f},
+		{-1.0f, 0.0f, 0.0f},
+		{-1.0f, 0.0f, 0.0f},
 
-		//-- +X (right) ---------------------
-		{{ 0.5f,-0.5f,-0.5f}, { 1.0f, 0.0f, 0.0f}, {0.0f,0.0f}},
-		{{ 0.5f, 0.5f,-0.5f}, { 1.0f, 0.0f, 0.0f}, {0.0f,1.0f}},
-		{{ 0.5f, 0.5f, 0.5f}, { 1.0f, 0.0f, 0.0f}, {1.0f,1.0f}},
-		{{ 0.5f,-0.5f, 0.5f}, { 1.0f, 0.0f, 0.0f}, {1.0f,0.0f}},
+		// +X (right)
+		{ 1.0f, 0.0f, 0.0f},
+		{ 1.0f, 0.0f, 0.0f},
+		{ 1.0f, 0.0f, 0.0f},
+		{ 1.0f, 0.0f, 0.0f},
 
-		//-- +Y (top) -----------------------
-		{{-0.5f, 0.5f,-0.5f}, { 0.0f, 1.0f, 0.0f}, {0.0f,0.0f}},
-		{{-0.5f, 0.5f, 0.5f}, { 0.0f, 1.0f, 0.0f}, {0.0f,1.0f}},
-		{{ 0.5f, 0.5f, 0.5f}, { 0.0f, 1.0f, 0.0f}, {1.0f,1.0f}},
-		{{ 0.5f, 0.5f,-0.5f}, { 0.0f, 1.0f, 0.0f}, {1.0f,0.0f}},
+		// +Y (top)
+		{ 0.0f, 1.0f, 0.0f},
+		{ 0.0f, 1.0f, 0.0f},
+		{ 0.0f, 1.0f, 0.0f},
+		{ 0.0f, 1.0f, 0.0f},
 
-		//-- –Y (bottom) --------------------
-		{{-0.5f,-0.5f, 0.5f}, { 0.0f,-1.0f, 0.0f}, {0.0f,0.0f}},
-		{{-0.5f,-0.5f,-0.5f}, { 0.0f,-1.0f, 0.0f}, {0.0f,1.0f}},
-		{{ 0.5f,-0.5f,-0.5f}, { 0.0f,-1.0f, 0.0f}, {1.0f,1.0f}},
-		{{ 0.5f,-0.5f, 0.5f}, { 0.0f,-1.0f, 0.0f}, {1.0f,0.0f}}
+		// –Y (bottom)
+		{ 0.0f,-1.0f, 0.0f},
+		{ 0.0f,-1.0f, 0.0f},
+		{ 0.0f,-1.0f, 0.0f},
+		{ 0.0f,-1.0f, 0.0f}
+	};
+
+	constexpr Vector2f DefaultCubeUvs[24] =
+	{
+		// +Z (front)
+		{0.0f,0.0f},
+		{0.0f,1.0f},
+		{1.0f,1.0f},
+		{1.0f,0.0f},
+
+		// –Z (back)
+		{0.0f,0.0f},
+		{0.0f,1.0f},
+		{1.0f,1.0f},
+		{1.0f,0.0f},
+
+		// –X (left)
+		{0.0f,0.0f},
+		{0.0f,1.0f},
+		{1.0f,1.0f},
+		{1.0f,0.0f},
+
+		// +X (right) --
+		{0.0f,0.0f},
+		{0.0f,1.0f},
+		{1.0f,1.0f},
+		{1.0f,0.0f},
+
+		// +Y (top)
+		{0.0f,0.0f},
+		{0.0f,1.0f},
+		{1.0f,1.0f},
+		{1.0f,0.0f},
+
+		// –Y (bottom)
+		{0.0f,0.0f},
+		{0.0f,1.0f},
+		{1.0f,1.0f},
+		{1.0f,0.0f}
 	};
 
 	constexpr uint16_t DefaultCubeIndices[36] =
@@ -63,24 +134,40 @@ namespace vkr
 
 	Ref<Graphics::Mesh> vkr::CreateCubeMesh()
 	{
-		Render::BufferDesc vtxbufferdesc;
-		vtxbufferdesc.m_CpuWritable = true;
-		vtxbufferdesc.m_ElementCount = sizeof(DefaultCubeVertices) / sizeof(CubeVertex);
-		vtxbufferdesc.m_ElementSize = sizeof(CubeVertex);
-		Ref<Render::Buffer> vtxbuffer = Render::GetDevice()->CreateBuffer(vtxbufferdesc, sizeof(DefaultCubeVertices), &DefaultCubeVertices);
-		if (!vtxbuffer)
+		Graphics::MeshDesc meshDesc = {};
+		meshDesc.m_NumVertices = 24;
+		meshDesc.m_NumIndices = 36;
+		meshDesc.m_Topology = Render::PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+		Render::VertexAttribute attribute;
+		attribute.m_Type = Render::VertexAttribute::TYPE_POSITION;
+		attribute.m_Index = 0;
+		attribute.m_BufferSlot = 0;
+		attribute.m_Format = Render::FORMAT_RGB32_FLOAT;
+		meshDesc.m_VertexLayout.m_Attributes.insert(attribute);
+		meshDesc.m_VertexData[Render::VertexAttribute::TYPE_POSITION].resize(sizeof(DefaultCubePositions));
+		memcpy(meshDesc.m_VertexData[Render::VertexAttribute::TYPE_POSITION].data(), &DefaultCubePositions, sizeof(DefaultCubePositions));
+
+		attribute.m_Type = Render::VertexAttribute::TYPE_NORMAL;
+		attribute.m_Format = Render::FORMAT_RGB32_FLOAT;
+		meshDesc.m_VertexLayout.m_Attributes.insert(attribute);
+		meshDesc.m_VertexData[Render::VertexAttribute::TYPE_NORMAL].resize(sizeof(DefaultCubeNormals));
+		memcpy(meshDesc.m_VertexData[Render::VertexAttribute::TYPE_NORMAL].data(), &DefaultCubeNormals, sizeof(DefaultCubeNormals));
+
+		attribute.m_Type = Render::VertexAttribute::TYPE_UV;
+		attribute.m_Format = Render::FORMAT_RG32_FLOAT;
+		meshDesc.m_VertexLayout.m_Attributes.insert(attribute);
+		meshDesc.m_VertexData[Render::VertexAttribute::TYPE_UV].resize(sizeof(DefaultCubeUvs));
+		memcpy(meshDesc.m_VertexData[Render::VertexAttribute::TYPE_UV].data(), &DefaultCubeUvs, sizeof(DefaultCubeUvs));
+
+		meshDesc.m_IndexFormat = Render::FORMAT_R16_UINT;
+		meshDesc.m_IndexData.resize(sizeof(DefaultCubeIndices));
+		memcpy(meshDesc.m_IndexData.data(), &DefaultCubeIndices, sizeof(DefaultCubeIndices));
+
+		Ref<Graphics::Mesh> mesh = MakeRef<Graphics::Mesh>();
+		if (!mesh->Init(meshDesc))
 			return nullptr;
-		Render::BufferDesc idxbufferdesc;
-		idxbufferdesc.m_CpuWritable = true;
-		idxbufferdesc.m_ElementCount = sizeof(DefaultCubeIndices) / sizeof(uint16_t);
-		idxbufferdesc.m_ElementSize = sizeof(uint16_t);
-		Ref<Render::Buffer> idxbuffer = Render::GetDevice()->CreateBuffer(idxbufferdesc, sizeof(DefaultCubeIndices), &DefaultCubeIndices);
-		if (!idxbuffer)
-			return nullptr;
-		auto mesh = MakeRef<Graphics::Mesh>();
-		mesh->SetVertexBuffer(vtxbuffer);
-		mesh->SetIndexBuffer(idxbuffer);
-		mesh->SetTopology(Render::PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
 		return mesh;
 	}
 }

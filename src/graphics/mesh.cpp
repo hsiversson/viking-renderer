@@ -1,9 +1,11 @@
 #include "mesh.h"
 #include "render/buffer.h"
+#include "render/device.h"
 
 namespace vkr::Graphics
 {
 	Mesh::Mesh()
+		: m_Topology(Render::PRIMITIVE_TOPOLOGY_UNDEFINED)
 	{
 	}
 
@@ -14,7 +16,61 @@ namespace vkr::Graphics
 
 	bool Mesh::Init(const MeshDesc& desc)
 	{
-		return false;
+		// Make interleaved vertex buffer
+		// TODO: Do we want to interleave optionally?
+		std::vector<uint8_t> vertexBufferData;
+		for (uint32_t i = 0; i < desc.m_NumVertices; ++i)
+		{
+			for (const auto& attr : desc.m_VertexLayout.m_Attributes)
+			{
+				const std::vector<uint8_t>& attrData = desc.m_VertexData.at(attr.m_Type);
+				const uint32_t attrSize = GetFormatBytesPerPixel(attr.m_Format);
+				const size_t offset = i * attrSize;
+				const uint8_t* attrStart = attrData.data() + offset;
+				vertexBufferData.insert(vertexBufferData.end(), attrStart, attrStart + attrSize);
+			}
+		}
+
+		Render::BufferDesc vertexBufferDesc;
+		vertexBufferDesc.m_CpuWritable = true;
+		vertexBufferDesc.m_ElementSize = desc.m_VertexLayout.GetStride();
+		vertexBufferDesc.m_ElementCount = desc.m_NumVertices;
+		m_VertexBuffer = Render::GetDevice()->CreateBuffer(vertexBufferDesc, vertexBufferData.size(), vertexBufferData.data());
+		if (!m_VertexBuffer)
+			return false;
+
+		Render::BufferDesc indexBufferDesc;
+		indexBufferDesc.m_CpuWritable = true;
+		indexBufferDesc.m_ElementSize = GetFormatBytesPerPixel(desc.m_IndexFormat);
+		indexBufferDesc.m_ElementCount = desc.m_NumIndices;
+		indexBufferDesc.m_Format = desc.m_IndexFormat;
+		m_IndexBuffer = Render::GetDevice()->CreateBuffer(indexBufferDesc, desc.m_IndexData.size(), desc.m_IndexData.data());
+		if (!m_IndexBuffer)
+			return false;
+
+		m_Topology = desc.m_Topology;
+		m_VertexLayout = desc.m_VertexLayout;
+		return true;
+	}
+
+	Ref<Render::Buffer> Mesh::GetVertexBuffer() const
+	{
+		return m_VertexBuffer;
+	}
+
+	Ref<Render::Buffer> Mesh::GetIndexBuffer() const
+	{
+		return m_IndexBuffer;
+	}
+
+	const Render::VertexLayout& Mesh::GetVertexLayout() const
+	{
+		return m_VertexLayout;
+	}
+
+	Render::PrimitiveTopology Mesh::GetTopology() const
+	{
+		return m_Topology;
 	}
 
 }

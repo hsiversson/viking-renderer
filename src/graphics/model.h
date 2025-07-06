@@ -7,8 +7,12 @@ namespace vkr::Graphics
 {
 	struct ModelDesc
 	{
-		std::vector<MeshDesc> m_MeshDescs;
-		std::vector<MaterialDesc> m_MaterialDescs;
+		struct PartDesc
+		{
+			MeshDesc m_MeshDesc;
+			MaterialDesc m_MaterialDesc;
+		};
+		std::vector<PartDesc> m_PartDescs;
 	};
 
 	class Model

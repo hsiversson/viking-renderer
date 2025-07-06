@@ -16,13 +16,13 @@ namespace vkr::Graphics
 		// State-sort operator material->mesh->distance
 		bool operator<(const RenderObject& other) const
 		{
-			if (m_Material < other.m_Material)
-				return true;
-			else if (m_Mesh < other.m_Mesh)
-				return true;
-			else if (m_DistanceToCamera < other.m_DistanceToCamera)
-				return true;
-			return false;
+			if (m_Material != other.m_Material)
+				return m_Material < other.m_Material;
+
+			if (m_Mesh != other.m_Mesh)
+				return m_Mesh < other.m_Mesh;
+
+			return m_DistanceToCamera < other.m_DistanceToCamera;
 		}
 	};
 

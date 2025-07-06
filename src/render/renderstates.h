@@ -32,7 +32,10 @@ namespace vkr::Render
 
 	struct VertexLayout
 	{
+		uint32_t GetStride() const;
 		std::set<VertexAttribute> m_Attributes;
+
+		bool operator==(const VertexLayout& other) const = default;
 	};
 
 	struct RasterizerState
@@ -98,6 +101,25 @@ namespace std
 		static void HashCombine(size_t& seed, const T& val)
 		{
 			seed ^= std::hash<T>{}(val)+0x9e3779b9 + (seed << 6) + (seed >> 2);
+		}
+	};
+
+	template <>
+	struct hash<vkr::Render::VertexLayout>
+	{
+		size_t operator()(const vkr::Render::VertexLayout& vertexLayout) const noexcept
+		{
+			auto mix = [](size_t& s, size_t h) 
+			{
+				s ^= h + 0x9e3779b9 + (s << 6) + (s >> 2);
+			};
+
+			size_t h = 0;
+			for (auto const& attr : vertexLayout.m_Attributes)
+			{
+				mix(h, std::hash<vkr::Render::VertexAttribute>{}(attr));
+			}
+			return h;
 		}
 	};
 }

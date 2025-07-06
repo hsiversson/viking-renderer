@@ -11,9 +11,14 @@ namespace vkr::Graphics
 {
 	struct MeshDesc
 	{
+		Render::PrimitiveTopology m_Topology;
 		Render::VertexLayout m_VertexLayout;
-		std::unordered_map<Render::VertexAttribute::Type, std::vector<uint8_t>> m_VertexData;
-		std::vector<uint32_t> m_Indices;
+		uint32_t m_NumVertices;
+		std::unordered_map<Render::VertexAttribute::Type, std::vector<uint8_t>> m_VertexData; // TODO: multiple sets per attribute?
+
+		Render::Format m_IndexFormat;
+		uint32_t m_NumIndices;
+		std::vector<uint8_t> m_IndexData;
 	};
 
 	class Mesh
@@ -23,19 +28,16 @@ namespace vkr::Graphics
 		~Mesh();
 
 		bool Init(const MeshDesc& desc);
-		void SetVertexBuffer(Ref<Render::Buffer> vtxbuffer) { m_VertexBuffer = vtxbuffer; }
-		void SetIndexBuffer(Ref<Render::Buffer> idxbuffer) { m_IndexBuffer = idxbuffer; }
-		void SetTopology(Render::PrimitiveTopology topologyType) { m_Topology = topologyType; }
-		Ref<Render::Buffer> GetVertexBuffer() const { return m_VertexBuffer; }
-		Ref<Render::Buffer>  GetIndexBuffer() const { return m_IndexBuffer; }
-		Render::PrimitiveTopology GetTopology() const { return m_Topology; }
+
+		Ref<Render::Buffer> GetVertexBuffer() const;
+		Ref<Render::Buffer> GetIndexBuffer() const;
+		const Render::VertexLayout& GetVertexLayout() const;
+		Render::PrimitiveTopology GetTopology() const;
 
 	private:
-		bool InitVertexBuffer(const MeshDesc& desc);
-		bool InitIndexBuffer(const MeshDesc& desc);
-
 		Ref<Render::Buffer> m_VertexBuffer;
 		Ref<Render::Buffer> m_IndexBuffer;
+		Render::VertexLayout m_VertexLayout;
 		Render::PrimitiveTopology m_Topology;
 
 		//Ref<Render::Buffer> m_BLAS;

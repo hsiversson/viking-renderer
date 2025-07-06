@@ -89,7 +89,7 @@ namespace vkr::Graphics
 			ctx->BindVertexBuffers(vertexbuffers.data(), vertexbuffers.size());
 			ctx->BindIndexBuffer(mesh.m_Mesh->GetIndexBuffer());
 			ctx->SetPrimitiveTopology(mesh.m_Mesh->GetTopology());
-			ctx->BindPSO(mesh.m_Material->GetDefaultPipelineState());
+			ctx->BindPSO(mesh.m_Material->GetDefaultPipelineState(mesh.m_Mesh->GetVertexLayout()));
 
 			struct alignas(16) ConstantData
 			{
@@ -102,7 +102,7 @@ namespace vkr::Graphics
 			data.ViewProjection = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
 			data.World = mesh.m_Transform;
 			data.Color = Vector3f(1, 0, 0);
-			data.TextureDescriptor = mesh.m_Material->GetTexture() ? mesh.m_Material->GetTexture()->GetIndex() : 0;
+			data.TextureDescriptor = mesh.m_Material->GetTexture(0) ? mesh.m_Material->GetTexture(0)->GetIndex() : 0;
 
 			auto cbuffer = Render::GetDevice()->GetTempBuffer(sizeof(ConstantData),sizeof(data), (void*)&data);
 			std::vector<vkr::Render::Buffer*> buffers;
@@ -171,7 +171,7 @@ namespace vkr::Graphics
 			ctx->BindVertexBuffers(vertexbuffers.data(), vertexbuffers.size());
 			ctx->BindIndexBuffer(mesh.m_Mesh->GetIndexBuffer());
 			ctx->SetPrimitiveTopology(mesh.m_Mesh->GetTopology());
-			ctx->BindPSO(mesh.m_Material->GetDepthPipelineState());
+			ctx->BindPSO(mesh.m_Material->GetDepthPipelineState(mesh.m_Mesh->GetVertexLayout()));
 
 			struct alignas(16) ConstantData
 			{
@@ -184,7 +184,7 @@ namespace vkr::Graphics
 			data.ViewProjection = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
 			data.World = mesh.m_Transform;
 			data.Color = Vector3f(1, 0, 0);
-			data.TextureDescriptor = mesh.m_Material->GetTexture() ? mesh.m_Material->GetTexture()->GetIndex() : 0; 
+			data.TextureDescriptor = mesh.m_Material->GetTexture(0) ? mesh.m_Material->GetTexture(0)->GetIndex() : 0; 
 
 			auto cbuffer = Render::GetDevice()->GetTempBuffer(sizeof(ConstantData), sizeof(data), (void*)&data);
 			std::vector<vkr::Render::Buffer*> buffers;

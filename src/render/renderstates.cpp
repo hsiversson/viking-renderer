@@ -26,6 +26,16 @@ namespace vkr::Render
 		}
 	}
 
+	uint32_t VertexLayout::GetStride() const
+	{
+		uint32_t stride = 0;
+		for (const VertexAttribute& attr : m_Attributes)
+		{
+			stride += GetFormatBytesPerPixel(attr.m_Format);
+		}
+		return stride;
+	}
+
 	void GetDefaultRasterizerState(RasterizerState& outRasterizerState)
 	{
 		outRasterizerState.m_CullMode = FACE_CULL_MODE_BACK;

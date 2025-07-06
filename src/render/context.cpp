@@ -260,7 +260,7 @@ namespace vkr::Render
 				D3D12_INDEX_BUFFER_VIEW view;
 				view.BufferLocation = NewState.m_IndexBuffer->GetD3DResource()->GetGPUVirtualAddress();
 				view.SizeInBytes = NewState.m_IndexBuffer->GetDesc().m_ElementSize * NewState.m_IndexBuffer->GetDesc().m_ElementCount;
-				view.Format = NewState.m_IndexBuffer->GetDesc().m_ElementSize == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+				view.Format = D3DConvertFormat(NewState.m_IndexBuffer->GetDesc().m_Format);
 				m_CurrentD3DCommandList->IASetIndexBuffer(&view);
 			}
 			if (CurrentState.m_Topology != NewState.m_Topology)
@@ -271,7 +271,8 @@ namespace vkr::Render
 			for (int i = 0; i < NewState.m_RootCB.size(); i++)
 			{
 				auto buffer = NewState.m_RootCB[i];
-				if ((CurrentState.m_RootCB.size() <= i) || (CurrentState.m_RootCB[i] != buffer))
+				auto offset = NewState.m_RootCBOffsets[i];
+				if ((CurrentState.m_RootCB.size() <= i) || (CurrentState.m_RootCB[i] != buffer) || (CurrentState.m_RootCBOffsets[i] != offset))
 				{
 					bool bIsCompute = NewState.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE;
 					D3D12_GPU_VIRTUAL_ADDRESS addr = buffer->GetD3DResource()->GetGPUVirtualAddress();
