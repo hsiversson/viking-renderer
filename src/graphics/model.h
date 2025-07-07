@@ -11,7 +11,11 @@ namespace vkr::Graphics
 		{
 			MeshDesc m_MeshDesc;
 			MaterialDesc m_MaterialDesc;
+			Mat44 m_LocalTransform;
+
+			std::vector<PartDesc> m_ChildDescs;
 		};
+
 		std::vector<PartDesc> m_PartDescs;
 	};
 
@@ -22,6 +26,8 @@ namespace vkr::Graphics
 		{
 			Ref<Mesh> m_Mesh;
 			Ref<Material> m_Material;
+			Mat44 m_LocalTransform;
+			std::vector<Part> m_ChildParts;
 		};
 
 	public:
@@ -34,10 +40,8 @@ namespace vkr::Graphics
 		const std::vector<Part>& GetParts() const;
 
 	private:
-		bool InitMeshes(const ModelDesc& desc);
-		bool InitMaterials(const ModelDesc& desc);
+		bool InitPart(const ModelDesc::PartDesc& partDesc, Part& outPart);
 
-	private:
 		std::vector<Part> m_Parts;
 	};
 }

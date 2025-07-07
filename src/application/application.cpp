@@ -76,18 +76,16 @@ namespace vkr
 
 		m_RenderDevice->BeginFrame();
 
-		{
-			Graphics::ModelLoader_GLTF loader;
-			Ref<Graphics::Model> model;
-			model = loader.Load("../../../content/models/cp_noodles/scene.gltf");
+		Graphics::ModelLoader_GLTF loader;
+		Ref<Graphics::Model> model;
+		model = loader.Load("../../../content/models/cp_noodles/scene.gltf");
+		Ref<Graphics::ModelObject> modelinst = MakeRef<Graphics::ModelObject>();
 
-			Ref<Graphics::ModelObject> modelinst = MakeRef<Graphics::ModelObject>();
-			modelinst->SetModel(model);
-			m_Scene->AddObject(modelinst);
-		}
+		modelinst->SetModel(model);
+		m_Scene->AddObject(modelinst);
 
 		Ref<Graphics::Camera> camera = MakeRef<Graphics::Camera>();
-		Mat43 camtransform = Compose(Mat33::Identity(), Vector3f(0, 200.0f, -500.0f)); // TODO: this is because the current gltf scene is imported as centimeters...
+		Mat43 camtransform = Compose(Mat33::Identity(), Vector3f(0, 2.0f, -4.0f));
 		camera->SetLocalTransform(camtransform);
 		camera->SetupPerspective(std::numbers::pi / 2.0f, (float)m_WindowSize.x / (float)m_WindowSize.y, 0.1f, 1000.0f);
 
@@ -111,6 +109,7 @@ namespace vkr
 
 			//////////////////////////////////////////////////
 			// these parts should not be in application
+			modelinst->SetLocalTransform(Compose(CreateRotationY(m_ElapsedTimer.ElapsedTime() * 0.25f), Vector3f(0.0f, 0.0f, 0.0f)));
 
 			m_View->SetOutputTarget(m_SwapChain->GetOutputRenderTarget());
 			m_View->SetCamera(*camera);

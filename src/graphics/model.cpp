@@ -20,21 +20,8 @@ namespace vkr::Graphics
 		m_Parts.reserve(desc.m_PartDescs.size());
 		for (uint32_t i = 0; i < desc.m_PartDescs.size(); ++i)
 		{
-			const ModelDesc::PartDesc& partDesc = desc.m_PartDescs[i];
-
 			Part part;
-			part.m_Mesh = MakeRef<Mesh>();
-			if (!part.m_Mesh->Init(partDesc.m_MeshDesc))
-			{
-				return false;
-			}
-
-			part.m_Material = MakeRef<Material>();
-			if (!part.m_Material->Init(partDesc.m_MaterialDesc))
-			{
-				return false;
-			}
-
+			InitPart(desc.m_PartDescs[i], part);
 			m_Parts.push_back(part);
 		}
 
@@ -49,6 +36,33 @@ namespace vkr::Graphics
 	const std::vector<Model::Part>& Model::GetParts() const
 	{
 		return m_Parts;
+	}
+
+	bool Model::InitPart(const ModelDesc::PartDesc& partDesc, Part& outPart)
+	{
+		outPart.m_LocalTransform = partDesc.m_LocalTransform;
+
+		outPart.m_Mesh = MakeRef<Mesh>();
+		if (!outPart.m_Mesh->Init(partDesc.m_MeshDesc))
+		{
+			return false;
+		}
+
+		outPart.m_Material = MakeRef<Material>();
+		if (!outPart.m_Material->Init(partDesc.m_MaterialDesc))
+		{
+			return false;
+		}
+
+		outPart.m_ChildParts.reserve(partDesc.m_ChildDescs.size());
+		for (uint32_t i = 0; i < partDesc.m_ChildDescs.size(); ++i)
+		{
+			Part childPart = {};
+			InitPart(partDesc.m_ChildDescs[i], childPart);
+			outPart.m_ChildParts.push_back(childPart);
+		}
+
+		return true;
 	}
 
 }

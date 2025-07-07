@@ -2,6 +2,7 @@
 
 #include "sceneobject.h"
 #include "core/types.h"
+#include "graphics/model.h"
 
 namespace vkr::Graphics
 {
@@ -14,9 +15,11 @@ namespace vkr::Graphics
 
 		void SetModel(Ref<class Model> model) { m_Model = model; }
 
-		void CollectRenderObjects(ViewRenderData& renderdata) override;
+		void CollectRenderObjects(ViewRenderData& renderData) override;
 
 	private:
-		Ref<class Model> m_Model;
+		void CollectModelPart(ViewRenderData& renderData, const Model::Part& part, const Mat44& parentWorldTransform);
+
+		Ref<Model> m_Model;
 	};
 }
