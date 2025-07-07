@@ -20,7 +20,7 @@ namespace vkr::Render
 
 	struct RtInstanceDesc
 	{
-		Mat43 m_Transform;
+		Mat44 m_Transform;
 		uint32_t m_InstanceId;
 		Ref<Buffer> m_BLAS;
 	};
@@ -42,8 +42,6 @@ namespace vkr::Render
 
 		void BeginFrame();
 		void EndFrame();
-
-		Ref<Context> CreateContext(ContextType contextType);
 		
 		Ref<SwapChain> CreateSwapChain(void* windowHandle, const Vector2u& size);
 
@@ -60,7 +58,7 @@ namespace vkr::Render
 		Ref<Buffer> CreateBuffer(const BufferDesc& desc, uint32_t initialDataSize = 0, const void* initialData = nullptr);
 		Ref<BufferView> CreateBufferView(const BufferViewDesc& desc, const Ref<Buffer>& resource);
 
-		TempBuffer GetTempBuffer(uint32_t byteSize, uint32_t initialDataSize = 0, const void* initialData = nullptr); // TempBuffers only last until the end of the frame, then their memory is reused
+		TempBuffer GetTempBuffer(TempBufferUsage usage, uint32_t byteSize, uint32_t initialDataSize = 0, const void* initialData = nullptr); // TempBuffers only last until the end of the frame, then their memory is reused
 
 		Ref<Buffer> CreateTLAS(uint32_t numRtInstanceDescs, RtInstanceDesc* rtInstanceDescs);
 		Ref<Buffer> CreateBLAS(uint32_t numRtGeometryDescs, RtGeometryDesc* rtGeometryDescs);
@@ -92,6 +90,7 @@ namespace vkr::Render
 		Ref<CommandQueue> m_CommandQueue[CONTEXT_TYPE_COUNT];
 		Ref<CommandListPool> m_CommandListPool[CONTEXT_TYPE_COUNT];
 
+		Ref<Context> m_RaytracingBuildContext;
 		Ref<CommandQueue> m_RaytracingBuildQueue;
 		Ref<CommandListPool> m_RaytracingBuildPool;
 
@@ -102,7 +101,7 @@ namespace vkr::Render
 		UniquePtr<DescriptorHeap> m_DescriptorHeaps[RESOURCE_DESCRIPTOR_TYPE_COUNT];
 
 		// Temp buffers
-		UniquePtr<TempBufferAllocator> m_TempBufferAllocator;
+		UniquePtr<TempBufferAllocator> m_TempBufferAllocators[TEMP_BUFFER_USAGE_COUNT];
 		std::vector<UniquePtr<TempBufferAllocator>> m_TempBuffersPendingDelete;
 
 		static Device* g_Instance;

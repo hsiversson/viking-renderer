@@ -19,6 +19,8 @@ namespace vkr::Graphics
 		Render::Format m_IndexFormat;
 		uint32_t m_NumIndices;
 		std::vector<uint8_t> m_IndexData;
+
+		bool m_IncludeInRaytracing;
 	};
 
 	class Mesh
@@ -29,8 +31,10 @@ namespace vkr::Graphics
 
 		bool Init(const MeshDesc& desc);
 
-		Ref<Render::Buffer> GetVertexBuffer() const;
-		Ref<Render::Buffer> GetIndexBuffer() const;
+		const Ref<Render::Buffer>& GetVertexBuffer() const;
+		const Ref<Render::Buffer>& GetIndexBuffer() const;
+		const Ref<Render::Buffer>& GetBLAS() const;
+
 		const Render::VertexLayout& GetVertexLayout() const;
 		Render::PrimitiveTopology GetTopology() const;
 
@@ -40,6 +44,6 @@ namespace vkr::Graphics
 		Render::VertexLayout m_VertexLayout;
 		Render::PrimitiveTopology m_Topology;
 
-		//Ref<Render::Buffer> m_BLAS;
+		Ref<Render::Buffer> m_BLAS;
 	};
 }

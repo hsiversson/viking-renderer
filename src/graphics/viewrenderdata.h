@@ -1,5 +1,6 @@
 #pragma once
 #include "light.h"
+#include "render/device.h"
 
 namespace vkr::Graphics
 {
@@ -30,6 +31,9 @@ namespace vkr::Graphics
 	{
 		void Clear();
 
+		Ref<Render::BufferView> m_RaytracingTLAS;
+
+		std::vector<Render::RtInstanceDesc> m_RaytracingInstances;
 		std::vector<RenderObject> m_VisibleMeshes;
 		std::vector<Light> m_VisibleLights;
 	};

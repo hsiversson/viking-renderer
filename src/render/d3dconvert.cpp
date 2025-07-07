@@ -797,6 +797,9 @@ namespace vkr::Render
 		if (desc.m_Writable)
 			bufferDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
+		if (desc.m_IsRaytracingAccelerationStructure)
+			bufferDesc.Flags |= D3D12_RESOURCE_FLAG_RAYTRACING_ACCELERATION_STRUCTURE;
+
 		return bufferDesc;
 	}
 

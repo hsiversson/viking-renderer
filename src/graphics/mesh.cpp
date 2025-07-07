@@ -16,6 +16,8 @@ namespace vkr::Graphics
 
 	bool Mesh::Init(const MeshDesc& desc)
 	{
+		Render::Device* device = Render::GetDevice();
+
 		// Make interleaved vertex buffer
 		// TODO: Do we want to interleave optionally?
 		std::vector<uint8_t> vertexBufferData;
@@ -35,7 +37,7 @@ namespace vkr::Graphics
 		vertexBufferDesc.m_CpuWritable = true;
 		vertexBufferDesc.m_ElementSize = desc.m_VertexLayout.GetStride();
 		vertexBufferDesc.m_ElementCount = desc.m_NumVertices;
-		m_VertexBuffer = Render::GetDevice()->CreateBuffer(vertexBufferDesc, vertexBufferData.size(), vertexBufferData.data());
+		m_VertexBuffer = device->CreateBuffer(vertexBufferDesc, vertexBufferData.size(), vertexBufferData.data());
 		if (!m_VertexBuffer)
 			return false;
 
@@ -44,23 +46,37 @@ namespace vkr::Graphics
 		indexBufferDesc.m_ElementSize = GetFormatBytesPerPixel(desc.m_IndexFormat);
 		indexBufferDesc.m_ElementCount = desc.m_NumIndices;
 		indexBufferDesc.m_Format = desc.m_IndexFormat;
-		m_IndexBuffer = Render::GetDevice()->CreateBuffer(indexBufferDesc, desc.m_IndexData.size(), desc.m_IndexData.data());
+		m_IndexBuffer = device->CreateBuffer(indexBufferDesc, desc.m_IndexData.size(), desc.m_IndexData.data());
 		if (!m_IndexBuffer)
 			return false;
 
 		m_Topology = desc.m_Topology;
 		m_VertexLayout = desc.m_VertexLayout;
+
+		if (true/*desc.m_IncludeInRaytracing*/)
+		{
+			Render::RtGeometryDesc rtGeometryDesc = {};
+			rtGeometryDesc.m_VertexBuffer = m_VertexBuffer;
+			rtGeometryDesc.m_IndexBuffer = m_IndexBuffer;
+			m_BLAS = device->CreateBLAS(1, &rtGeometryDesc);
+		}
+
 		return true;
 	}
 
-	Ref<Render::Buffer> Mesh::GetVertexBuffer() const
+	const Ref<Render::Buffer>& Mesh::GetVertexBuffer() const
 	{
 		return m_VertexBuffer;
 	}
 
-	Ref<Render::Buffer> Mesh::GetIndexBuffer() const
+	const Ref<Render::Buffer>& Mesh::GetIndexBuffer() const
 	{
 		return m_IndexBuffer;
+	}
+
+	const Ref<Render::Buffer>& Mesh::GetBLAS() const
+	{
+		return m_BLAS;
 	}
 
 	const Render::VertexLayout& Mesh::GetVertexLayout() const

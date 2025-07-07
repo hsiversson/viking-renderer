@@ -101,7 +101,7 @@ namespace vkr::Render
 			uint64_t totalTempBufferSize = 0;
 			d3dDevice->GetCopyableFootprints1(&tempDesc, 0, numSubresources, 0, footprints.data(), numRows.data(), rowSizes.data(), &totalTempBufferSize);
 
-			TempBuffer tempBuffer = device->GetTempBuffer(totalTempBufferSize);
+			TempBuffer tempBuffer = device->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, totalTempBufferSize);
 			for (uint32_t arrayIdx = 0; arrayIdx < m_TextureDesc.m_ArraySize; ++arrayIdx)
 			{
 				for (uint32_t mipIdx = 0; mipIdx < m_TextureDesc.m_MipLevels; ++mipIdx)

@@ -115,7 +115,7 @@ namespace vkr::Render
 		uint32_t m_Last = 0;
 		uint32_t m_ElementSize = 0;
 		bool m_Writable = false;
-
+		bool m_IsRaytracingAccelerationStructure = false;
 	};
 
 	class BufferView : public ResourceDescriptor

@@ -29,10 +29,19 @@ namespace vkr::Graphics
 	void ModelObject::CollectModelPart(ViewRenderData& renderData, const Model::Part& part, const Mat44& parentWorldTransform)
 	{
 		Graphics::RenderObject obj;
-		obj.m_Transform = parentWorldTransform * part.m_LocalTransform;
+		obj.m_Transform = part.m_LocalTransform * parentWorldTransform;
 		obj.m_Mesh = part.m_Mesh.get();
 		obj.m_Material = part.m_Material.get();
 		renderData.m_VisibleMeshes.push_back(obj);
+
+		if (Ref<Render::Buffer> blas = part.m_Mesh->GetBLAS())
+		{
+			Render::RtInstanceDesc rtInstanceDesc = {};
+			rtInstanceDesc.m_BLAS = blas;
+			rtInstanceDesc.m_InstanceId = 0;
+			rtInstanceDesc.m_Transform = obj.m_Transform;
+			renderData.m_RaytracingInstances.push_back(rtInstanceDesc);
+		}
 
 		for (uint32_t i = 0; i < part.m_ChildParts.size(); ++i)
 		{

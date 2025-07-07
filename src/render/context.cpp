@@ -10,8 +10,9 @@
 
 namespace vkr::Render
 {
-	Context::Context(ContextType type)
-		: m_CurrentD3DCommandList(nullptr)
+	Context::Context(ContextType type, const Ref<CommandQueue>& commandQueue)
+		: m_CommandQueue(commandQueue)
+		, m_CurrentD3DCommandList(nullptr)
 		, m_CurrentD3DCommandList7(nullptr)
 		, m_Type(type)
 	{
@@ -44,13 +45,12 @@ namespace vkr::Render
 
 	Event Context::Flush()
 	{
-		Device* device = GetDevice();
-		m_LastFlushEvent = device->GetCommandQueue(m_Type)->Submit(m_CommandListsToSubmit.size(), m_CommandListsToSubmit.data());
+		m_LastFlushEvent = m_CommandQueue->Submit(m_CommandListsToSubmit.size(), m_CommandListsToSubmit.data());
 
 		CommandListPool::PendingCommandLists pending;
 		pending.m_CommandLists.insert(pending.m_CommandLists.end(), m_CommandListsToSubmit.begin(), m_CommandListsToSubmit.end());
 		pending.m_Event = m_LastFlushEvent;
-		device->GetCommandListPool(m_Type)->ReturnCommandList(pending);
+		GetDevice()->GetCommandListPool(m_Type)->ReturnCommandList(pending);
 
 		m_CommandListsToSubmit.clear();
 
@@ -160,8 +160,12 @@ namespace vkr::Render
 			barrier.SyncAfter = D3DConvertResourceStateSync(barrierDesc.m_TargetSync);
 			barrier.SyncBefore = D3DConvertResourceStateSync(stateTracking.m_CurrentSync);
 			barrier.pResource = barrierDesc.m_Buffer->GetD3DResource();
+			barrier.Offset = 0;
+			barrier.Size = barrierDesc.m_Buffer->GetDesc().ByteSize();
 
 			barriers.push_back(barrier);
+			stateTracking.m_CurrentAccess = barrierDesc.m_TargetAccess;
+			stateTracking.m_CurrentSync = barrierDesc.m_TargetSync;
 		}
 
 		if (!barriers.empty())

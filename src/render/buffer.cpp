@@ -78,16 +78,17 @@ namespace vkr::Render
 		//}
 	}
 
-	TempBufferAllocator::TempBufferAllocator(uint64_t bufferSizeBytes, uint64_t alignment)
+	TempBufferAllocator::TempBufferAllocator(TempBufferUsage usage, uint64_t bufferSizeBytes, uint64_t alignment)
 		: m_Capacity(bufferSizeBytes)
 		, m_Alignment(alignment)
 		, m_ChunkStart(UINT64_MAX)
 		, m_Head(0)
 		, m_Tail(0)
+		, m_Usage(usage)
 	{
 		BufferDesc tempBufferDesc = {};
-		tempBufferDesc.m_CpuWritable = true;
-		tempBufferDesc.m_Writable = false;
+		tempBufferDesc.m_CpuWritable = (usage == TEMP_BUFFER_USAGE_CONSTANTS) || (usage == TEMP_BUFFER_USAGE_STAGING);
+		tempBufferDesc.m_Writable = (usage == TEMP_BUFFER_USAGE_SHADER_RESOURCE) || (usage == TEMP_BUFFER_USAGE_RAYTRACING_ACCELERATION_STRUCTURE);
 		tempBufferDesc.m_ElementCount = bufferSizeBytes;
 		tempBufferDesc.m_ElementSize = 1;
 		tempBufferDesc.m_Format = FORMAT_UNKNOWN;
@@ -144,6 +145,11 @@ namespace vkr::Render
 	uint64_t TempBufferAllocator::GetCapacity() const
 	{
 		return m_Capacity;
+	}
+
+	TempBufferUsage TempBufferAllocator::GetUsage() const
+	{
+		return m_Usage;
 	}
 
 	void TempBufferAllocator::GarbageCollect()

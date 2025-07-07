@@ -79,7 +79,8 @@ namespace vkr
 		Graphics::ModelLoader_GLTF loader;
 		Ref<Graphics::Model> model;
 		model = loader.Load("../../../content/models/cp_noodles/scene.gltf");
-		Ref<Graphics::ModelObject> modelinst = MakeRef<Graphics::ModelObject>();
+		Ref<Graphics::ModelObject> modelinst = MakeRef<Graphics::ModelObject>(); 
+		modelinst->SetLocalTransform(Compose(Mat33::Identity(), Vector3f(0.0f, 0.0f, 0.0f)));
 
 		modelinst->SetModel(model);
 		m_Scene->AddObject(modelinst);
@@ -109,7 +110,7 @@ namespace vkr
 
 			//////////////////////////////////////////////////
 			// these parts should not be in application
-			modelinst->SetLocalTransform(Compose(CreateRotationY(m_ElapsedTimer.ElapsedTime() * 0.25f), Vector3f(0.0f, 0.0f, 0.0f)));
+			//modelinst->SetLocalTransform(Compose(CreateRotationY(m_ElapsedTimer.ElapsedTime() * 0.25f), Vector3f(0.0f, 0.0f, 0.0f)));
 
 			m_View->SetOutputTarget(m_SwapChain->GetOutputRenderTarget());
 			m_View->SetCamera(*camera);

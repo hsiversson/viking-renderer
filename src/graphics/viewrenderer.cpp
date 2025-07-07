@@ -95,16 +95,21 @@ namespace vkr::Graphics
 			{
 				Mat44 ViewProjection; // 64 bytes
 				Mat44 World; // 64 bytes
+
 				Vector3f Color;
 				uint32_t TextureDescriptor; // 16 bytes
+
+				uint32_t RaytracingSceneDescriptor;
+				uint32_t pad[3];
 			};
 			ConstantData data;
 			data.ViewProjection = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
 			data.World = mesh.m_Transform;
 			data.Color = Vector3f(1, 0, 0);
 			data.TextureDescriptor = mesh.m_Material->GetTexture(0) ? mesh.m_Material->GetTexture(0)->GetIndex() : 0;
+			data.RaytracingSceneDescriptor = renderData.m_RaytracingTLAS->GetIndex();
 
-			auto cbuffer = Render::GetDevice()->GetTempBuffer(sizeof(ConstantData),sizeof(data), (void*)&data);
+			auto cbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData),sizeof(data), (void*)&data);
 			std::vector<vkr::Render::Buffer*> buffers;
 			std::vector<uint64_t> offsets;
 			buffers.push_back(cbuffer.m_Buffer);
@@ -177,16 +182,21 @@ namespace vkr::Graphics
 			{
 				Mat44 ViewProjection; // 64 bytes
 				Mat44 World; // 64 bytes
-				Vector3f Color; 
+
+				Vector3f Color;
 				uint32_t TextureDescriptor; // 16 bytes
+
+				uint32_t RaytracingSceneDescriptor;
+				uint32_t pad[3];
 			};
 			ConstantData data;
 			data.ViewProjection = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
 			data.World = mesh.m_Transform;
 			data.Color = Vector3f(1, 0, 0);
 			data.TextureDescriptor = mesh.m_Material->GetTexture(0) ? mesh.m_Material->GetTexture(0)->GetIndex() : 0; 
+			data.RaytracingSceneDescriptor = renderData.m_RaytracingTLAS->GetIndex();
 
-			auto cbuffer = Render::GetDevice()->GetTempBuffer(sizeof(ConstantData), sizeof(data), (void*)&data);
+			auto cbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData), sizeof(data), (void*)&data);
 			std::vector<vkr::Render::Buffer*> buffers;
 			std::vector<uint64_t> offsets;
 			buffers.push_back(cbuffer.m_Buffer);

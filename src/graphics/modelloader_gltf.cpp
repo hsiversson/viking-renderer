@@ -239,7 +239,7 @@ namespace vkr::Graphics
 			cgltf_node_transform_local(node, mat); 
 			Mat44 localTransform;
 			memcpy(localTransform.m, mat, sizeof(mat));
-			evaluatedLocalTransform = parentLocalTransform * localTransform;
+			evaluatedLocalTransform = localTransform * parentLocalTransform;
 		}
 
 		ModelDesc::PartDesc partDesc = {};

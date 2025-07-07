@@ -59,27 +59,31 @@ namespace vkr::Render
 		InitRootSignatures();
 		InitTextureLoaders();
 		InitCommandQueues();
-		m_TempBufferAllocator = MakeUnique<TempBufferAllocator>(1 * 1024 * 1024);
+
+		for (uint32_t i = 0; i < TEMP_BUFFER_USAGE_COUNT; ++i)
+		{
+			m_TempBufferAllocators[i] = MakeUnique<TempBufferAllocator>(TempBufferUsage(i), 1 * 1024 * 1024);
+		}
 		return true;
 	}
 
 	void Device::BeginFrame()
 	{
-		m_TempBufferAllocator->StartChunk();
+		for (uint32_t i = 0; i < TEMP_BUFFER_USAGE_COUNT; ++i)
+		{
+			m_TempBufferAllocators[i]->StartChunk();
+		}
 	}
 
 	void Device::EndFrame()
 	{
-		m_TempBufferAllocator->EndChunk(GetCommandQueue(CONTEXT_TYPE_PRESENT)->Signal());
+		for (uint32_t i = 0; i < TEMP_BUFFER_USAGE_COUNT; ++i)
+		{
+			m_TempBufferAllocators[i]->EndChunk(GetCommandQueue(CONTEXT_TYPE_PRESENT)->Signal());
+		}
 
 		// TODO: add end chunk to all temp buffers pending delete
 		// TODO: garbage collect temp buffers pending delete
-	}
-
-	Ref<Context> Device::CreateContext(ContextType contextType)
-	{
-		Ref<Context> context = MakeRef<Context>(contextType);
-		return context;
 	}
 
 	Ref<SwapChain> Device::CreateSwapChain(void* windowHandle, const Vector2u& size)
@@ -225,21 +229,21 @@ namespace vkr::Render
 		return bufferView;
 	}
 
-	TempBuffer Device::GetTempBuffer(uint32_t byteSize, uint32_t initialDataSize, const void* initialData)
+	TempBuffer Device::GetTempBuffer(TempBufferUsage usage, uint32_t byteSize, uint32_t initialDataSize, const void* initialData)
 	{
 		// 256 is mainly for constant buffers though. We should align differently based on buffer usage
 		const uint32_t size = Align(byteSize, 256);
 
 		TempBuffer outTempBuffer;
-		if (!m_TempBufferAllocator->Allocate(size, outTempBuffer))
+		if (!m_TempBufferAllocators[usage]->Allocate(size, outTempBuffer))
 		{
-			uint32_t currentBufferSize = m_TempBufferAllocator->GetCapacity();
+			uint32_t currentBufferSize = m_TempBufferAllocators[usage]->GetCapacity();
 			uint32_t newSize = ((size - currentBufferSize) + currentBufferSize) * 2;
 
-			m_TempBuffersPendingDelete.push_back(std::move(m_TempBufferAllocator));
+			m_TempBuffersPendingDelete.push_back(std::move(m_TempBufferAllocators[usage]));
 
-			m_TempBufferAllocator = MakeUnique<TempBufferAllocator>(size);
-			if (!m_TempBufferAllocator->Allocate(size, outTempBuffer))
+			m_TempBufferAllocators[usage] = MakeUnique<TempBufferAllocator>(usage, size);
+			if (!m_TempBufferAllocators[usage]->Allocate(size, outTempBuffer))
 			{
 				assert(false);
 				return TempBuffer();
@@ -258,7 +262,7 @@ namespace vkr::Render
 		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
 
 		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& inputs = buildDesc.Inputs;
-		inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+		inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 		inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
 		inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD;
 
@@ -270,12 +274,24 @@ namespace vkr::Render
 			desc.AccelerationStructure = rtInstanceDesc.m_BLAS->GetD3DResource()->GetGPUVirtualAddress();
 			desc.InstanceID = rtInstanceDesc.m_InstanceId;
 			desc.InstanceMask = 0xff;
+			desc.InstanceContributionToHitGroupIndex = 0;
+			desc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_FORCE_OPAQUE;
 			// TODO: the other instance desc params
+
+			for (uint32_t row = 0; row < 3; ++row)
+			{
+				for (uint32_t col = 0; col < 4; ++col)
+				{
+					desc.Transform[row][col] = rtInstanceDesc.m_Transform.At(col, row);
+				}
+			}
+
 			instanceDescs.push_back(desc);
 		}
 
 		const uint32_t bufferSize = sizeof(D3D12_RAYTRACING_INSTANCE_DESC) * instanceDescs.size();
-		TempBuffer instanceDescsBuffer = GetTempBuffer(bufferSize, bufferSize, instanceDescs.data());
+		TempBuffer instanceDescsBuffer = GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, bufferSize, bufferSize, instanceDescs.data());
+		instanceDescsBuffer.m_Buffer->UploadData(instanceDescsBuffer.m_Offset, bufferSize, instanceDescs.data());
 		inputs.InstanceDescs = instanceDescsBuffer.m_Buffer->GetD3DResource()->GetGPUVirtualAddress() + instanceDescsBuffer.m_Offset;
 		inputs.NumDescs = instanceDescs.size();
 
@@ -306,8 +322,8 @@ namespace vkr::Render
 			const BufferDesc& vertexBufferDesc = rtGeometryDesc.m_VertexBuffer->GetDesc();
 			desc.Triangles.VertexBuffer.StartAddress = rtGeometryDesc.m_VertexBuffer->GetD3DResource()->GetGPUVirtualAddress();
 			desc.Triangles.VertexBuffer.StrideInBytes = vertexBufferDesc.m_ElementSize;
-			desc.Triangles.VertexFormat = D3DConvertFormat(vertexBufferDesc.m_Format);
-			desc.Triangles.IndexCount = vertexBufferDesc.m_ElementCount;
+			desc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
+			desc.Triangles.VertexCount = vertexBufferDesc.m_ElementCount;
 
 			geometryDescs.push_back(desc);
 		}
@@ -380,15 +396,19 @@ namespace vkr::Render
 	{
 		m_CommandQueue[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandQueue>(CONTEXT_TYPE_GRAPHICS);
 		m_CommandListPool[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandListPool>(CONTEXT_TYPE_GRAPHICS);
-		m_Contexts[CONTEXT_TYPE_GRAPHICS] = MakeRef<Context>(CONTEXT_TYPE_GRAPHICS);
+		m_Contexts[CONTEXT_TYPE_GRAPHICS] = MakeRef<Context>(CONTEXT_TYPE_GRAPHICS, m_CommandQueue[CONTEXT_TYPE_GRAPHICS]);
 
 		m_CommandQueue[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandQueue>(CONTEXT_TYPE_COMPUTE);
 		m_CommandListPool[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandListPool>(CONTEXT_TYPE_COMPUTE);
-		m_Contexts[CONTEXT_TYPE_COMPUTE] = MakeRef<Context>(CONTEXT_TYPE_COMPUTE);
+		m_Contexts[CONTEXT_TYPE_COMPUTE] = MakeRef<Context>(CONTEXT_TYPE_COMPUTE, m_CommandQueue[CONTEXT_TYPE_COMPUTE]);
 
 		m_CommandQueue[CONTEXT_TYPE_COPY] = MakeRef<CommandQueue>(CONTEXT_TYPE_COPY);
 		m_CommandListPool[CONTEXT_TYPE_COPY] = MakeRef<CommandListPool>(CONTEXT_TYPE_COPY);
-		m_Contexts[CONTEXT_TYPE_COPY] = MakeRef<Context>(CONTEXT_TYPE_COPY);
+		m_Contexts[CONTEXT_TYPE_COPY] = MakeRef<Context>(CONTEXT_TYPE_COPY, m_CommandQueue[CONTEXT_TYPE_COPY]);
+
+		m_RaytracingBuildQueue = MakeRef<CommandQueue>(CONTEXT_TYPE_COMPUTE);
+		m_RaytracingBuildPool = MakeRef<CommandListPool>(CONTEXT_TYPE_COMPUTE);
+		m_RaytracingBuildContext = MakeRef<Context>(CONTEXT_TYPE_COMPUTE, m_RaytracingBuildQueue);
 	}
 
 	void Device::InitDescriptorHeaps()
@@ -404,24 +424,38 @@ namespace vkr::Render
 		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuildInfo = {};
 		m_Device10->GetRaytracingAccelerationStructurePrebuildInfo(&buildDesc.Inputs, &prebuildInfo);
 
-		TempBuffer scratchBuffer = GetTempBuffer(prebuildInfo.ScratchDataSizeInBytes);
+		TempBuffer scratchBuffer = GetTempBuffer(TEMP_BUFFER_USAGE_RAYTRACING_ACCELERATION_STRUCTURE, prebuildInfo.ScratchDataSizeInBytes);
 		buildDesc.ScratchAccelerationStructureData = scratchBuffer.m_Buffer->GetD3DResource()->GetGPUVirtualAddress() + scratchBuffer.m_Offset;
 
 		BufferDesc outBufferDesc = {};
+		outBufferDesc.m_ElementSize = 1;
 		outBufferDesc.m_ElementCount = prebuildInfo.ResultDataMaxSizeInBytes;
+		outBufferDesc.m_IsRaytracingAccelerationStructure = true;
 
 		Ref<Buffer> outBuffer = CreateBuffer(outBufferDesc);
 		buildDesc.DestAccelerationStructureData = outBuffer->GetD3DResource()->GetGPUVirtualAddress();
 
-		Ref<CommandList> cmdList = m_RaytracingBuildPool->GetCommandList();
+		m_RaytracingBuildContext->Begin();
+
+		CommandList* cmdList = m_RaytracingBuildContext->GetCommandList();
 		ID3D12GraphicsCommandList* d3dCmdList = cmdList->GetD3DCommandList();
 		ID3D12GraphicsCommandList4* d3dCmdList4 = nullptr;
 		d3dCmdList->QueryInterface(IID_PPV_ARGS(&d3dCmdList4));
 
+		BufferBarrierDesc bufferBarrier = {};
+		bufferBarrier.m_Buffer = outBuffer.get();
+		bufferBarrier.m_TargetAccess = RESOURCE_STATE_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_WRITE;
+		bufferBarrier.m_TargetSync = RESOURCE_STATE_SYNC_ALL;
+		m_RaytracingBuildContext->BufferBarrier(bufferBarrier);
+
 		d3dCmdList4->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
 
-		Event event = m_RaytracingBuildQueue->Submit(cmdList);
-		m_RaytracingBuildPool->ReturnCommandList(cmdList, event);
+		bufferBarrier.m_TargetAccess = RESOURCE_STATE_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_READ;
+		bufferBarrier.m_TargetSync = RESOURCE_STATE_SYNC_ALL;
+		m_RaytracingBuildContext->BufferBarrier(bufferBarrier);
+
+		m_RaytracingBuildContext->End();
+		Event event = m_RaytracingBuildContext->Flush();
 
 		// set event on outBuffer to have it track its build status
 		outBuffer->SetGpuPending(event);

@@ -48,6 +48,12 @@ namespace vkr::Graphics
 
 		std::sort(prepareData.m_VisibleMeshes.begin(), prepareData.m_VisibleMeshes.end());
 
+		Ref<Render::Buffer> rtTLAS = Render::GetDevice()->CreateTLAS(prepareData.m_RaytracingInstances.size(), prepareData.m_RaytracingInstances.data());
+
+		Render::BufferViewDesc rtTLASDesc = {};
+		rtTLASDesc.m_IsRaytracingAccelerationStructure = true;
+		prepareData.m_RaytracingTLAS = Render::GetDevice()->CreateBufferView(rtTLASDesc, rtTLAS);
+
 		//Collect instance information in a single buffer
 	}
 }

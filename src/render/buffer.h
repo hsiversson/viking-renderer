@@ -11,6 +11,7 @@ namespace vkr::Render
 		uint32_t m_ElementCount;
 		bool m_Writable = false;
 		bool m_CpuWritable = false;
+		bool m_IsRaytracingAccelerationStructure = false;
 
 		inline uint32_t ByteSize() const { return m_ElementCount * m_ElementSize; }
 	};
@@ -34,6 +35,16 @@ namespace vkr::Render
 		uint8_t* m_DataPtr;
 	};
 
+	enum TempBufferUsage
+	{
+		TEMP_BUFFER_USAGE_STAGING,
+		TEMP_BUFFER_USAGE_CONSTANTS,
+		TEMP_BUFFER_USAGE_SHADER_RESOURCE,
+		TEMP_BUFFER_USAGE_RAYTRACING_ACCELERATION_STRUCTURE,
+
+		TEMP_BUFFER_USAGE_COUNT
+	};
+
 	struct TempBuffer
 	{
 		uint64_t m_Offset;
@@ -51,13 +62,14 @@ namespace vkr::Render
 		};
 
 	public:
-		TempBufferAllocator(uint64_t bufferSizeBytes, uint64_t alignment = 256);
+		TempBufferAllocator(TempBufferUsage usage, uint64_t bufferSizeBytes, uint64_t alignment = 256);
 
 		void StartChunk();
 		bool Allocate(uint64_t size, TempBuffer& outBuf);
 		void EndChunk(Event event);
 
 		uint64_t GetCapacity() const;
+		TempBufferUsage GetUsage() const;
 
 	private:
 		void GarbageCollect();
@@ -72,5 +84,7 @@ namespace vkr::Render
 		std::deque<Chunk> m_Chunks;
 
 		Ref<Buffer> m_Buffer;
+
+		const TempBufferUsage m_Usage;
 	};
 }

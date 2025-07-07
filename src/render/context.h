@@ -12,6 +12,7 @@ namespace vkr::Render
 	class ResourceDescriptor;
 	class RootSignature;
 	class CommandList;
+	class CommandQueue;
 
 	enum ContextType : uint8_t
 	{
@@ -50,7 +51,7 @@ namespace vkr::Render
 	class Context
 	{
 	public:
-		Context(ContextType type);
+		Context(ContextType type, const Ref<CommandQueue>& commandQueue);
 		~Context();
 
 		void Begin();
@@ -110,6 +111,8 @@ namespace vkr::Render
 		};
 
 		void UpdateState();
+
+		Ref<CommandQueue> m_CommandQueue;
 
 		Ref<CommandList> m_CommandList;
 		ID3D12GraphicsCommandList* m_CurrentD3DCommandList;

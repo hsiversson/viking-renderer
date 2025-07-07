@@ -189,6 +189,15 @@ namespace vkr::Render
 				uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
 				GetDevice()->GetD3DDevice()->CreateUnorderedAccessView(resource->GetD3DResource(), nullptr, &uavDesc, m_D3DHandle);
 			}
+			else if (desc.m_IsRaytracingAccelerationStructure)
+			{
+				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+				srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
+				srvDesc.RaytracingAccelerationStructure.Location = resource->GetD3DResource()->GetGPUVirtualAddress();
+				GetDevice()->GetD3DDevice()->CreateShaderResourceView(nullptr, &srvDesc, m_D3DHandle);
+			}
 			else
 			{
 				// TODO: add support for all buffer types (typed, structured, byte buffers etc.)
