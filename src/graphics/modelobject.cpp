@@ -36,7 +36,7 @@ namespace vkr::Graphics
 
 		if (Ref<Render::Buffer> blas = part.m_Mesh->GetBLAS())
 		{
-			Render::RtInstanceDesc rtInstanceDesc = {};
+			Render::RaytracingInstanceDesc rtInstanceDesc = {};
 			rtInstanceDesc.m_BLAS = blas;
 			rtInstanceDesc.m_InstanceId = 0;
 			rtInstanceDesc.m_Transform = obj.m_Transform;

@@ -55,7 +55,7 @@ namespace vkr::Graphics
 
 		if (true/*desc.m_IncludeInRaytracing*/)
 		{
-			Render::RtGeometryDesc rtGeometryDesc = {};
+			Render::RaytracingGeometryDesc rtGeometryDesc = {};
 			rtGeometryDesc.m_VertexBuffer = m_VertexBuffer;
 			rtGeometryDesc.m_IndexBuffer = m_IndexBuffer;
 			m_BLAS = device->CreateBLAS(1, &rtGeometryDesc);

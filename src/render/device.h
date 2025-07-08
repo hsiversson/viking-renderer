@@ -18,19 +18,6 @@ namespace vkr::Render
 	class CommandQueue;
 	class CommandListPool;
 
-	struct RtInstanceDesc
-	{
-		Mat44 m_Transform;
-		uint32_t m_InstanceId;
-		Ref<Buffer> m_BLAS;
-	};
-
-	struct RtGeometryDesc
-	{
-		Ref<Buffer> m_VertexBuffer; // positions only?
-		Ref<Buffer> m_IndexBuffer;
-	};
-
 	class Device
 	{
 		friend Device* GetDevice();
@@ -60,8 +47,8 @@ namespace vkr::Render
 
 		TempBuffer GetTempBuffer(TempBufferUsage usage, uint32_t byteSize, uint32_t initialDataSize = 0, const void* initialData = nullptr); // TempBuffers only last until the end of the frame, then their memory is reused
 
-		Ref<Buffer> CreateTLAS(uint32_t numRtInstanceDescs, RtInstanceDesc* rtInstanceDescs);
-		Ref<Buffer> CreateBLAS(uint32_t numRtGeometryDescs, RtGeometryDesc* rtGeometryDescs);
+		Ref<Buffer> CreateTLAS(uint32_t numRtInstanceDescs, RaytracingInstanceDesc* rtInstanceDescs);
+		Ref<Buffer> CreateBLAS(uint32_t numRtGeometryDescs, RaytracingGeometryDesc* rtGeometryDescs);
 
 		ID3D12Device* GetD3DDevice() const;
 		ID3D12Device10* GetD3DDevice10() const;

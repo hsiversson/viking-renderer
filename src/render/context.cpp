@@ -323,6 +323,109 @@ namespace vkr::Render
 		m_CurrentD3DCommandList->ClearDepthStencilView(dsv->GetHandle(), D3D12_CLEAR_FLAG_DEPTH, clearValue, 0, 0, nullptr);
 	}
 
+	Ref<Buffer> Context::BuildRaytracingAccelerationStructure(const RaytracingAccelerationStructureBuildDesc& desc)
+	{
+		Device* device = GetDevice();
+
+		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
+		std::vector<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescs;
+		std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geometryDescs;
+		if (desc.m_Type == RaytracingAccelerationStructureBuildDesc::Type::TopLevel)
+		{
+			D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& inputs = buildDesc.Inputs;
+			inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+			inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+			inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD;
+
+			std::vector<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescs;
+			for (uint32_t i = 0; i < desc.m_InstanceDescs.size(); ++i)
+			{
+				const RaytracingInstanceDesc& rtInstanceDesc = desc.m_InstanceDescs[i];
+				D3D12_RAYTRACING_INSTANCE_DESC desc = {};
+				desc.AccelerationStructure = rtInstanceDesc.m_BLAS->GetD3DResource()->GetGPUVirtualAddress();
+				desc.InstanceID = rtInstanceDesc.m_InstanceId;
+				desc.InstanceMask = 0xff;
+				desc.InstanceContributionToHitGroupIndex = 0;
+				desc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_FORCE_OPAQUE;
+				// TODO: the other instance desc params
+
+				for (uint32_t row = 0; row < 3; ++row)
+				{
+					for (uint32_t col = 0; col < 4; ++col)
+					{
+						desc.Transform[row][col] = rtInstanceDesc.m_Transform.At(col, row);
+					}
+				}
+
+				instanceDescs.push_back(desc);
+			}
+
+			const uint32_t bufferSize = sizeof(D3D12_RAYTRACING_INSTANCE_DESC) * instanceDescs.size();
+			TempBuffer instanceDescsBuffer = device->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, bufferSize, bufferSize, instanceDescs.data());
+			instanceDescsBuffer.m_Buffer->UploadData(instanceDescsBuffer.m_Offset, bufferSize, instanceDescs.data());
+			inputs.InstanceDescs = instanceDescsBuffer.m_Buffer->GetD3DResource()->GetGPUVirtualAddress() + instanceDescsBuffer.m_Offset;
+			inputs.NumDescs = instanceDescs.size();
+		}
+		else if (desc.m_Type == RaytracingAccelerationStructureBuildDesc::Type::BottomLevel)
+		{
+			D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& inputs = buildDesc.Inputs;
+			inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+			inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+			inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+
+			for (uint32_t i = 0; i < desc.m_GeometryDescs.size(); ++i)
+			{
+				const RaytracingGeometryDesc& rtGeometryDesc = desc.m_GeometryDescs[i];
+				D3D12_RAYTRACING_GEOMETRY_DESC desc = {};
+				desc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+
+				const BufferDesc& indexBufferDesc = rtGeometryDesc.m_IndexBuffer->GetDesc();
+				desc.Triangles.IndexBuffer = rtGeometryDesc.m_IndexBuffer->GetD3DResource()->GetGPUVirtualAddress();
+				desc.Triangles.IndexFormat = D3DConvertFormat(indexBufferDesc.m_Format);
+				desc.Triangles.IndexCount = indexBufferDesc.m_ElementCount;
+
+				const BufferDesc& vertexBufferDesc = rtGeometryDesc.m_VertexBuffer->GetDesc();
+				desc.Triangles.VertexBuffer.StartAddress = rtGeometryDesc.m_VertexBuffer->GetD3DResource()->GetGPUVirtualAddress();
+				desc.Triangles.VertexBuffer.StrideInBytes = vertexBufferDesc.m_ElementSize;
+				desc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
+				desc.Triangles.VertexCount = vertexBufferDesc.m_ElementCount;
+
+				geometryDescs.push_back(desc);
+			}
+
+			inputs.pGeometryDescs = geometryDescs.data();
+			inputs.NumDescs = geometryDescs.size();
+		}
+
+		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuildInfo = {};
+		device->GetD3DDevice10()->GetRaytracingAccelerationStructurePrebuildInfo(&buildDesc.Inputs, &prebuildInfo);
+
+		TempBuffer scratchBuffer = device->GetTempBuffer(TEMP_BUFFER_USAGE_RAYTRACING_ACCELERATION_STRUCTURE, prebuildInfo.ScratchDataSizeInBytes);
+		buildDesc.ScratchAccelerationStructureData = scratchBuffer.m_Buffer->GetD3DResource()->GetGPUVirtualAddress() + scratchBuffer.m_Offset;
+
+		BufferDesc outBufferDesc = {};
+		outBufferDesc.m_ElementSize = 1;
+		outBufferDesc.m_ElementCount = prebuildInfo.ResultDataMaxSizeInBytes;
+		outBufferDesc.m_IsRaytracingAccelerationStructure = true;
+
+		Ref<Buffer> outBuffer = device->CreateBuffer(outBufferDesc);
+		buildDesc.DestAccelerationStructureData = outBuffer->GetD3DResource()->GetGPUVirtualAddress();
+
+		BufferBarrierDesc bufferBarrier = {};
+		bufferBarrier.m_Buffer = outBuffer.get();
+		bufferBarrier.m_TargetAccess = RESOURCE_STATE_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_WRITE;
+		bufferBarrier.m_TargetSync = RESOURCE_STATE_SYNC_ALL;
+		BufferBarrier(bufferBarrier);
+
+		m_CurrentD3DCommandList7->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
+
+		bufferBarrier.m_TargetAccess = RESOURCE_STATE_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_READ;
+		bufferBarrier.m_TargetSync = RESOURCE_STATE_SYNC_ALL;
+		BufferBarrier(bufferBarrier);
+
+		return outBuffer;
+	}
+
 	ContextType Context::GetType() const
 	{
 		return m_Type;

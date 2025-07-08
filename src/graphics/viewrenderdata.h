@@ -33,7 +33,7 @@ namespace vkr::Graphics
 
 		Ref<Render::BufferView> m_RaytracingTLAS;
 
-		std::vector<Render::RtInstanceDesc> m_RaytracingInstances;
+		std::vector<Render::RaytracingInstanceDesc> m_RaytracingInstances;
 		std::vector<RenderObject> m_VisibleMeshes;
 		std::vector<Light> m_VisibleLights;
 	};

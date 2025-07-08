@@ -48,6 +48,32 @@ namespace vkr::Render
 		ResourceStateSync m_TargetSync;
 	};
 
+	struct RaytracingInstanceDesc
+	{
+		Mat44 m_Transform;
+		uint32_t m_InstanceId;
+		Ref<Buffer> m_BLAS;
+	};
+
+	struct RaytracingGeometryDesc
+	{
+		Ref<Buffer> m_VertexBuffer; // positions only?
+		Ref<Buffer> m_IndexBuffer;
+	};
+
+	struct RaytracingAccelerationStructureBuildDesc
+	{
+		enum class Type
+		{
+			TopLevel,
+			BottomLevel,
+		};
+
+		Type m_Type;
+		std::vector<RaytracingInstanceDesc> m_InstanceDescs;
+		std::vector<RaytracingGeometryDesc> m_GeometryDescs;
+	};
+
 	class Context
 	{
 	public:
@@ -92,6 +118,9 @@ namespace vkr::Render
 		// Clear
 		void ClearRenderTargets(Ref<RenderTargetView>* rtvs, size_t numRtvs);
 		void ClearDepthStencil(Ref<DepthStencilView> dsv, float clearValue);
+
+		// Raytracing acceleration structure
+		Ref<Buffer> BuildRaytracingAccelerationStructure(const RaytracingAccelerationStructureBuildDesc& desc);
 
 		ContextType GetType() const;
 		CommandList* GetCommandList() const;
