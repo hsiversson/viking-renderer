@@ -1,5 +1,6 @@
 #include "application.h"
 #include "core/commandline.h"
+#include "core/logger.h"
 
 #include "render/device.h"
 #include "render/window.h"
@@ -21,10 +22,12 @@ namespace vkr
 	Application::Application()
 		: m_WindowSize{}
 	{
+		Logger::Create();
 	}
 
 	Application::~Application()
 	{
+		Logger::Destroy();
 	}
 
 	ReturnCode Application::Launch(const ApplicationInitDesc& desc)

@@ -1,0 +1,74 @@
+#include "logger.h"
+#include <cassert>
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+
+namespace vkr
+{
+	Logger* Logger::g_Instance = nullptr;
+
+	void Logger::Create()
+	{
+		assert(g_Instance == nullptr);
+		g_Instance = new Logger;
+	}
+
+	void Logger::Destroy()
+	{
+		delete g_Instance;
+		g_Instance = nullptr;
+	}
+
+	void Logger::QueueMessage(LogMessageType type, const std::string& message, const char* functionName, const char* file, uint32_t lineNumber)
+	{
+		PendingMessage pendingMessage;
+		pendingMessage.m_Type = type;
+		pendingMessage.m_Message = message;
+		pendingMessage.m_FunctionName = functionName;
+		pendingMessage.m_File = file;
+		pendingMessage.m_LineNumber = lineNumber;
+		pendingMessage.m_Time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+		std::unique_lock<std::mutex> lock(g_Instance->m_Mutex);
+		g_Instance->m_PendingMessages.push(pendingMessage);
+	}
+
+	Logger::Logger()
+	{
+		m_IsActive = true;
+		m_Thread = std::thread(&Logger::LoggingFunc, this);
+	}
+
+	Logger::~Logger()
+	{
+		m_IsActive = false;
+		m_Thread.join();
+	}
+
+	void Logger::LoggingFunc()
+	{
+		while (m_IsActive)
+		{
+			while (!m_PendingMessages.empty())
+			{
+				PendingMessage msg;
+				{
+					std::unique_lock<std::mutex> lock(m_Mutex);
+					msg = m_PendingMessages.front();
+					m_PendingMessages.pop();
+				}
+
+				const std::string outputString = std::format("{}({}): {}\n", msg.m_File.c_str(), msg.m_LineNumber, msg.m_Message.c_str());
+				OutputDebugString(outputString.c_str());
+			}
+
+			std::this_thread::yield();
+		}
+	}
+}

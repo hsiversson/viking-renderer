@@ -1,0 +1,53 @@
+#pragma once
+#include <thread>
+#include <mutex>
+#include <queue>
+#include <format>
+
+namespace vkr
+{
+	enum LogMessageType
+	{
+		LOG_MESSAGE_TYPE_INFO,
+		LOG_MESSAGE_TYPE_WARNING,
+		LOG_MESSAGE_TYPE_ERROR,
+	};
+
+	class Logger
+	{
+		struct PendingMessage
+		{
+			std::string m_Message;
+			std::string m_FunctionName;
+			std::string m_File;
+			uint32_t m_LineNumber;
+			std::time_t m_Time;
+			LogMessageType m_Type;
+		};
+
+	public:
+		static void Create();
+		static void Destroy();
+		static Logger* Get() { return g_Instance; }
+
+		static void QueueMessage(LogMessageType type, const std::string& message, const char* functionName = nullptr, const char* file = nullptr, uint32_t lineNumber = 0);
+
+	private:
+		Logger();
+		~Logger();
+
+		void LoggingFunc();
+
+		std::mutex m_Mutex;
+		std::thread m_Thread;
+		std::queue<PendingMessage> m_PendingMessages;
+
+		bool m_IsActive;
+
+		static Logger* g_Instance;
+	};
+}
+
+#define VKR_LOG(msg, ...)		vkr::Logger::Get()->QueueMessage(LOG_MESSAGE_TYPE_INFO, std::format(msg, ##__VA_ARGS__), __FUNCTION__, __FILE__, __LINE__);
+#define VKR_WARNING(msg, ...)	vkr::Logger::Get()->QueueMessage(LOG_MESSAGE_TYPE_WARNING, std::format(msg, ##__VA_ARGS__), __FUNCTION__, __FILE__, __LINE__);
+#define VKR_ERROR(msg, ...)		vkr::Logger::Get()->QueueMessage(LOG_MESSAGE_TYPE_ERROR, std::format(msg, ##__VA_ARGS__), __FUNCTION__, __FILE__, __LINE__);
