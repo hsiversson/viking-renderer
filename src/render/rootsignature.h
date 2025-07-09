@@ -3,10 +3,16 @@
 
 namespace vkr::Render
 {
+	struct ConstantBufferDescription
+	{
+		uint32_t m_Slot = 0;
+		uint32_t m_Space = 0;
+	};
+
 	struct RootSignatureDesc
 	{
 		PipelineStateType m_PipelineUsage;
-		uint32_t m_NumConstantBufferSlots;
+		std::vector<ConstantBufferDescription> m_ConstantBuffers;
 	};
 
 	class RootSignature

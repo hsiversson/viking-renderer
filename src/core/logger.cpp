@@ -1,5 +1,6 @@
 #include "logger.h"
 #include <cassert>
+#include <chrono>
 
 #ifndef NOMINMAX
 #define NOMINMAX

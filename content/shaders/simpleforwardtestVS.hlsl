@@ -1,9 +1,14 @@
-cbuffer ConstantBuffer : register(b0)
+#include "../../../content/shaders/sceneconstants.hlsl"
+#include "../../../content/shaders/instancing.hlsl"
+
+cbuffer PerBatchConstantBuffer : register(b0)
 {
-	float4x4 ViewProjection;
-	float4x4 World;
-    float3 BaseColor;
-    uint TextureDescriptor;
+    uint BatchInstanceDataOffsetStart;
+};
+
+struct InstanceData
+{
+    float4x4 WorldTransform;
 };
 
 struct VSInput
@@ -20,10 +25,14 @@ struct VSOutput
     float2 UV : UV;
 };
 
-VSOutput MainVS(VSInput input)
+VSOutput MainVS(VSInput input, uint instanceID : SV_InstanceID)
 {
+	
 	VSOutput output;
-	float4 worldpos = mul(World, float4(input.Position, 1.0));
+	
+    InstanceData data = GetInstanceData<InstanceData>(BatchInstanceDataOffsetStart, instanceID);
+	
+	float4 worldpos = mul(data.WorldTransform, float4(input.Position, 1.0));
 	output.Position = mul(ViewProjection, worldpos);
     output.Normal = input.Normal;
     output.UV = input.UV;

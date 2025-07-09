@@ -336,8 +336,9 @@ namespace vkr::Render
 		for (int i = 0; i < PipelineStateType::PIPELINE_STATE_TYPE_COUNT; i++)
 		{
 			auto Signature = MakeRef<RootSignature>();
-			// For now just consider one unique constant buffer?
-			Signature->Init({ PipelineStateType(i), 1 });
+			// Constant buffer 0 , space 1: frame wide constants
+			// Constant buffer 1 , space 0: per draw call constants
+			Signature->Init({ PipelineStateType(i), {{0,1},{0,0}} });
 			m_RootSignatures[i] = Signature;
 		}
 	}

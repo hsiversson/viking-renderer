@@ -187,6 +187,11 @@ namespace vkr::Render
 				uavDesc.Buffer.NumElements = desc.m_Last - desc.m_First;
 				uavDesc.Buffer.StructureByteStride = desc.m_ElementSize;
 				uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+				if (desc.m_Usage == Raw)
+				{
+					uavDesc.Buffer.Flags |= D3D12_BUFFER_UAV_FLAG_RAW;
+					uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+				}
 				GetDevice()->GetD3DDevice()->CreateUnorderedAccessView(resource->GetD3DResource(), nullptr, &uavDesc, m_D3DHandle);
 			}
 			else if (desc.m_IsRaytracingAccelerationStructure)
@@ -203,12 +208,19 @@ namespace vkr::Render
 				// TODO: add support for all buffer types (typed, structured, byte buffers etc.)
 
 				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 				srvDesc.Format = DXGI_FORMAT_UNKNOWN;
 				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 				srvDesc.Buffer.FirstElement = desc.m_First;
 				srvDesc.Buffer.NumElements = desc.m_Last - desc.m_First;
 				srvDesc.Buffer.StructureByteStride = desc.m_ElementSize;
 				srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+				if (desc.m_Usage == Raw)
+				{
+					srvDesc.Buffer.Flags |= D3D12_BUFFER_SRV_FLAG_RAW;
+					srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+					srvDesc.Buffer.StructureByteStride = 0;
+				}
 				GetDevice()->GetD3DDevice()->CreateShaderResourceView(resource->GetD3DResource(), &srvDesc, m_D3DHandle);
 			}
 

@@ -17,16 +17,16 @@ namespace vkr::Render
 
 	bool RootSignature::Init(const RootSignatureDesc& desc)
 	{
-		D3D12_ROOT_PARAMETER* RootParams = new D3D12_ROOT_PARAMETER[desc.m_NumConstantBufferSlots];
-		for (int i = 0; i < desc.m_NumConstantBufferSlots; i++)
+		D3D12_ROOT_PARAMETER* RootParams = new D3D12_ROOT_PARAMETER[desc.m_ConstantBuffers.size()];
+		for (int i = 0; i < desc.m_ConstantBuffers.size(); i++)
 		{
 			RootParams[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 			RootParams[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-			RootParams[i].Descriptor.ShaderRegister = i;
-			RootParams[i].Descriptor.RegisterSpace = 0;
+			RootParams[i].Descriptor.ShaderRegister = desc.m_ConstantBuffers[i].m_Slot;
+			RootParams[i].Descriptor.RegisterSpace = desc.m_ConstantBuffers[i].m_Space;
 		}
 		D3D12_ROOT_SIGNATURE_DESC Desc;
-		Desc.NumParameters = desc.m_NumConstantBufferSlots;
+		Desc.NumParameters = desc.m_ConstantBuffers.size();
 		Desc.pParameters = RootParams;
 
 		D3D12_STATIC_SAMPLER_DESC staticSamplerDescs[2];

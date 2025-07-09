@@ -29,7 +29,15 @@ namespace vkr::Graphics
 	void ModelObject::CollectModelPart(ViewRenderData& renderData, const Model::Part& part, const Mat44& parentWorldTransform)
 	{
 		Graphics::RenderObject obj;
-		obj.m_Transform = part.m_LocalTransform * parentWorldTransform;
+		InstanceData data;
+		data.m_Transform = part.m_LocalTransform * parentWorldTransform;
+		data.m_MaterialID = 0; //TODO
+		uint8_t* genericdata = (uint8_t*) &data;
+		//Serialize instance data into byte buffer
+		obj.m_InstanceDataIndex = renderData.m_InstanceData.size();
+		renderData.m_InstanceData.insert(renderData.m_InstanceData.end(),genericdata, genericdata + sizeof(InstanceData));
+		//======================================
+		renderData.m_TotalInstanceCount++;
 		obj.m_Mesh = part.m_Mesh.get();
 		obj.m_Material = part.m_Material.get();
 		renderData.m_VisibleMeshes.push_back(obj);
@@ -39,13 +47,13 @@ namespace vkr::Graphics
 			Render::RaytracingInstanceDesc rtInstanceDesc = {};
 			rtInstanceDesc.m_BLAS = blas;
 			rtInstanceDesc.m_InstanceId = 0;
-			rtInstanceDesc.m_Transform = obj.m_Transform;
+			rtInstanceDesc.m_Transform = data.m_Transform;
 			renderData.m_RaytracingInstances.push_back(rtInstanceDesc);
 		}
 
 		for (uint32_t i = 0; i < part.m_ChildParts.size(); ++i)
 		{
-			CollectModelPart(renderData, part.m_ChildParts[i], obj.m_Transform);
+			CollectModelPart(renderData, part.m_ChildParts[i], data.m_Transform);
 		}
 	}
 

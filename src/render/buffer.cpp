@@ -127,7 +127,7 @@ namespace vkr::Render
 			if (m_Head.compare_exchange_weak(oldHead, end, std::memory_order_release, std::memory_order_relaxed))
 			{
 				outBuf.m_Offset = startMod;
-				outBuf.m_Buffer = m_Buffer.get();
+				outBuf.m_Buffer = m_Buffer;
 				return true;
 			}
 		}

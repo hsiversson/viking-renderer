@@ -7,5 +7,9 @@ namespace vkr::Graphics
 		m_RaytracingInstances.clear();
 		m_VisibleMeshes.clear();
 		m_VisibleLights.clear();
+		m_DepthPassData = {};
+		m_ForwardPassData = {};
+		m_InstanceData.clear();
+		m_InstanceDataOffsetBuffer.clear();
 	}
 }

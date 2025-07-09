@@ -109,12 +109,20 @@ namespace vkr::Render
 
 	/////////////////////////////////////////////////////////////
 	// BUFFER VIEW
+	enum BufferUsage : uint8_t
+	{
+		Typed, //Buffer/RWBuffer
+		Structured, //StructuredBuffer/RWStructuredBuffer
+		Raw //ByteAddessBuffer/RWByteAddressBuffer
+	};
+
 	struct BufferViewDesc
 	{
 		uint32_t m_First = 0;
 		uint32_t m_Last = 0;
 		uint32_t m_ElementSize = 0;
 		bool m_Writable = false;
+		BufferUsage m_Usage = Typed;
 		bool m_IsRaytracingAccelerationStructure = false;
 	};
 

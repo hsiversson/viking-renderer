@@ -60,6 +60,8 @@ namespace vkr::Graphics
 			// Create vertex shader
 			std::stringstream vertexShaderCode;
 			vertexShaderCode <<
+				"#include \"../../../content/shaders/sceneconstants.hlsl\"\n"
+				"#include \"../../../content/shaders/instancing.hlsl\"\n"
 				"struct VSInput\n"
 				"{\n";
 			for (const Render::VertexAttribute& attr : vertexLayout.m_Attributes)
@@ -123,15 +125,23 @@ namespace vkr::Graphics
 			vertexShaderCode << "};\n";
 
 			vertexShaderCode <<
-				"cbuffer ConstantBuffer : register(b0)\n"
+				"cbuffer PerBatchConstantBuffer : register(b0)\n"
 				"{\n"
-				"	float4x4 WorldToClip;\n"
-				"	float4x4 ModelToWorld;\n"
-				"	float3 BaseColor;\n"
-				"	uint TextureDescriptor;\n"
-				"	uint RaytracingSceneDescriptor;\n"
-				"	uint3 pad;\n"
+				"	uint BatchInstanceDataOffsetStart;\n"
 				"};\n"
+				"struct InstanceData\n"
+				"{\n"
+				"	float4x4 ModelToWorld;\n"
+				"};\n"
+// 				"cbuffer ConstantBuffer : register(b0)\n"
+// 				"{\n"
+// 				"	float4x4 WorldToClip;\n"
+// 				"	float4x4 ModelToWorld;\n"
+// 				"	float3 BaseColor;\n"
+// 				"	uint TextureDescriptor;\n"
+// 				"	uint RaytracingSceneDescriptor;\n"
+// 				"	uint3 pad;\n"
+// 				"};\n"
 				"struct VSOutput\n"
 				"{\n"
 				"	float4 clipPosition : SV_POSITION;\n"
@@ -139,10 +149,11 @@ namespace vkr::Graphics
 				"	float3 normal : NORMAL;\n"
 				"	float2 uv : UV;\n"
 				"};\n"
-				"VSOutput MainVS(VSInput input)\n"
+				"VSOutput MainVS(VSInput input, uint instanceID : SV_InstanceID)\n"
 				"{\n"
 				"	VSOutput output;\n"
-				"	output.worldPosition = mul(ModelToWorld, float4(input.position0, 1.0f)).xyz;\n"
+				"	InstanceData data = GetInstanceData<InstanceData>(BatchInstanceDataOffsetStart, instanceID);"
+				"	output.worldPosition = mul(data.ModelToWorld, float4(input.position0, 1.0f)).xyz;\n"
 				"	output.clipPosition = mul(WorldToClip, float4(output.worldPosition, 1.0f));\n"
 				"	output.normal = input.normal0;\n"
 				"	output.uv = input.uv0;\n"

@@ -28,6 +28,36 @@ namespace vkr::Graphics
 	void ViewRenderer::RenderView(View& view)
 	{
 		RenderViewContext renderViewCtx(view);
+
+		const ViewRenderData& renderData = view.GetRenderData();
+
+		//Fill in the instance data (later we can just keep this as a normal buffer instead of temp that we need to rebuild per frame)
+		auto instancedatabuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, renderData.m_InstanceData.size(), renderData.m_InstanceData.size(), renderData.m_InstanceData.data());
+		//Oh god what ive done, const fucking
+		uint32_t instancedatastart = (uint32_t)(instancedatabuffer.m_Offset / 4.0);
+		uint32_t instancedataend = instancedatastart + (uint32_t)renderData.m_InstanceData.size() / 4;
+		const_cast<ViewRenderData&>(renderData).m_InstanceDataBufferView = Render::GetDevice()->CreateBufferView({ instancedatastart, instancedataend, 1, false, Render::Raw }, instancedatabuffer.m_Buffer);
+
+
+		//Fill in the instance data indices
+		auto instancedataoffsetbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, renderData.m_InstanceDataOffsetBuffer.size()*sizeof(uint32_t), renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), renderData.m_InstanceDataOffsetBuffer.data());
+		uint32_t instancedataoffsetstart = (uint32_t)(instancedataoffsetbuffer.m_Offset / sizeof(uint32_t));
+		uint32_t instancedataoffsetend = instancedataoffsetstart + (uint32_t)renderData.m_InstanceDataOffsetBuffer.size();
+		//Oh god what ive done, const fucking
+		const_cast<ViewRenderData&>(renderData).m_InstanceDataOffsetBufferView = Render::GetDevice()->CreateBufferView({ instancedataoffsetstart, instancedataoffsetend, 1, false, Render::Typed }, instancedatabuffer.m_Buffer);
+
+		//Construct the per scene constant buffer
+		struct alignas(16) PerSceneConstantData
+		{
+			Mat44 ViewProjection;
+			uint32_t InstanceDataBufferDescriptorIndex; // Descriptor index to the global buffer where all instance data for the scene is stored
+			uint32_t InstanceDataOffsetBufferDescriptorIndex;
+		};
+		PerSceneConstantData persceneconstantdata;
+		persceneconstantdata.ViewProjection = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
+		persceneconstantdata.InstanceDataBufferDescriptorIndex = renderData.m_InstanceDataBufferView->GetIndex();
+		persceneconstantdata.InstanceDataOffsetBufferDescriptorIndex = renderData.m_InstanceDataOffsetBufferView->GetIndex();
+		const_cast<ViewRenderData&>(renderData).m_PerSceneConstantBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(PerSceneConstantData), sizeof(PerSceneConstantData), &persceneconstantdata);
 		
 		UpdateRtScene(view);
 		UpdateParticles(view);
@@ -82,40 +112,32 @@ namespace vkr::Graphics
 		ctx->SetViewport(0, 0, rtDesc.m_Size.x, rtDesc.m_Size.y);
 		ctx->SetScissorRect(0, 0, rtDesc.m_Size.x, rtDesc.m_Size.y);
 
-		for (auto& mesh : renderData.m_VisibleMeshes)
+		for (auto& batch : renderData.m_ForwardPassData.m_InstanceBatches)
 		{
 			std::vector<vkr::Ref<vkr::Render::Buffer>> vertexbuffers;
-			vertexbuffers.push_back(mesh.m_Mesh->GetVertexBuffer());
+			vertexbuffers.push_back(batch.m_Mesh->GetVertexBuffer());
 			ctx->BindVertexBuffers(vertexbuffers.data(), vertexbuffers.size());
-			ctx->BindIndexBuffer(mesh.m_Mesh->GetIndexBuffer());
-			ctx->SetPrimitiveTopology(mesh.m_Mesh->GetTopology());
-			ctx->BindPSO(mesh.m_Material->GetDefaultPipelineState(mesh.m_Mesh->GetVertexLayout()));
+			ctx->BindIndexBuffer(batch.m_Mesh->GetIndexBuffer());
+			ctx->SetPrimitiveTopology(batch.m_Mesh->GetTopology());
+			ctx->BindPSO(batch.m_PSO);
 
 			struct alignas(16) ConstantData
 			{
-				Mat44 ViewProjection; // 64 bytes
-				Mat44 World; // 64 bytes
-
-				Vector3f Color;
-				uint32_t TextureDescriptor; // 16 bytes
-
-				uint32_t RaytracingSceneDescriptor;
-				uint32_t pad[3];
+				uint32_t m_BatchStart;
 			};
 			ConstantData data;
-			data.ViewProjection = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
-			data.World = mesh.m_Transform;
-			data.Color = Vector3f(1, 0, 0);
-			data.TextureDescriptor = mesh.m_Material->GetTexture(0) ? mesh.m_Material->GetTexture(0)->GetIndex() : 0;
-			data.RaytracingSceneDescriptor = renderData.m_RaytracingTLAS->GetIndex();
+			data.m_BatchStart = batch.m_StartOffset;
 
-			auto cbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData),sizeof(data), (void*)&data);
-			std::vector<vkr::Render::Buffer*> buffers;
+			//Per batch buffer
+			auto perbatchbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData), sizeof(data), (void*)&data);
+			std::vector<Ref<vkr::Render::Buffer>> buffers;
 			std::vector<uint64_t> offsets;
-			buffers.push_back(cbuffer.m_Buffer);
-			offsets.push_back(cbuffer.m_Offset);
+			buffers.push_back(renderData.m_PerSceneConstantBuffer.m_Buffer);
+			offsets.push_back(renderData.m_PerSceneConstantBuffer.m_Offset);
+			buffers.push_back(perbatchbuffer.m_Buffer);
+			offsets.push_back(perbatchbuffer.m_Offset);
 			ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
-			ctx->DrawIndexed(mesh.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount);
+			ctx->DrawIndexedInstanced(batch.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount, batch.m_Count);
 		}
 
 		//Transition output to present
@@ -169,40 +191,32 @@ namespace vkr::Graphics
 		ctx->SetViewport(0, 0, rtDesc.m_Size.x, rtDesc.m_Size.y);
 		ctx->SetScissorRect(0, 0, rtDesc.m_Size.x, rtDesc.m_Size.y);
 		
-		for (auto& mesh : renderData.m_VisibleMeshes)
+		for (auto& batch : renderData.m_DepthPassData.m_InstanceBatches)
 		{
 			std::vector<vkr::Ref<vkr::Render::Buffer>> vertexbuffers;
-			vertexbuffers.push_back(mesh.m_Mesh->GetVertexBuffer());
+			vertexbuffers.push_back(batch.m_Mesh->GetVertexBuffer());
 			ctx->BindVertexBuffers(vertexbuffers.data(), vertexbuffers.size());
-			ctx->BindIndexBuffer(mesh.m_Mesh->GetIndexBuffer());
-			ctx->SetPrimitiveTopology(mesh.m_Mesh->GetTopology());
-			ctx->BindPSO(mesh.m_Material->GetDepthPipelineState(mesh.m_Mesh->GetVertexLayout()));
+			ctx->BindIndexBuffer(batch.m_Mesh->GetIndexBuffer());
+			ctx->SetPrimitiveTopology(batch.m_Mesh->GetTopology());
+			ctx->BindPSO(batch.m_PSO);
 
 			struct alignas(16) ConstantData
 			{
-				Mat44 ViewProjection; // 64 bytes
-				Mat44 World; // 64 bytes
-
-				Vector3f Color;
-				uint32_t TextureDescriptor; // 16 bytes
-
-				uint32_t RaytracingSceneDescriptor;
-				uint32_t pad[3];
+				uint32_t m_BatchStart;
 			};
 			ConstantData data;
-			data.ViewProjection = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
-			data.World = mesh.m_Transform;
-			data.Color = Vector3f(1, 0, 0);
-			data.TextureDescriptor = mesh.m_Material->GetTexture(0) ? mesh.m_Material->GetTexture(0)->GetIndex() : 0; 
-			data.RaytracingSceneDescriptor = renderData.m_RaytracingTLAS->GetIndex();
+			data.m_BatchStart = batch.m_StartOffset;
 
-			auto cbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData), sizeof(data), (void*)&data);
-			std::vector<vkr::Render::Buffer*> buffers;
+			//Per batch buffer
+			auto perbatchbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData), sizeof(data), (void*)&data);
+			std::vector<Ref<vkr::Render::Buffer>> buffers;
 			std::vector<uint64_t> offsets;
-			buffers.push_back(cbuffer.m_Buffer);
-			offsets.push_back(cbuffer.m_Offset);
+			buffers.push_back(renderData.m_PerSceneConstantBuffer.m_Buffer);
+			offsets.push_back(renderData.m_PerSceneConstantBuffer.m_Offset);
+			buffers.push_back(perbatchbuffer.m_Buffer);
+			offsets.push_back(perbatchbuffer.m_Offset);
 			ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
-			ctx->DrawIndexed(mesh.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount);
+			ctx->DrawIndexedInstanced(batch.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount, batch.m_Count);
 		}
 		ctx->End();
 		ctx->Flush();

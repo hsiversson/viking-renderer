@@ -48,7 +48,7 @@ namespace vkr::Render
 	struct TempBuffer
 	{
 		uint64_t m_Offset;
-		Buffer* m_Buffer;
+		Ref<Buffer> m_Buffer;
 	};
 
 	class TempBufferAllocator

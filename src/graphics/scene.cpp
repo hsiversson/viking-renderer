@@ -1,5 +1,10 @@
 #include "scene.h"
+#include "material.h"
+#include "mesh.h"
 #include "view.h"
+
+#include <functional>
+
 
 namespace vkr::Graphics
 {
@@ -41,19 +46,56 @@ namespace vkr::Graphics
 		PrepareViewContext prepareViewCtx(view);
 		ViewRenderData& prepareData = view.GetPrepareData();
 
-		for (const auto& object : m_SceneObjects)
+		for (size_t i = 0; i < m_SceneObjects.size(); i++)
 		{
-			object->CollectRenderObjects(prepareData);
+			m_SceneObjects[i]->CollectRenderObjects(prepareData);
 		}
 
 		std::sort(prepareData.m_VisibleMeshes.begin(), prepareData.m_VisibleMeshes.end());
 
+		auto DepthPSOSelector = [](RenderObject* obj)->Ref<Render::PipelineState>
+		{
+				return obj->m_Material->GetDepthPipelineState(obj->m_Mesh->GetVertexLayout());
+		};
+		auto DefaultPSOSelector = [](RenderObject* obj)->Ref<Render::PipelineState>
+		{
+			return obj->m_Material->GetDefaultPipelineState(obj->m_Mesh->GetVertexLayout());
+		};
+
+		//Pass batch collection
+		auto CollectBatchesForPass = [&prepareData](MeshPassData& PassData,std::function<Ref<Render::PipelineState>(RenderObject*)> PSOSelector) {
+			RenderObject* referenceObject = &prepareData.m_VisibleMeshes[0];
+			RenderBatch currentBatch;
+			currentBatch.m_Mesh = referenceObject->m_Mesh;
+			currentBatch.m_PSO = PSOSelector(referenceObject);
+			currentBatch.m_StartOffset = prepareData.m_InstanceDataOffsetBuffer.size();
+
+			for (auto it = prepareData.m_VisibleMeshes.begin(); it != prepareData.m_VisibleMeshes.end(); it++)
+			{
+				//For now material IDs well leave them (were not filling material parameters or using them anyway YET)
+				if (referenceObject->m_Mesh == it->m_Mesh && PSOSelector(referenceObject) == PSOSelector(&(*it)))
+				{
+					currentBatch.m_Count++;
+				}
+				else
+				{
+					PassData.m_InstanceBatches.push_back(currentBatch);
+					currentBatch.m_Mesh = it->m_Mesh;
+					currentBatch.m_PSO = PSOSelector(&(*it));
+					currentBatch.m_StartOffset = prepareData.m_InstanceDataOffsetBuffer.size();
+					currentBatch.m_Count = 1;
+				}
+				prepareData.m_InstanceDataOffsetBuffer.push_back(it->m_InstanceDataIndex);
+			}
+		};
+		
+		CollectBatchesForPass(prepareData.m_DepthPassData, DepthPSOSelector);
+		CollectBatchesForPass(prepareData.m_ForwardPassData, DefaultPSOSelector);
+		
 		Ref<Render::Buffer> rtTLAS = Render::GetDevice()->CreateTLAS(prepareData.m_RaytracingInstances.size(), prepareData.m_RaytracingInstances.data());
 
 		Render::BufferViewDesc rtTLASDesc = {};
 		rtTLASDesc.m_IsRaytracingAccelerationStructure = true;
 		prepareData.m_RaytracingTLAS = Render::GetDevice()->CreateBufferView(rtTLASDesc, rtTLAS);
-
-		//Collect instance information in a single buffer
 	}
 }
