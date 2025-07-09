@@ -64,10 +64,13 @@ namespace vkr::Graphics
 
 		//Pass batch collection
 		auto CollectBatchesForPass = [&prepareData](MeshPassData& PassData,std::function<Ref<Render::PipelineState>(RenderObject*)> PSOSelector) {
+			if (!prepareData.m_VisibleMeshes.size())
+				return;
 			RenderObject* referenceObject = &prepareData.m_VisibleMeshes[0];
 			RenderBatch currentBatch;
 			currentBatch.m_Mesh = referenceObject->m_Mesh;
 			currentBatch.m_PSO = PSOSelector(referenceObject);
+			currentBatch.m_TextureIndex = referenceObject->m_Material->GetTexture(0) ? referenceObject->m_Material->GetTexture(0)->GetIndex() : 0;
 			currentBatch.m_StartOffset = prepareData.m_InstanceDataOffsetBuffer.size();
 
 			for (auto it = prepareData.m_VisibleMeshes.begin(); it != prepareData.m_VisibleMeshes.end(); it++)
@@ -82,11 +85,14 @@ namespace vkr::Graphics
 					PassData.m_InstanceBatches.push_back(currentBatch);
 					currentBatch.m_Mesh = it->m_Mesh;
 					currentBatch.m_PSO = PSOSelector(&(*it));
+					currentBatch.m_TextureIndex = referenceObject->m_Material->GetTexture(0) ? referenceObject->m_Material->GetTexture(0)->GetIndex() : 0;
 					currentBatch.m_StartOffset = prepareData.m_InstanceDataOffsetBuffer.size();
 					currentBatch.m_Count = 1;
 				}
 				prepareData.m_InstanceDataOffsetBuffer.push_back(it->m_InstanceDataIndex);
 			}
+			//Add last batch
+			PassData.m_InstanceBatches.push_back(currentBatch);
 		};
 		
 		CollectBatchesForPass(prepareData.m_DepthPassData, DepthPSOSelector);

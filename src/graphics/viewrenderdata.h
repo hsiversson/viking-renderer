@@ -58,6 +58,7 @@ namespace vkr::Graphics
 	{
 		Mesh* m_Mesh = nullptr;
 		Ref<Render::PipelineState> m_PSO = nullptr;
+		uint32_t m_TextureIndex = 0; //TODO: This is really material instance data. Move it to material buffers when we implement that part
 		size_t m_StartOffset = 0;
 		size_t m_Count = 0;
 	};
