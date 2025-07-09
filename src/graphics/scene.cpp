@@ -85,7 +85,7 @@ namespace vkr::Graphics
 					PassData.m_InstanceBatches.push_back(currentBatch);
 					currentBatch.m_Mesh = it->m_Mesh;
 					currentBatch.m_PSO = PSOSelector(&(*it));
-					currentBatch.m_TextureIndex = referenceObject->m_Material->GetTexture(0) ? referenceObject->m_Material->GetTexture(0)->GetIndex() : 0;
+					currentBatch.m_TextureIndex = it->m_Material->GetTexture(0) ? it->m_Material->GetTexture(0)->GetIndex() : 0;
 					currentBatch.m_StartOffset = prepareData.m_InstanceDataOffsetBuffer.size();
 					currentBatch.m_Count = 1;
 				}

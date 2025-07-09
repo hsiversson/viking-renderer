@@ -128,6 +128,8 @@ namespace vkr::Graphics
 				"cbuffer PerBatchConstantBuffer : register(b0)\n"
 				"{\n"
 				"	uint BatchInstanceDataOffsetStart;\n"
+				"	uint TextureDescriptor;\n"
+				"	uint RaytracingSceneDescriptor;\n"
 				"};\n"
 				"struct InstanceData\n"
 				"{\n"

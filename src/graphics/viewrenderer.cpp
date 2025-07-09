@@ -208,9 +208,13 @@ namespace vkr::Graphics
 			struct alignas(16) ConstantData
 			{
 				uint32_t m_BatchStart;
+				uint32_t TextureDescriptor;
+				uint32_t RaytracingSceneDescriptor;
 			};
 			ConstantData data;
 			data.m_BatchStart = batch.m_StartOffset;
+			data.TextureDescriptor = batch.m_TextureIndex;
+			data.RaytracingSceneDescriptor = renderData.m_RaytracingTLAS->GetIndex();
 
 			//Per batch buffer
 			auto perbatchbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData), sizeof(data), (void*)&data);
