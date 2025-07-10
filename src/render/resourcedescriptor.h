@@ -137,5 +137,18 @@ namespace vkr::Render
 	private:
 		Ref<Buffer> m_Buffer;
 	};
+
+
+	struct SamplerDesc
+	{
+
+	};
+
+	class Sampler : public ResourceDescriptor
+	{
+	public:
+		Sampler();
+		bool Init(const SamplerDesc& desc);
+	};
 	/////////////////////////////////////////////////////////////
 }

@@ -242,4 +242,10 @@ namespace vkr::Render
 
 		return false;
 	}
+
+
+	bool Sampler::Init(const SamplerDesc& desc)
+	{
+		return false;
+	}
 }

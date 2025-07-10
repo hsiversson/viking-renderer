@@ -27,8 +27,7 @@ namespace vkr::Graphics
 			m_Textures.push_back(device->CreateTextureView(Render::TextureViewDesc{}, texture));
 		}
 
-		m_FrontCounterClockwise = desc.m_FrontCounterClockwise;
-		m_TwoSided = desc.m_TwoSided;
+		m_Desc = desc;
 		return true;
 	}
 
@@ -48,6 +47,35 @@ namespace vkr::Graphics
 			return nullptr;
 
 		return m_Textures[index].get();
+	}
+
+	void Material::AddParameter(const MaterialParameterDesc& desc, const MaterialParameterValue& defaultValue)
+	{
+		m_Parameters.push_back(desc);
+		m_ParameterValues[desc.m_Identifier] = defaultValue;
+	}
+
+	const MaterialParameterDesc* Material::FindParameter(const std::string& identifier) const
+	{
+		for (const auto& param : m_Parameters) 
+		{
+			if (param.m_Identifier == identifier)
+			{
+				return &param;
+			}
+		}
+		return nullptr;
+	}
+
+	const MaterialParameterValue* Material::GetParameterValue(const std::string& identifier) const
+	{
+		auto it = m_ParameterValues.find(identifier);
+		return it != m_ParameterValues.end() ? &it->second : nullptr;
+	}
+
+	const std::vector<MaterialParameterDesc>& Material::GetParameters() const
+	{
+		return m_Parameters;
 	}
 
 	Ref<Render::PipelineState> Material::GetOrCreatePSO(const Render::VertexLayout& vertexLayout, bool depthOnly)
@@ -162,20 +190,82 @@ namespace vkr::Graphics
 			psoDesc.Default.m_VertexShader = vertexShader.get();
 			psoDesc.Default.m_PixelShader = depthOnly ? nullptr : m_PixelShader.get();
 			psoDesc.Default.m_VertexLayout = vertexLayout;
-			psoDesc.Default.m_RasterizerState.m_CullMode = m_TwoSided ? Render::FACE_CULL_MODE_NONE : Render::FACE_CULL_MODE_BACK;
-			psoDesc.Default.m_RasterizerState.m_FrontIsCounterClockwise = m_FrontCounterClockwise;
-			psoDesc.Default.m_RenderTargetState = { {Render::Format::FORMAT_RGB10A2_UNORM} };
+			psoDesc.Default.m_RasterizerState.m_CullMode = m_Desc.m_TwoSided ? Render::FACE_CULL_MODE_NONE : Render::FACE_CULL_MODE_BACK;
+			psoDesc.Default.m_RasterizerState.m_FrontIsCounterClockwise = m_Desc.m_FrontCounterClockwise;
+			psoDesc.Default.m_RenderTargetState.m_Formats[0] = Render::Format::FORMAT_RGB10A2_UNORM;
 
 			if (depthOnly)
-				psoDesc.Default.m_DepthStencilState = { true, true, Render::COMPARISON_FUNC_GREATER_EQUAL, Render::Format::FORMAT_D32_FLOAT };
+			{
+				psoDesc.Default.m_DepthStencilState.m_Enabled = true;
+				psoDesc.Default.m_DepthStencilState.m_WriteDepth = true;
+				psoDesc.Default.m_DepthStencilState.m_ComparisonFunc = Render::COMPARISON_FUNC_GREATER_EQUAL;
+				psoDesc.Default.m_DepthStencilState.m_DSFormat = Render::Format::FORMAT_D32_FLOAT;
+			}
 			else
-				psoDesc.Default.m_DepthStencilState = { true, false, Render::COMPARISON_FUNC_EQUAL, Render::Format::FORMAT_D32_FLOAT };
+			{
+				psoDesc.Default.m_DepthStencilState.m_Enabled = true;
+				psoDesc.Default.m_DepthStencilState.m_WriteDepth = false;
+				psoDesc.Default.m_DepthStencilState.m_ComparisonFunc = Render::COMPARISON_FUNC_EQUAL;
+				psoDesc.Default.m_DepthStencilState.m_DSFormat = Render::Format::FORMAT_D32_FLOAT;
+			}
 
-			psoDesc.Default.m_BlendState.RTBlends.push_back({ true, Render::BLEND_OP_ADD, Render::BLEND_SRC_ALPHA, Render::BLEND_INV_SRC_ALPHA, Render::BLEND_OP_ADD, Render::BLEND_ONE, Render::BLEND_ZERO, Render::COLOR_WRITE_ALL });
+			if (m_Desc.m_BlendMode == MaterialBlendMode::Translucent)
+			{
+				psoDesc.Default.m_BlendState.RTBlends[0].m_Enabled = true;
+				psoDesc.Default.m_BlendState.RTBlends[0].m_Operation = Render::BLEND_OP_ADD;
+				psoDesc.Default.m_BlendState.RTBlends[0].m_SrcBlend = Render::BLEND_SRC_ALPHA;
+				psoDesc.Default.m_BlendState.RTBlends[0].m_DstBlend = Render::BLEND_INV_SRC_ALPHA;
+				psoDesc.Default.m_BlendState.RTBlends[0].m_AlphaOperation = Render::BLEND_OP_ADD;
+				psoDesc.Default.m_BlendState.RTBlends[0].m_SrcBlendAlpha = Render::BLEND_ONE;
+				psoDesc.Default.m_BlendState.RTBlends[0].m_DstBlendAlpha = Render::BLEND_ZERO;
+				psoDesc.Default.m_BlendState.RTBlends[0].m_WriteMask = Render::COLOR_WRITE_ALL;
+			}
+			else
+			{
+				psoDesc.Default.m_BlendState.RTBlends[0].m_Enabled = false;
+			}
+
 			psoMap[vertexLayout] = device->CreatePipelineState(psoDesc);
 		}
 
 		return psoMap.at(vertexLayout);
+	}
+
+	MaterialInstance::MaterialInstance(const Ref<Material>& material)
+		: m_Material(material)
+	{
+	}
+
+	void MaterialInstance::SetParameterValue(const std::string& identifier, const MaterialParameterValue& value)
+	{
+		m_ParameterOverrides[identifier] = value;
+	}
+
+	const MaterialParameterValue* MaterialInstance::GetParameterValue(const std::string& identifier) const
+	{
+		auto it = m_ParameterOverrides.find(identifier);
+		if (it != m_ParameterOverrides.end())
+		{
+			return &it->second;
+		}
+
+		if (m_Material)
+		{
+			return m_Material->GetParameterValue(identifier);
+		}
+
+		return nullptr;
+	}
+
+	const MaterialParameterDesc* MaterialInstance::GetParameter(const std::string& identifier) const
+	{
+		return m_Material ? m_Material->FindParameter(identifier) : nullptr;
+	}
+
+	const std::vector<MaterialParameterDesc>& MaterialInstance::GetParameters() const
+	{
+		assert(m_Material && "Material template is required.");
+		return m_Material->GetParameters();
 	}
 
 }

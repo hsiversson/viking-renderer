@@ -77,6 +77,11 @@ namespace vkr::Graphics
 		return m_ViewRenderData[m_RenderDataIndex];
 	}
 
+	ViewRenderData& View::GetMutableRenderData()
+	{
+		return m_ViewRenderData[m_RenderDataIndex];
+	}
+
 	void View::SetPrimary(bool value)
 	{
 		m_IsPrimary = value;

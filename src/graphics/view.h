@@ -33,6 +33,7 @@ namespace vkr::Graphics
 
 		// We consume the render data at render stage.
 		const ViewRenderData& GetRenderData() const;
+		ViewRenderData& GetMutableRenderData();
 
 		void SetOutputTarget(Ref<vkr::Render::RenderTargetView> outputdescriptor) { m_OutputDescriptor = outputdescriptor; }
 		Ref<vkr::Render::RenderTargetView> GetOutputTarget() const { return m_OutputDescriptor; }

@@ -77,7 +77,7 @@ namespace vkr::Render
 
 	struct BlendState
 	{
-		std::vector<RenderTargetBlend> RTBlends;
+		std::array<RenderTargetBlend, MAX_NUM_RENDER_TARGETS> RTBlends;
 	};
 }
 

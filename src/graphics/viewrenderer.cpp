@@ -29,7 +29,7 @@ namespace vkr::Graphics
 	{
 		RenderViewContext renderViewCtx(view);
 
-		const ViewRenderData& renderData = view.GetRenderData();
+		ViewRenderData& renderData = view.GetMutableRenderData();
 
 		//Fill in the instance data (later we can just keep this as a normal buffer instead of temp that we need to rebuild per frame)
 		auto instancedatabuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, renderData.m_InstanceData.size(), renderData.m_InstanceData.size(), renderData.m_InstanceData.data());
@@ -44,8 +44,7 @@ namespace vkr::Graphics
 		instancedatabufferdesc.m_Writable = false;
 		instancedatabufferdesc.m_Format = Render::FORMAT_UNKNOWN;
 		instancedatabufferdesc.m_IsRaytracingAccelerationStructure = false;
-		const_cast<ViewRenderData&>(renderData).m_InstanceDataBufferView = Render::GetDevice()->CreateBufferView(instancedatabufferdesc, instancedatabuffer.m_Buffer);
-
+		renderData.m_InstanceDataBufferView = Render::GetDevice()->CreateBufferView(instancedatabufferdesc, instancedatabuffer.m_Buffer);
 
 		//Fill in the instance data indices
 		auto instancedataoffsetbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, renderData.m_InstanceDataOffsetBuffer.size()*sizeof(uint32_t), renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), renderData.m_InstanceDataOffsetBuffer.data());
@@ -60,7 +59,7 @@ namespace vkr::Graphics
 		instancedataoffsetbufferdesc.m_Writable = false;
 		instancedataoffsetbufferdesc.m_Format = Render::FORMAT_R32_UINT;
 		instancedataoffsetbufferdesc.m_IsRaytracingAccelerationStructure = false;
-		const_cast<ViewRenderData&>(renderData).m_InstanceDataOffsetBufferView = Render::GetDevice()->CreateBufferView(instancedataoffsetbufferdesc, instancedatabuffer.m_Buffer);
+		renderData.m_InstanceDataOffsetBufferView = Render::GetDevice()->CreateBufferView(instancedataoffsetbufferdesc, instancedatabuffer.m_Buffer);
 
 		//Construct the per scene constant buffer
 		struct alignas(16) PerSceneConstantData
@@ -73,7 +72,7 @@ namespace vkr::Graphics
 		persceneconstantdata.ViewProjection = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
 		persceneconstantdata.InstanceDataBufferDescriptorIndex = renderData.m_InstanceDataBufferView->GetIndex();
 		persceneconstantdata.InstanceDataOffsetBufferDescriptorIndex = renderData.m_InstanceDataOffsetBufferView->GetIndex();
-		const_cast<ViewRenderData&>(renderData).m_PerSceneConstantBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(PerSceneConstantData), sizeof(PerSceneConstantData), &persceneconstantdata);
+		renderData.m_PerSceneConstantBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(PerSceneConstantData), sizeof(PerSceneConstantData), &persceneconstantdata);
 		
 		UpdateRtScene(view);
 		UpdateParticles(view);
