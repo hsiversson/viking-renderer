@@ -109,18 +109,18 @@ namespace vkr::Graphics
 				attribute.m_Type = Render::VertexAttribute::TYPE_TANGENT;
 				attribute.m_Index = attr.index;
 				attribute.m_BufferSlot = 0;
-				attribute.m_Format = Render::FORMAT_RGB32_FLOAT;
+				attribute.m_Format = Render::FORMAT_RGBA32_FLOAT;
 				vertexLayout.m_Attributes.insert(attribute);
 
 				std::vector<uint8_t>& tangentData = meshDesc.m_VertexData[Render::VertexAttribute::TYPE_TANGENT];
-				tangentData.reserve(tangentData.size() + (accessor->count * sizeof(Vector3f)));
+				tangentData.reserve(tangentData.size() + (accessor->count * sizeof(Vector4f)));
 				cgltf_buffer_view* view = accessor->buffer_view;
 				const uint8_t* base = static_cast<const uint8_t*>(view->buffer->data) + view->offset + accessor->offset;
 				for (size_t i = 0; i < accessor->count; ++i)
 				{
 					const float* v = (float*)(base + i * accessor->stride);
-					const Vector3f tangent = Vector3f(v[0], v[1], -v[2]);
-					tangentData.insert(tangentData.end(), (uint8_t*)&tangent, (uint8_t*)&tangent + sizeof(Vector3f));
+					const Vector4f tangent = Vector4f(v[0], v[1], -v[2], v[3]);
+					tangentData.insert(tangentData.end(), (uint8_t*)&tangent, (uint8_t*)&tangent + sizeof(Vector4f));
 				}
 			}
 			else if (attr.type == cgltf_attribute_type_texcoord)
