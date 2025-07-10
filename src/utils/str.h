@@ -6,6 +6,7 @@
 namespace vkr
 {
 	std::wstring UTF8ToUTF16(const std::string& utf8Str);
+	std::string UTF16ToUTF8(const std::wstring& utf16Str);
 	std::string ReadFileToString(const std::filesystem::path& filename);
 
 	bool IsInt(const std::string& str);

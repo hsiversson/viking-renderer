@@ -48,7 +48,38 @@ namespace vkr::Render
 			}
 		}
 
-		m_Factory->EnumAdapters1(0, &m_Adapter); // Make this smarter?
+		{
+			ComPtr<IDXGIFactory6> factory6;
+			m_Factory.As(&factory6);
+
+			uint32_t selectedAdapterId = 0;
+			ComPtr<IDXGIAdapter1> selectedAdapter;
+			DXGI_ADAPTER_DESC1 selectedAdapterDesc = {};
+
+			{
+				ComPtr<IDXGIAdapter1> adapter;
+				DXGI_ADAPTER_DESC1 adapterDesc = {};
+
+				VKR_LOG(L"Available adapters:");
+				VKR_LOG(L"[");
+				for (uint32_t i = 0; SUCCEEDED(factory6->EnumAdapterByGpuPreference(i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&adapter))); ++i)
+				{
+					adapter->GetDesc1(&adapterDesc);
+					VKR_LOG(L"	[{}]: {}", i, adapterDesc.Description);
+
+					if (adapterDesc.DedicatedVideoMemory > selectedAdapterDesc.DedicatedVideoMemory)
+					{
+						selectedAdapterId = i;
+						selectedAdapter = adapter;
+						selectedAdapterDesc = adapterDesc;
+					}
+				}
+				VKR_LOG(L"]");
+			}
+
+			m_Adapter = selectedAdapter;
+			VKR_LOG(L"Adapter selected: [{}]: {}", selectedAdapterId, selectedAdapterDesc.Description);
+		}
 
 		D3D12CreateDevice(m_Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_Device));
 		m_Device.As(&m_Device10);
@@ -421,7 +452,4 @@ namespace vkr::Render
 		d3dCmdList4->Release();
 		return outBuffer;
 	}
-
-	
-
 }

@@ -22,4 +22,5 @@ using Microsoft::WRL::ComPtr;
 
 #include "core/common.h"
 #include "core/types.h"
+#include "core/logger.h"
 #include "render/renderenums.h"

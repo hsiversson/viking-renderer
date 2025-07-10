@@ -1,4 +1,6 @@
 #include "logger.h"
+#include "utils/str.h"
+
 #include <cassert>
 #include <chrono>
 
@@ -38,6 +40,11 @@ namespace vkr
 
 		std::unique_lock<std::mutex> lock(g_Instance->m_Mutex);
 		g_Instance->m_PendingMessages.push(pendingMessage);
+	}
+
+	void Logger::QueueMessage(LogMessageType type, const std::wstring& message, const char* functionName /*= nullptr*/, const char* file /*= nullptr*/, uint32_t lineNumber /*= 0*/)
+	{
+		QueueMessage(type, UTF16ToUTF8(message), functionName, file, lineNumber);
 	}
 
 	Logger::Logger()

@@ -43,13 +43,13 @@ namespace vkr::Render
 
 		m_SwapChain.As(&m_SwapChain4);
 
-		ComPtr<IDXGIOutput> output;
-		m_SwapChain4->GetContainingOutput(&output);
-		output.As(&m_Output);
-
-		DXGI_OUTPUT_DESC1 outputDesc = {};
-		m_Output->GetDesc1(&outputDesc);
-		m_HdrSupported = (outputDesc.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
+		//ComPtr<IDXGIOutput> output;
+		//m_SwapChain4->GetContainingOutput(&output);
+		//output.As(&m_Output);
+		//
+		//DXGI_OUTPUT_DESC1 outputDesc = {};
+		//m_Output->GetDesc1(&outputDesc);
+		//m_HdrSupported = (outputDesc.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
 
 		CreateResources();
 		SetHdrEnabled(false);
@@ -67,15 +67,15 @@ namespace vkr::Render
 
 	void SwapChain::SetHdrEnabled(bool hdr)
 	{
-		if (m_IsHdrEnabled != hdr)
-		{
-			DXGI_COLOR_SPACE_TYPE targetColorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
-			if (hdr && m_HdrSupported)
-				targetColorSpace = DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
-
-			m_SwapChain4->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709);
-			m_IsHdrEnabled = hdr;
-		}
+		//if (m_IsHdrEnabled != hdr)
+		//{
+		//	DXGI_COLOR_SPACE_TYPE targetColorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
+		//	if (hdr && m_HdrSupported)
+		//		targetColorSpace = DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
+		//
+		//	m_SwapChain4->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709);
+		//	m_IsHdrEnabled = hdr;
+		//}
 	}
 
 	bool SwapChain::IsHdrEnabled() const

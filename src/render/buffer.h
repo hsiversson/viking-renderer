@@ -47,7 +47,7 @@ namespace vkr::Render
 
 	struct TempBuffer
 	{
-		uint64_t m_Offset;
+		uint64_t m_Offset = 0;
 		Ref<Buffer> m_Buffer;
 	};
 

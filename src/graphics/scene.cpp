@@ -88,6 +88,7 @@ namespace vkr::Graphics
 					currentBatch.m_TextureIndex = it->m_Material->GetTexture(0) ? it->m_Material->GetTexture(0)->GetIndex() : 0;
 					currentBatch.m_StartOffset = prepareData.m_InstanceDataOffsetBuffer.size();
 					currentBatch.m_Count = 1;
+					referenceObject = &(*it);
 				}
 				prepareData.m_InstanceDataOffsetBuffer.push_back(it->m_InstanceDataIndex);
 			}

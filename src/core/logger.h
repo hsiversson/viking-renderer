@@ -31,6 +31,7 @@ namespace vkr
 		static Logger* Get() { return g_Instance; }
 
 		static void QueueMessage(LogMessageType type, const std::string& message, const char* functionName = nullptr, const char* file = nullptr, uint32_t lineNumber = 0);
+		static void QueueMessage(LogMessageType type, const std::wstring& message, const char* functionName = nullptr, const char* file = nullptr, uint32_t lineNumber = 0);
 
 	private:
 		Logger();
