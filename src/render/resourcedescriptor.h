@@ -123,6 +123,7 @@ namespace vkr::Render
 		uint32_t m_ElementSize = 0;
 		bool m_Writable = false;
 		BufferUsage m_Usage = Typed;
+		Format m_Format = FORMAT_UNKNOWN;
 		bool m_IsRaytracingAccelerationStructure = false;
 	};
 

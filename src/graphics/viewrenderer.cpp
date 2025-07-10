@@ -36,7 +36,15 @@ namespace vkr::Graphics
 		//Oh god what ive done, const fucking
 		uint32_t instancedatastart = (uint32_t)(instancedatabuffer.m_Offset / 4.0);
 		uint32_t instancedataend = instancedatastart + (uint32_t)renderData.m_InstanceData.size() / 4;
-		const_cast<ViewRenderData&>(renderData).m_InstanceDataBufferView = Render::GetDevice()->CreateBufferView({ instancedatastart, instancedataend, 1, false, Render::Raw }, instancedatabuffer.m_Buffer);
+		Render::BufferViewDesc instancedatabufferdesc; // Byteaddressbuffer
+		instancedatabufferdesc.m_First = instancedatastart;
+		instancedatabufferdesc.m_Last = instancedataend;
+		instancedatabufferdesc.m_ElementSize = 1;
+		instancedatabufferdesc.m_Usage = Render::Raw;
+		instancedatabufferdesc.m_Writable = false;
+		instancedatabufferdesc.m_Format = Render::FORMAT_UNKNOWN;
+		instancedatabufferdesc.m_IsRaytracingAccelerationStructure = false;
+		const_cast<ViewRenderData&>(renderData).m_InstanceDataBufferView = Render::GetDevice()->CreateBufferView(instancedatabufferdesc, instancedatabuffer.m_Buffer);
 
 
 		//Fill in the instance data indices
@@ -44,7 +52,15 @@ namespace vkr::Graphics
 		uint32_t instancedataoffsetstart = (uint32_t)(instancedataoffsetbuffer.m_Offset / sizeof(uint32_t));
 		uint32_t instancedataoffsetend = instancedataoffsetstart + (uint32_t)renderData.m_InstanceDataOffsetBuffer.size();
 		//Oh god what ive done, const fucking
-		const_cast<ViewRenderData&>(renderData).m_InstanceDataOffsetBufferView = Render::GetDevice()->CreateBufferView({ instancedataoffsetstart, instancedataoffsetend, 1, false, Render::Typed }, instancedatabuffer.m_Buffer);
+		Render::BufferViewDesc instancedataoffsetbufferdesc; // Typed uint buffer
+		instancedataoffsetbufferdesc.m_First = instancedataoffsetstart;
+		instancedataoffsetbufferdesc.m_Last = instancedataoffsetend;
+		instancedataoffsetbufferdesc.m_ElementSize = 0;
+		instancedataoffsetbufferdesc.m_Usage = Render::Typed;
+		instancedataoffsetbufferdesc.m_Writable = false;
+		instancedataoffsetbufferdesc.m_Format = Render::FORMAT_R32_UINT;
+		instancedataoffsetbufferdesc.m_IsRaytracingAccelerationStructure = false;
+		const_cast<ViewRenderData&>(renderData).m_InstanceDataOffsetBufferView = Render::GetDevice()->CreateBufferView(instancedataoffsetbufferdesc, instancedatabuffer.m_Buffer);
 
 		//Construct the per scene constant buffer
 		struct alignas(16) PerSceneConstantData

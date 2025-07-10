@@ -192,6 +192,11 @@ namespace vkr::Render
 					uavDesc.Buffer.Flags |= D3D12_BUFFER_UAV_FLAG_RAW;
 					uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 				}
+				else if (desc.m_Usage == Typed)
+				{
+					uavDesc.Format = D3DConvertFormat(desc.m_Format);
+					uavDesc.Buffer.StructureByteStride = 0;
+				}
 				GetDevice()->GetD3DDevice()->CreateUnorderedAccessView(resource->GetD3DResource(), nullptr, &uavDesc, m_D3DHandle);
 			}
 			else if (desc.m_IsRaytracingAccelerationStructure)
@@ -219,6 +224,11 @@ namespace vkr::Render
 				{
 					srvDesc.Buffer.Flags |= D3D12_BUFFER_SRV_FLAG_RAW;
 					srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+					srvDesc.Buffer.StructureByteStride = 0;
+				}
+				else if (desc.m_Usage == Typed)
+				{
+					srvDesc.Format = D3DConvertFormat(desc.m_Format);
 					srvDesc.Buffer.StructureByteStride = 0;
 				}
 				GetDevice()->GetD3DDevice()->CreateShaderResourceView(resource->GetD3DResource(), &srvDesc, m_D3DHandle);
