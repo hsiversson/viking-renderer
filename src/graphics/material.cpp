@@ -21,12 +21,6 @@ namespace vkr::Graphics
 		Render::Device* device = Render::GetDevice();
 		m_PixelShader = device->CreateShader("../../../content/shaders/simpleforwardtestPS.hlsl", L"MainPS", vkr::Render::SHADER_STAGE_PIXEL);
 
-		for (const std::filesystem::path& texturePath : desc.m_TexturePaths)
-		{
-			Ref<Render::Texture> texture = device->LoadTexture(texturePath);
-			m_Textures.push_back(device->CreateTextureView(Render::TextureViewDesc{}, texture));
-		}
-
 		for (const auto& param : desc.m_Parameters)
 		{
 			AddParameter(param.first, param.second);
@@ -44,14 +38,6 @@ namespace vkr::Graphics
 	Ref<Render::PipelineState> Material::GetDefaultPipelineState(const Render::VertexLayout& vertexLayout)
 	{
 		return GetOrCreatePSO(vertexLayout, false);
-	}
-
-	Render::TextureView* Material::GetTexture(uint32_t index) const
-	{
-		if (m_Textures.empty())
-			return nullptr;
-
-		return m_Textures[index].get();
 	}
 
 	void Material::AddParameter(const MaterialParameterDesc& desc, const MaterialParameterValue& defaultValue)

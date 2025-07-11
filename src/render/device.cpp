@@ -171,6 +171,11 @@ namespace vkr::Render
 
 	Ref<Texture> Device::LoadTexture(const std::filesystem::path& filepath)
 	{
+		//if (Ref<Texture> tex = m_TextureCache.Get(filepath))
+		//{
+		//	return tex;
+		//}
+
 		TextureLoader* loader = nullptr;
 		auto loaderSearch = m_TextureLoaderByExtension.find(filepath.extension());
 		if (loaderSearch != m_TextureLoaderByExtension.end())
@@ -191,7 +196,9 @@ namespace vkr::Render
 			return nullptr;
 		}
 
-		return CreateTexture(textureDesc, &textureData);
+		Ref<Texture> texture = CreateTexture(textureDesc, &textureData);
+		//m_TextureCache.Insert(filepath, texture);
+		return texture;
 	}
 
 	Ref<TextureView> Device::CreateTextureView(const TextureViewDesc& desc, const Ref<Texture>& resource)

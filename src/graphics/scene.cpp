@@ -70,10 +70,14 @@ namespace vkr::Graphics
 			RenderBatch currentBatch;
 			currentBatch.m_Mesh = referenceObject->m_Mesh;
 			currentBatch.m_PSO = PSOSelector(referenceObject);
-			currentBatch.m_AlbedoTextureIndex = referenceObject->m_Material->GetTexture(0) ? referenceObject->m_Material->GetTexture(0)->GetIndex() : 0;
-			currentBatch.m_NormalTextureIndex = referenceObject->m_Material->GetTexture(1) ? referenceObject->m_Material->GetTexture(1)->GetIndex() : 0;
-			currentBatch.m_MetallicRoughnessTextureIndex = referenceObject->m_Material->GetTexture(2) ? referenceObject->m_Material->GetTexture(2)->GetIndex() : 0;
 			currentBatch.m_StartOffset = prepareData.m_InstanceDataOffsetBuffer.size();
+
+			const MaterialParameterValue* albedoTexParam = referenceObject->m_Material->GetParameterValue("albedoTexture");
+			const MaterialParameterValue* normalTexParam = referenceObject->m_Material->GetParameterValue("normalTexture");
+			const MaterialParameterValue* materialTexParam = referenceObject->m_Material->GetParameterValue("materialTexture");
+			currentBatch.m_AlbedoTextureIndex = albedoTexParam ? albedoTexParam->Get<Ref<Render::TextureView>>()->GetIndex() : 0;
+			currentBatch.m_NormalTextureIndex = normalTexParam ? normalTexParam->Get<Ref<Render::TextureView>>()->GetIndex() : 0;
+			currentBatch.m_MetallicRoughnessTextureIndex = materialTexParam ? materialTexParam->Get<Ref<Render::TextureView>>()->GetIndex() : 0;
 
 			for (auto it = prepareData.m_VisibleMeshes.begin(); it != prepareData.m_VisibleMeshes.end(); it++)
 			{
@@ -87,9 +91,13 @@ namespace vkr::Graphics
 					PassData.m_InstanceBatches.push_back(currentBatch);
 					currentBatch.m_Mesh = it->m_Mesh;
 					currentBatch.m_PSO = PSOSelector(&(*it));
-					currentBatch.m_AlbedoTextureIndex = it->m_Material->GetTexture(0) ? it->m_Material->GetTexture(0)->GetIndex() : 0;
-					currentBatch.m_NormalTextureIndex = it->m_Material->GetTexture(1) ? it->m_Material->GetTexture(1)->GetIndex() : 0;
-					currentBatch.m_MetallicRoughnessTextureIndex = it->m_Material->GetTexture(2) ? it->m_Material->GetTexture(2)->GetIndex() : 0;
+
+					const MaterialParameterValue* albedoTexParam = it->m_Material->GetParameterValue("albedoTexture");
+					const MaterialParameterValue* normalTexParam = it->m_Material->GetParameterValue("normalTexture");
+					const MaterialParameterValue* materialTexParam = it->m_Material->GetParameterValue("materialTexture");
+					currentBatch.m_AlbedoTextureIndex = albedoTexParam ? albedoTexParam->Get<Ref<Render::TextureView>>()->GetIndex() : 0;
+					currentBatch.m_NormalTextureIndex = normalTexParam ? normalTexParam->Get<Ref<Render::TextureView>>()->GetIndex() : 0;
+					currentBatch.m_MetallicRoughnessTextureIndex = materialTexParam ? materialTexParam->Get<Ref<Render::TextureView>>()->GetIndex() : 0;
 
 					currentBatch.m_StartOffset = prepareData.m_InstanceDataOffsetBuffer.size();
 					currentBatch.m_Count = 1;

@@ -88,8 +88,6 @@ namespace vkr::Graphics
 
 	struct MaterialDesc
 	{
-		std::vector<std::filesystem::path> m_TexturePaths; // TODO: replace with parameters
-
 		std::vector<std::pair<MaterialParameterDesc, MaterialParameterValue>> m_Parameters;
 
 		MaterialBlendMode m_BlendMode = MaterialBlendMode::Opaque;
@@ -110,7 +108,6 @@ namespace vkr::Graphics
 
 		Ref<Render::PipelineState> GetDepthPipelineState(const Render::VertexLayout& vertexLayout);
 		Ref<Render::PipelineState> GetDefaultPipelineState(const Render::VertexLayout& vertexLayout);
-		Render::TextureView* GetTexture(uint32_t index) const;
 
 		void AddParameter(const MaterialParameterDesc& desc, const MaterialParameterValue& defaultValue);
 		const MaterialParameterDesc* FindParameter(const std::string& identifier) const;
@@ -126,9 +123,6 @@ namespace vkr::Graphics
 		using CachedPSOs = std::unordered_map<Render::VertexLayout, Ref<Render::PipelineState>>;
 		CachedPSOs m_DefaultPSOs;
 		CachedPSOs m_DepthOnlyPSOs;
-
-		// Make this parameterized?
-		std::vector<Ref<Render::TextureView>> m_Textures;
 
 		std::vector<MaterialParameterDesc> m_Parameters;
 		std::unordered_map<std::string, MaterialParameterValue> m_ParameterValues;

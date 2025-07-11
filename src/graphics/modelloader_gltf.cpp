@@ -1,6 +1,7 @@
 ﻿#include "modelloader_gltf.h"
 #include "core/types.h"
 #include "render/renderstates.h"
+#include "render/device.h"
 #include "graphics/model.h"
 
 #define CGLTF_IMPLEMENTATION
@@ -20,12 +21,31 @@ namespace vkr::Graphics
 			const std::filesystem::path metallicRoughnessTexPath = material->pbr_metallic_roughness.metallic_roughness_texture.texture->image->uri;
 			const std::filesystem::path emissiveTexPath = material->emissive_texture.texture->image->uri;
 
-			materialDesc.m_TexturePaths.push_back(modelDirectory / baseColorTexPath);
-			materialDesc.m_TexturePaths.push_back(modelDirectory / normalTexPath);
-			materialDesc.m_TexturePaths.push_back(modelDirectory / metallicRoughnessTexPath);
-			materialDesc.m_TexturePaths.push_back(modelDirectory / emissiveTexPath);
+			Render::Device* device = Render::GetDevice();
 
+			Ref<Render::Texture> baseColorTexture = device->LoadTexture(modelDirectory / baseColorTexPath);
 			std::pair<MaterialParameterDesc, MaterialParameterValue> param0;
+			param0.first = { "albedoTexture", MaterialParameterType::Texture };
+			param0.second = device->CreateTextureView(Render::TextureViewDesc{}, baseColorTexture);
+			materialDesc.m_Parameters.push_back(param0);
+
+			Ref<Render::Texture> normalTexture = device->LoadTexture(modelDirectory / normalTexPath);
+			std::pair<MaterialParameterDesc, MaterialParameterValue> param1;
+			param1.first = { "normalTexture", MaterialParameterType::Texture };
+			param1.second = device->CreateTextureView(Render::TextureViewDesc{}, normalTexture);
+			materialDesc.m_Parameters.push_back(param1);
+
+			Ref<Render::Texture> materialTexture = device->LoadTexture(modelDirectory / metallicRoughnessTexPath);
+			std::pair<MaterialParameterDesc, MaterialParameterValue> param2;
+			param2.first = { "materialTexture", MaterialParameterType::Texture };
+			param2.second = device->CreateTextureView(Render::TextureViewDesc{}, materialTexture);
+			materialDesc.m_Parameters.push_back(param2);
+
+			Ref<Render::Texture> emissiveTexture = device->LoadTexture(modelDirectory / emissiveTexPath);
+			std::pair<MaterialParameterDesc, MaterialParameterValue> param3;
+			param3.first = { "emissiveTexture", MaterialParameterType::Texture };
+			param3.second = device->CreateTextureView(Render::TextureViewDesc{}, emissiveTexture);
+			materialDesc.m_Parameters.push_back(param3);
 
 			materialDesc.m_FrontCounterClockwise = true;
 			materialDesc.m_TwoSided = false;
