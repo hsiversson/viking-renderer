@@ -27,18 +27,6 @@ namespace vkr::Graphics
 		Translucent
 	};
 
-	struct MaterialDesc
-	{
-		std::vector<std::filesystem::path> m_TexturePaths; // TODO: replace with parameters
-
-		MaterialBlendMode m_BlendMode = MaterialBlendMode::Opaque;
-		MaterialType m_Type = MaterialType::Surface;
-
-		bool m_WriteVelocity;
-		bool m_TwoSided;
-		bool m_FrontCounterClockwise;
-	};
-
 	enum class MaterialParameterType
 	{
 		StaticBool,
@@ -49,14 +37,16 @@ namespace vkr::Graphics
 		Texture,
 		Sampler,
 
-		Count
+		Count,
+		Undefined = Count,
 	};
 
 	struct MaterialParameterDesc
 	{
 		std::string m_Identifier;
-		MaterialParameterType m_Type;
+		MaterialParameterType m_Type = MaterialParameterType::Undefined;
 
+		MaterialParameterDesc() = default;
 		MaterialParameterDesc(const std::string& identifier, MaterialParameterType type)
 			: m_Identifier(identifier)
 			, m_Type(type)
@@ -94,6 +84,20 @@ namespace vkr::Graphics
 		{
 			return static_cast<MaterialParameterType>(m_Value.index());
 		}
+	};
+
+	struct MaterialDesc
+	{
+		std::vector<std::filesystem::path> m_TexturePaths; // TODO: replace with parameters
+
+		std::vector<std::pair<MaterialParameterDesc, MaterialParameterValue>> m_Parameters;
+
+		MaterialBlendMode m_BlendMode = MaterialBlendMode::Opaque;
+		MaterialType m_Type = MaterialType::Surface;
+
+		bool m_WriteVelocity;
+		bool m_TwoSided;
+		bool m_FrontCounterClockwise;
 	};
 
 	class Material

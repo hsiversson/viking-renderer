@@ -107,15 +107,15 @@ namespace vkr::Render
 		}
 		else
 		{
-			if (CommandLine::Has("shader_optimize0"))
+			if (CommandLine::Has("shader_optimization_level_0"))
 			{
 				compileArguments.push_back(DXC_ARG_OPTIMIZATION_LEVEL0);
 			}
-			else if (CommandLine::Has("shader_optimize1"))
+			else if (CommandLine::Has("shader_optimization_level_1"))
 			{
 				compileArguments.push_back(DXC_ARG_OPTIMIZATION_LEVEL1);
 			}
-			else if (CommandLine::Has("shader_optimize2"))
+			else if (CommandLine::Has("shader_optimization_level_2"))
 			{
 				compileArguments.push_back(DXC_ARG_OPTIMIZATION_LEVEL2);
 			}

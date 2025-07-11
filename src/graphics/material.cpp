@@ -27,6 +27,11 @@ namespace vkr::Graphics
 			m_Textures.push_back(device->CreateTextureView(Render::TextureViewDesc{}, texture));
 		}
 
+		for (const auto& param : desc.m_Parameters)
+		{
+			AddParameter(param.first, param.second);
+		}
+
 		m_Desc = desc;
 		return true;
 	}

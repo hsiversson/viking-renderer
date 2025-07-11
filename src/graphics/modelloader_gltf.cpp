@@ -25,6 +25,8 @@ namespace vkr::Graphics
 			materialDesc.m_TexturePaths.push_back(modelDirectory / metallicRoughnessTexPath);
 			materialDesc.m_TexturePaths.push_back(modelDirectory / emissiveTexPath);
 
+			std::pair<MaterialParameterDesc, MaterialParameterValue> param0;
+
 			materialDesc.m_FrontCounterClockwise = true;
 			materialDesc.m_TwoSided = false;
 		}
