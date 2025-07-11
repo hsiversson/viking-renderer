@@ -70,7 +70,9 @@ namespace vkr::Graphics
 			RenderBatch currentBatch;
 			currentBatch.m_Mesh = referenceObject->m_Mesh;
 			currentBatch.m_PSO = PSOSelector(referenceObject);
-			currentBatch.m_TextureIndex = referenceObject->m_Material->GetTexture(0) ? referenceObject->m_Material->GetTexture(0)->GetIndex() : 0;
+			currentBatch.m_AlbedoTextureIndex = referenceObject->m_Material->GetTexture(0) ? referenceObject->m_Material->GetTexture(0)->GetIndex() : 0;
+			currentBatch.m_NormalTextureIndex = referenceObject->m_Material->GetTexture(1) ? referenceObject->m_Material->GetTexture(1)->GetIndex() : 0;
+			currentBatch.m_MetallicRoughnessTextureIndex = referenceObject->m_Material->GetTexture(2) ? referenceObject->m_Material->GetTexture(2)->GetIndex() : 0;
 			currentBatch.m_StartOffset = prepareData.m_InstanceDataOffsetBuffer.size();
 
 			for (auto it = prepareData.m_VisibleMeshes.begin(); it != prepareData.m_VisibleMeshes.end(); it++)
@@ -85,7 +87,10 @@ namespace vkr::Graphics
 					PassData.m_InstanceBatches.push_back(currentBatch);
 					currentBatch.m_Mesh = it->m_Mesh;
 					currentBatch.m_PSO = PSOSelector(&(*it));
-					currentBatch.m_TextureIndex = it->m_Material->GetTexture(0) ? it->m_Material->GetTexture(0)->GetIndex() : 0;
+					currentBatch.m_AlbedoTextureIndex = it->m_Material->GetTexture(0) ? it->m_Material->GetTexture(0)->GetIndex() : 0;
+					currentBatch.m_NormalTextureIndex = it->m_Material->GetTexture(1) ? it->m_Material->GetTexture(1)->GetIndex() : 0;
+					currentBatch.m_MetallicRoughnessTextureIndex = it->m_Material->GetTexture(2) ? it->m_Material->GetTexture(2)->GetIndex() : 0;
+
 					currentBatch.m_StartOffset = prepareData.m_InstanceDataOffsetBuffer.size();
 					currentBatch.m_Count = 1;
 					referenceObject = &(*it);
