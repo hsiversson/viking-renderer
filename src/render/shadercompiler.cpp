@@ -85,7 +85,6 @@ namespace vkr::Render
 		compileArguments.push_back(L"-T");
 		compileArguments.push_back(targetProfile.c_str());
 
-		compileArguments.push_back(L"-Qstrip_debug");
 		compileArguments.push_back(L"-Qstrip_rootsignature");
 		//compileArguments.push_back(L"-Qstrip_reflect");
 		compileArguments.push_back(L"-Qstrip_priv");
@@ -95,6 +94,7 @@ namespace vkr::Render
 		if (CommandLine::Has("shader_debug"))
 		{
 			compileArguments.push_back(DXC_ARG_DEBUG);
+			compileArguments.push_back(L"-Qembed_debug");
 		}
 		else
 		{
