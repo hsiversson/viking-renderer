@@ -235,6 +235,8 @@ namespace vkr::Graphics
 
 	void MaterialInstance::SetParameterValue(const std::string& identifier, const MaterialParameterValue& value)
 	{
+		assert(m_Material && "Material template is required.");
+		assert(m_Material->FindParameter(identifier) != nullptr);
 		m_ParameterOverrides[identifier] = value;
 	}
 

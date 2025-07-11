@@ -23,7 +23,9 @@ namespace vkr::Graphics
 
 	uint32_t MaterialDataBuffer::AddData(uint32_t size, const uint8_t* data)
 	{
+		uint32_t offset = m_Data.size();
 		m_Data.insert(m_Data.end(), data, data + size);
+		return offset;
 	}
 
 	const std::vector<uint8_t>& MaterialDataBuffer::GetData() const
