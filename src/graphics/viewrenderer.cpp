@@ -67,16 +67,21 @@ namespace vkr::Graphics
 			Mat44 WorldToClip;
 			uint32_t InstanceDataBufferDescriptorIndex; // Descriptor index to the global buffer where all instance data for the scene is stored
 			uint32_t InstanceDataOffsetBufferDescriptorIndex;
+			uint32_t pad0;
+			uint32_t pad1;
 			Vector3f CameraWorldPosition;
+			uint32_t pad2;
 			Vector3f DirectionalLightDirection;
+			uint32_t pad3;
 			Vector3f DirectionalLightColor;
+			uint32_t pad4;
 		};
 		PerSceneConstantData persceneconstantdata;
 		Mat43 CamWorld = const_cast<Camera&>(view.GetCamera()).GetWorldTransform();
 		persceneconstantdata.CameraWorldPosition = Vector3f(CamWorld[9], CamWorld[10], CamWorld[11]);
 		persceneconstantdata.WorldToClip = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
 		persceneconstantdata.DirectionalLightDirection = Vector3f(0.2, -0.5, 0.6);
-		persceneconstantdata.DirectionalLightColor = Vector3f(1.0, 1.0, 1.0);
+		persceneconstantdata.DirectionalLightColor = Vector3f(4.0, 4.0, 4.0);
 		persceneconstantdata.InstanceDataBufferDescriptorIndex = renderData.m_InstanceDataBufferView->GetIndex();
 		persceneconstantdata.InstanceDataOffsetBufferDescriptorIndex = renderData.m_InstanceDataOffsetBufferView->GetIndex();
 		renderData.m_PerSceneConstantBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(PerSceneConstantData), sizeof(PerSceneConstantData), &persceneconstantdata);

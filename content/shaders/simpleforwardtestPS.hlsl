@@ -44,7 +44,9 @@ float4 MainPS(PSInput input) : SV_TARGET
     float3 normal = normalize(input.normal);
     float3 tangent = normalize(input.tangent.rgb);
     float3 binormal = cross(normal, tangent) * input.tangent.w;
-    float3x3 tangentToLocal = float3x3(tangent, binormal, normal);
+    float3x3 tangentToLocal = float3x3(tangent.x, binormal.x, normal.x,
+                                       tangent.y, binormal.y, normal.y,
+                                       tangent.z, binormal.z, normal.z);
     float3 localNormal = mul(tangentToLocal, detailnormal);
     float3 worldnormal = normalize(mul(data.LocalToWorld, float4(localNormal, 0)).xyz);
     Texture2D metallicRoughnessTexture = ResourceDescriptorHeap[MetallicRoughnessTextureDescriptor];
@@ -81,7 +83,7 @@ float4 MainPS(PSInput input) : SV_TARGET
     float NdotL = max(dot(N, L), 0.0);
     float3 Lo = (kD * albedo / PI + specular) * radiance * NdotL;
     
-    float3 ambient = float3(0.03,0.03,0.03) * albedo + ao;
+    float3 ambient = float3(0.03,0.03,0.03) * albedo * ao;
     float3 color = ambient + Lo;
     
     //Shadowing
