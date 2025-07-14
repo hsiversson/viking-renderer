@@ -1,6 +1,6 @@
 #pragma once
 #include "render/rendercommon.h"
-#include "render/event.h"
+#include "render/rendertaskevent.h"
 
 namespace vkr::Render
 {
@@ -38,7 +38,7 @@ namespace vkr::Render
 
 		struct BackBufferResource
 		{
-			Event m_LastFrameEvent;
+			Fence m_LastFrameEvent;
 			Ref<Texture> m_Texture;
 			Ref<RenderTargetView> m_View;
 

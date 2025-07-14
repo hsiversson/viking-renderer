@@ -176,73 +176,106 @@ namespace vkr::Render
 	{
 		if (AllocateDescriptor())
 		{
-			if (desc.m_Writable)
-			{
-				// TODO: add support for all buffer types (typed, structured, byte buffers etc.)
-
-				D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-				uavDesc.Format = DXGI_FORMAT_UNKNOWN;
-				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-				uavDesc.Buffer.FirstElement = desc.m_First;
-				uavDesc.Buffer.NumElements = desc.m_Last - desc.m_First;
-				uavDesc.Buffer.StructureByteStride = desc.m_ElementSize;
-				uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
-				if (desc.m_Usage == Raw)
-				{
-					uavDesc.Buffer.Flags |= D3D12_BUFFER_UAV_FLAG_RAW;
-					uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-				}
-				else if (desc.m_Usage == Typed)
-				{
-					uavDesc.Format = D3DConvertFormat(desc.m_Format);
-					uavDesc.Buffer.StructureByteStride = 0;
-				}
-				GetDevice()->GetD3DDevice()->CreateUnorderedAccessView(resource->GetD3DResource(), nullptr, &uavDesc, m_D3DHandle);
-			}
-			else if (desc.m_IsRaytracingAccelerationStructure)
-			{
-				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-				srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
-				srvDesc.RaytracingAccelerationStructure.Location = resource->GetD3DResource()->GetGPUVirtualAddress();
-				GetDevice()->GetD3DDevice()->CreateShaderResourceView(nullptr, &srvDesc, m_D3DHandle);
-			}
-			else
-			{
-				// TODO: add support for all buffer types (typed, structured, byte buffers etc.)
-
-				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-				srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-				srvDesc.Buffer.FirstElement = desc.m_First;
-				srvDesc.Buffer.NumElements = desc.m_Last - desc.m_First;
-				srvDesc.Buffer.StructureByteStride = desc.m_ElementSize;
-				srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-				if (desc.m_Usage == Raw)
-				{
-					srvDesc.Buffer.Flags |= D3D12_BUFFER_SRV_FLAG_RAW;
-					srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-					srvDesc.Buffer.StructureByteStride = 0;
-				}
-				else if (desc.m_Usage == Typed)
-				{
-					srvDesc.Format = D3DConvertFormat(desc.m_Format);
-					srvDesc.Buffer.StructureByteStride = 0;
-				}
-				GetDevice()->GetD3DDevice()->CreateShaderResourceView(resource->GetD3DResource(), &srvDesc, m_D3DHandle);
-			}
-
 			m_Buffer = resource;
 			m_DescHash = hash_fnv64(reinterpret_cast<const uint8_t*>(&desc), sizeof(desc));
 			m_Buffer->TrackDescriptor(m_DescHash, weak_from_this());
+
+			switch (desc.m_Usage)
+			{
+			case BUFFER_VIEW_USAGE_TYPED:
+			case BUFFER_VIEW_USAGE_STRUCTURED:
+			case BUFFER_VIEW_USAGE_RAW:
+			case BUFFER_VIEW_USAGE_RAYTRACING_ACCELERATION_STRUCTURE:
+				return InitAsSrv(desc);
+			case BUFFER_VIEW_USAGE_TYPED_RW:
+			case BUFFER_VIEW_USAGE_STRUCTURED_RW:
+			case BUFFER_VIEW_USAGE_RAW_RW:
+				return InitAsUav(desc);
+			default:
+				assert(false);
+				return false;
+			};
+
 			return true;
 		}
 
 		return false;
 	}
 
+	bool BufferView::InitAsSrv(const BufferViewDesc& desc)
+	{
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.Buffer.FirstElement = desc.m_ElementStart;
+		srvDesc.Buffer.NumElements = desc.m_ElementCount;
+
+		switch (desc.m_Usage)
+		{
+		case BUFFER_VIEW_USAGE_TYPED:
+			assert(desc.m_Format != FORMAT_UNKNOWN && "Valid format is required");
+			srvDesc.Format = D3DConvertFormat(desc.m_Format);
+			break;
+
+		case BUFFER_VIEW_USAGE_STRUCTURED:
+			srvDesc.Buffer.StructureByteStride = desc.m_ElementSize;
+			break;
+
+		case BUFFER_VIEW_USAGE_RAW:
+			srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+			srvDesc.Buffer.FirstElement /= 4;
+			srvDesc.Buffer.NumElements /= 4;
+			srvDesc.Buffer.Flags |= D3D12_BUFFER_SRV_FLAG_RAW;
+			break;
+
+		case BUFFER_VIEW_USAGE_RAYTRACING_ACCELERATION_STRUCTURE:
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
+			srvDesc.RaytracingAccelerationStructure.Location = m_Buffer->GetD3DResource()->GetGPUVirtualAddress();
+			GetDevice()->GetD3DDevice()->CreateShaderResourceView(nullptr, &srvDesc, m_D3DHandle);
+			return true;
+
+		default:
+			assert(false);
+			return false;
+		};
+
+		GetDevice()->GetD3DDevice()->CreateShaderResourceView(m_Buffer->GetD3DResource(), &srvDesc, m_D3DHandle);
+		return true;
+	}
+
+	bool BufferView::InitAsUav(const BufferViewDesc& desc)
+	{
+		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+		uavDesc.Buffer.FirstElement = desc.m_ElementStart;
+		uavDesc.Buffer.NumElements = desc.m_ElementCount;
+
+		switch (desc.m_Usage)
+		{
+		case BUFFER_VIEW_USAGE_TYPED_RW:
+			assert(desc.m_Format != FORMAT_UNKNOWN && "Valid format is required");
+			uavDesc.Format = D3DConvertFormat(desc.m_Format);
+			break;
+
+		case BUFFER_VIEW_USAGE_STRUCTURED_RW:
+			uavDesc.Buffer.StructureByteStride = desc.m_ElementSize;
+			break;
+
+		case BUFFER_VIEW_USAGE_RAW_RW:
+			uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+			uavDesc.Buffer.FirstElement /= 4;
+			uavDesc.Buffer.NumElements /= 4;
+			uavDesc.Buffer.Flags |= D3D12_BUFFER_UAV_FLAG_RAW;
+			break;
+
+		default:
+			assert(false);
+			return false;
+		};
+
+		GetDevice()->GetD3DDevice()->CreateUnorderedAccessView(m_Buffer->GetD3DResource(), nullptr, &uavDesc, m_D3DHandle);
+		return true;
+	}
 
 	bool Sampler::Init(const SamplerDesc& desc)
 	{

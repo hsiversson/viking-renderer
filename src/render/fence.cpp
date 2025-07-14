@@ -4,24 +4,23 @@
 
 namespace vkr::Render
 {
-
-	Fence::Fence()
+	FenceResource::FenceResource()
 		: m_Value(1)
 	{
 		GetDevice()->GetD3DDevice()->CreateFence(m_Value, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
 	}
 
-	Fence::~Fence()
+	FenceResource::~FenceResource()
 	{
 
 	}
 
-	uint64_t Fence::Increment()
+	uint64_t FenceResource::Increment()
 	{
-		return m_Value.fetch_add(1);
+		return m_Value.fetch_add(1, std::memory_order_acq_rel);
 	}
 
-	bool Fence::Wait(uint64_t value, bool block)
+	bool FenceResource::Wait(uint64_t value, bool block)
 	{
 		if (IsPending(value))
 		{
@@ -37,19 +36,54 @@ namespace vkr::Render
 		return true;
 	}
 
-	bool Fence::IsPending(uint64_t value) const
+	bool FenceResource::IsPending(uint64_t value) const
 	{
 		return value > m_Fence->GetCompletedValue();
 	}
 
-	ID3D12Fence* Fence::GetFence() const
+	ID3D12Fence* FenceResource::GetFence() const
 	{
 		return m_Fence.Get();
 	}
 
-	uint64_t Fence::GetLastValue() const
+	uint64_t FenceResource::GetLastValue() const
 	{
-		return m_Value - 1;
+		return m_Value.load(std::memory_order_acquire) - 1;
 	}
 
+	uint64_t FenceResource::GetNextValue() const
+	{
+		return m_Value.load(std::memory_order_acquire) + 1;
+	}
+
+	Fence::Fence()
+		: m_FenceResource(nullptr)
+		, m_Value(0)
+	{
+	}
+
+	Fence::Fence(FenceResource* fence, uint64_t value)
+		: m_FenceResource(fence)
+		, m_Value(value)
+	{
+	}
+
+	bool Fence::Wait(bool block)
+	{
+		if (m_FenceResource)
+		{
+			return m_FenceResource->Wait(m_Value, block);
+		}
+		return true;
+	}
+
+	bool Fence::IsPending() const
+	{
+		if (m_FenceResource)
+		{
+			return m_FenceResource->IsPending(m_Value);
+		}
+
+		return false;
+	}
 }

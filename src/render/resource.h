@@ -2,7 +2,7 @@
 
 #include "rendercommon.h"
 #include "resourcedescriptor.h"
-#include "event.h"
+#include "rendertaskevent.h"
 #include "utils/hash.h"
 
 #include <unordered_map>
@@ -48,12 +48,12 @@ namespace vkr::Render
 		ResourceStateTracking& GetStateTracking();
 		const ResourceStateTracking& GetStateTracking() const;
 
-		void SetGpuPending(Event event);
+		void SetGpuPending(Fence event);
 		bool IsGpuPending() const;
 		void SyncGpu();
 
 	protected:
-		Event m_GpuPendingEvent;
+		Fence m_GpuPendingEvent;
 		ResourceStateTracking m_StateTracking;
 		std::unordered_map<uint64_t, WeakPtr<ResourceDescriptor>> m_Descriptors;
 		ComPtr<ID3D12Resource> m_Resource;

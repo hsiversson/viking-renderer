@@ -28,7 +28,7 @@ namespace vkr::Render
 		struct PendingCommandLists
 		{
 			std::vector<Ref<CommandList>> m_CommandLists;
-			Event m_Event;
+			Fence m_Event;
 		};
 
 	public:
@@ -36,7 +36,7 @@ namespace vkr::Render
 		~CommandListPool();
 
 		Ref<CommandList> GetCommandList();
-		void ReturnCommandList(Ref<CommandList> commandList, Event event);
+		void ReturnCommandList(Ref<CommandList> commandList, Fence event);
 		void ReturnCommandList(const PendingCommandLists& pendingCommandLists);
 
 		ContextType GetType() const;

@@ -32,34 +32,25 @@ namespace vkr::Graphics
 		ViewRenderData& renderData = view.GetMutableRenderData();
 
 		//Fill in the instance data (later we can just keep this as a normal buffer instead of temp that we need to rebuild per frame)
-		auto instancedatabuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, renderData.m_InstanceData.size(), renderData.m_InstanceData.size(), renderData.m_InstanceData.data());
-		//Oh god what ive done, const fucking
-		uint32_t instancedatastart = (uint32_t)(instancedatabuffer.m_Offset / 4.0);
-		uint32_t instancedataend = instancedatastart + (uint32_t)renderData.m_InstanceData.size() / 4;
-		Render::BufferViewDesc instancedatabufferdesc; // Byteaddressbuffer
-		instancedatabufferdesc.m_First = instancedatastart;
-		instancedatabufferdesc.m_Last = instancedataend;
-		instancedatabufferdesc.m_ElementSize = 1;
-		instancedatabufferdesc.m_Usage = Render::Raw;
-		instancedatabufferdesc.m_Writable = false;
-		instancedatabufferdesc.m_Format = Render::FORMAT_UNKNOWN;
-		instancedatabufferdesc.m_IsRaytracingAccelerationStructure = false;
-		renderData.m_InstanceDataBufferView = Render::GetDevice()->CreateBufferView(instancedatabufferdesc, instancedatabuffer.m_Buffer);
+		auto instanceDataBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, renderData.m_InstanceData.size(), renderData.m_InstanceData.size(), renderData.m_InstanceData.data());
+		
+		Render::BufferViewDesc instanceDataBufferDesc = {}; // Byteaddressbuffer
+		instanceDataBufferDesc.m_ElementStart = instanceDataBuffer.m_Offset;
+		instanceDataBufferDesc.m_ElementCount = renderData.m_InstanceData.size();
+		instanceDataBufferDesc.m_ElementSize = 1;
+		instanceDataBufferDesc.m_Usage = Render::BUFFER_VIEW_USAGE_RAW;
+		instanceDataBufferDesc.m_Format = Render::FORMAT_UNKNOWN;
+		renderData.m_InstanceDataBufferView = Render::GetDevice()->CreateBufferView(instanceDataBufferDesc, instanceDataBuffer.m_Buffer);
 
 		//Fill in the instance data indices
-		auto instancedataoffsetbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, renderData.m_InstanceDataOffsetBuffer.size()*sizeof(uint32_t), renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), renderData.m_InstanceDataOffsetBuffer.data());
-		uint32_t instancedataoffsetstart = (uint32_t)(instancedataoffsetbuffer.m_Offset / sizeof(uint32_t));
-		uint32_t instancedataoffsetend = instancedataoffsetstart + (uint32_t)renderData.m_InstanceDataOffsetBuffer.size();
-		//Oh god what ive done, const fucking
-		Render::BufferViewDesc instancedataoffsetbufferdesc; // Typed uint buffer
-		instancedataoffsetbufferdesc.m_First = instancedataoffsetstart;
-		instancedataoffsetbufferdesc.m_Last = instancedataoffsetend;
-		instancedataoffsetbufferdesc.m_ElementSize = 0;
-		instancedataoffsetbufferdesc.m_Usage = Render::Typed;
-		instancedataoffsetbufferdesc.m_Writable = false;
-		instancedataoffsetbufferdesc.m_Format = Render::FORMAT_R32_UINT;
-		instancedataoffsetbufferdesc.m_IsRaytracingAccelerationStructure = false;
-		renderData.m_InstanceDataOffsetBufferView = Render::GetDevice()->CreateBufferView(instancedataoffsetbufferdesc, instancedatabuffer.m_Buffer);
+		auto instanceDataOffsetBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, renderData.m_InstanceDataOffsetBuffer.size()*sizeof(uint32_t), renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), renderData.m_InstanceDataOffsetBuffer.data());
+		
+		Render::BufferViewDesc instanceDataOffsetBufferDesc = {}; // Typed uint buffer
+		instanceDataOffsetBufferDesc.m_ElementStart = instanceDataOffsetBuffer.m_Offset / sizeof(uint32_t);
+		instanceDataOffsetBufferDesc.m_ElementCount = renderData.m_InstanceDataOffsetBuffer.size();
+		instanceDataOffsetBufferDesc.m_Usage = Render::BUFFER_VIEW_USAGE_TYPED;
+		instanceDataOffsetBufferDesc.m_Format = Render::FORMAT_R32_UINT;
+		renderData.m_InstanceDataOffsetBufferView = Render::GetDevice()->CreateBufferView(instanceDataOffsetBufferDesc, instanceDataBuffer.m_Buffer);
 
 		//Construct the per scene constant buffer
 		struct alignas(16) PerSceneConstantData

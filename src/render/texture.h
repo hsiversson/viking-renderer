@@ -40,4 +40,14 @@ namespace vkr::Render
 
 		TextureDesc m_TextureDesc;
 	};
+
+	class TextureCache
+	{
+	public:
+		Ref<Texture> Get(const std::filesystem::path& filepath) const;
+		void Insert(const std::filesystem::path& filepath, const Ref<Texture>& texture);
+
+	private:
+		std::unordered_map<std::filesystem::path, Ref<Texture>> m_Cache;
+	};
 }

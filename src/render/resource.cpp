@@ -58,7 +58,7 @@ namespace vkr::Render
 		return m_StateTracking;
 	}
 
-	void Resource::SetGpuPending(Event event)
+	void Resource::SetGpuPending(Fence event)
 	{
 		SyncGpu();
 		m_GpuPendingEvent = event;

@@ -77,7 +77,7 @@ namespace vkr::Render
 		return cmdList;
 	}
 
-	void CommandListPool::ReturnCommandList(Ref<CommandList> commandList, Event event)
+	void CommandListPool::ReturnCommandList(Ref<CommandList> commandList, Fence event)
 	{
 		PendingCommandLists pending;
 		pending.m_CommandLists.push_back(commandList);

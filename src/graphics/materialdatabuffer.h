@@ -4,6 +4,7 @@
 namespace vkr::Render
 {
 	class Buffer;
+	class BufferView;
 }
 
 namespace vkr::Graphics
@@ -31,5 +32,7 @@ namespace vkr::Graphics
 	private:
 		std::vector<uint8_t> m_Data;
 		Ref<Render::Buffer> m_Buffer;
+		Ref<Render::BufferView> m_BufferView;
+		bool m_RequireDataUpload;
 	};
 }

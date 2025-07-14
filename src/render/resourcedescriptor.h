@@ -111,20 +111,22 @@ namespace vkr::Render
 	// BUFFER VIEW
 	enum BufferUsage : uint8_t
 	{
-		Typed, //Buffer/RWBuffer
-		Structured, //StructuredBuffer/RWStructuredBuffer
-		Raw //ByteAddessBuffer/RWByteAddressBuffer
+		BUFFER_VIEW_USAGE_TYPED,							// Buffer
+		BUFFER_VIEW_USAGE_TYPED_RW,							// RWBuffer
+		BUFFER_VIEW_USAGE_STRUCTURED,						// StructuredBuffer
+		BUFFER_VIEW_USAGE_STRUCTURED_RW,					// RWStructuredBuffer
+		BUFFER_VIEW_USAGE_RAW,								// ByteAddessBuffer
+		BUFFER_VIEW_USAGE_RAW_RW,							// RWByteAddressBuffer
+		BUFFER_VIEW_USAGE_RAYTRACING_ACCELERATION_STRUCTURE // RaytracingAccelerationStructure
 	};
 
 	struct BufferViewDesc
 	{
-		uint32_t m_First = 0;
-		uint32_t m_Last = 0;
+		uint32_t m_ElementStart = 0;
+		uint32_t m_ElementCount = 0;
 		uint32_t m_ElementSize = 0;
-		bool m_Writable = false;
-		BufferUsage m_Usage = Typed;
+		BufferUsage m_Usage = BUFFER_VIEW_USAGE_TYPED;
 		Format m_Format = FORMAT_UNKNOWN;
-		bool m_IsRaytracingAccelerationStructure = false;
 	};
 
 	class BufferView : public ResourceDescriptor
@@ -135,9 +137,11 @@ namespace vkr::Render
 
 		Buffer* GetBuffer() const { return m_Buffer.get(); }
 	private:
+		bool InitAsSrv(const BufferViewDesc& desc);
+		bool InitAsUav(const BufferViewDesc& desc);
+
 		Ref<Buffer> m_Buffer;
 	};
-
 
 	struct SamplerDesc
 	{

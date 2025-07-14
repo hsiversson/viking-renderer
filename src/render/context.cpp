@@ -10,6 +10,8 @@
 
 namespace vkr::Render
 {
+	thread_local Context* Context::g_CurrentContext = nullptr;
+
 	Context::Context(ContextType type, const Ref<CommandQueue>& commandQueue)
 		: m_CommandQueue(commandQueue)
 		, m_CurrentD3DCommandList(nullptr)
@@ -28,6 +30,7 @@ namespace vkr::Render
 		m_CurrentD3DCommandList = m_CommandList->GetD3DCommandList();
 		m_CurrentD3DCommandList->QueryInterface(IID_PPV_ARGS(&m_CurrentD3DCommandList7));
 		m_CommandList->Open();
+		g_CurrentContext = this;
 	}
 
 	void Context::End()
@@ -41,9 +44,10 @@ namespace vkr::Render
 		m_CurrentD3DCommandList = nullptr;
 		m_CommandList = nullptr;
 		CurrentState = {};
+		g_CurrentContext = nullptr;
 	}
 
-	Event Context::Flush()
+	Fence Context::Flush()
 	{
 		m_LastFlushEvent = m_CommandQueue->Submit(m_CommandListsToSubmit.size(), m_CommandListsToSubmit.data());
 
@@ -362,7 +366,6 @@ namespace vkr::Render
 
 			const uint32_t bufferSize = sizeof(D3D12_RAYTRACING_INSTANCE_DESC) * instanceDescs.size();
 			TempBuffer instanceDescsBuffer = device->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, bufferSize, bufferSize, instanceDescs.data());
-			instanceDescsBuffer.m_Buffer->UploadData(instanceDescsBuffer.m_Offset, bufferSize, instanceDescs.data());
 			inputs.InstanceDescs = instanceDescsBuffer.m_Buffer->GetD3DResource()->GetGPUVirtualAddress() + instanceDescsBuffer.m_Offset;
 			inputs.NumDescs = instanceDescs.size();
 		}
@@ -527,6 +530,28 @@ namespace vkr::Render
 		rect.right = right;
 		rect.bottom = bottom;
 		m_CurrentD3DCommandList->RSSetScissorRects(1, &rect);
+	}
+
+	void Context::CopyResource(Buffer* dst, Buffer* src)
+	{
+		// validate that resources have the same layout
+		m_CurrentD3DCommandList->CopyResource(dst->GetD3DResource(), src->GetD3DResource());
+	}
+
+	void Context::CopyResource(Texture* dst, Texture* src)
+	{
+		// validate that resources have the same layout
+		m_CurrentD3DCommandList->CopyResource(dst->GetD3DResource(), src->GetD3DResource());
+	}
+
+	void Context::CopyBuffer(Buffer* dst, uint64_t dstOffset, Buffer* src, uint64_t srcOffset, uint32_t size)
+	{
+		m_CurrentD3DCommandList->CopyBufferRegion(dst->GetD3DResource(), dstOffset, src->GetD3DResource(), srcOffset, size);
+	}
+
+	void Context::CopyTexture(Texture* dst, Texture* src)
+	{
+
 	}
 
 }

@@ -86,7 +86,7 @@ namespace vkr::Render
 
 			Device* device = GetDevice();
 			ID3D12Device10* d3dDevice = device->GetD3DDevice10();
-			Ref<Context> ctx = device->GetContext(CONTEXT_TYPE_GRAPHICS);
+			Ref<Context> ctx = device->GetContext(CONTEXT_TYPE_COPY);
 			ctx->Begin();
 			ID3D12GraphicsCommandList* d3dCmdList = ctx->GetCommandList()->GetD3DCommandList();
 
@@ -167,12 +167,26 @@ namespace vkr::Render
 			}
 
 			ctx->End();
-			ctx->Flush();
+			SetGpuPending(ctx->Flush());
+			SyncGpu();
 		}
 		//else
 		//{
 		//	// Launch copy task on initialization context thread, wait for event?
 		//}
+	}
+
+	Ref<Texture> TextureCache::Get(const std::filesystem::path& filepath) const
+	{
+		if (!m_Cache.contains(filepath))
+			return nullptr;
+
+		return m_Cache.at(filepath);
+	}
+
+	void TextureCache::Insert(const std::filesystem::path& filepath, const Ref<Texture>& texture)
+	{
+		m_Cache[filepath] = texture;
 	}
 
 }

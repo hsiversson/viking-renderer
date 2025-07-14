@@ -1,6 +1,6 @@
 #pragma once
 #include "render/rendercommon.h"
-#include "render/event.h"
+#include "render/rendertaskevent.h"
 
 namespace vkr::Render
 {
@@ -82,7 +82,7 @@ namespace vkr::Render
 
 		void Begin();
 		void End();
-		Event Flush();
+		Fence Flush();
 
 		// Compute
 		void Dispatch(const Vector3u& Groups);
@@ -122,13 +122,19 @@ namespace vkr::Render
 		// Raytracing acceleration structure
 		Ref<Buffer> BuildRaytracingAccelerationStructure(const RaytracingAccelerationStructureBuildDesc& desc);
 
+		// Copy
+		void CopyResource(Buffer* dst, Buffer* src);
+		void CopyResource(Texture* dst, Texture* src);
+		void CopyBuffer(Buffer* dst, uint64_t dstOffset, Buffer* src, uint64_t srcOffset, uint32_t size);
+		void CopyTexture(Texture* dst, Texture* src);
+
 		ContextType GetType() const;
 		CommandList* GetCommandList() const;
 
 	private:
 		struct DrawState
 		{
-			PrimitiveTopology m_Topology;
+			PrimitiveTopology m_Topology = PRIMITIVE_TOPOLOGY_UNDEFINED;
 			std::vector<Ref<Buffer>> m_VertexBuffers;
 			Ref<Buffer> m_IndexBuffer;
 			RootSignature* m_RootSignature = nullptr;
@@ -148,7 +154,7 @@ namespace vkr::Render
 		ID3D12GraphicsCommandList7* m_CurrentD3DCommandList7;
 
 		std::vector<Ref<CommandList>> m_CommandListsToSubmit;
-		Event m_LastFlushEvent;
+		Fence m_LastFlushEvent;
 
 		DrawState CurrentState;
 		DrawState NewState;
@@ -156,5 +162,6 @@ namespace vkr::Render
 		bool m_RenderTargetUpdate = false;
 
 		const ContextType m_Type;
+		static thread_local Context* g_CurrentContext;
 	};
 }

@@ -1,0 +1,39 @@
+#pragma once
+#include <functional>
+#include <thread>
+#include <mutex>
+#include <queue>
+#include "context.h"
+#include "rendertaskevent.h"
+
+namespace vkr::Render
+{
+	using RenderTaskFn = std::function<void()>;
+	struct RenderTask
+	{
+		RenderTaskFn m_Task;
+		Ref<RenderTaskEvent> m_Event;
+	};
+
+	class RenderThread
+	{
+	public:
+		RenderThread(ContextType type);
+		~RenderThread();
+		void Start();
+		void Stop();
+		Ref<RenderTaskEvent> QueueTask(RenderTaskFn task);
+
+	private:
+		void ThreadFunc();
+
+		std::mutex m_PendingTasksMutex;
+		std::queue<RenderTask> m_PendingTasks;
+		Event m_HasWorkEvent;
+
+		std::thread m_Thread;
+		bool m_IsRunning;
+
+		const ContextType m_ContextType;
+	};
+}

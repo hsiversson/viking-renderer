@@ -1,6 +1,6 @@
 #pragma once 
 #include "context.h"
-#include "event.h"
+#include "rendertaskevent.h"
 #include "fence.h"
 
 struct ID3D12CommandQueue;
@@ -14,18 +14,19 @@ namespace vkr::Render
 		CommandQueue(ContextType type);
 		~CommandQueue();
 
-		Event Signal();
-		void InsertWait(const Event& waitable);
+		Fence Signal();
+		void InsertWait(const Fence& waitable);
 		bool Wait(bool block = true);
 
-		Event Submit(const Ref<CommandList>& commandList);
-		Event Submit(uint32_t numCommandLists, const Ref<CommandList>* commandLists);
+		Fence Submit(const Ref<CommandList>& commandList);
+		Fence Submit(uint32_t numCommandLists, const Ref<CommandList>* commandLists);
 
+		Fence GetNextFence() const;
 		ID3D12CommandQueue* GetD3DCommandQueue() const;
 
 	private:
 		ComPtr<ID3D12CommandQueue> m_CommandQueue;
-		UniquePtr<Fence> m_Fence;
+		UniquePtr<FenceResource> m_FenceResource;
 		const ContextType m_Type;
 	};
 }

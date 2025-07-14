@@ -7,6 +7,7 @@
 #include "render/texture.h"
 #include "render/buffer.h"
 #include "render/descriptorheap.h"
+#include "render/renderthread.h"
 
 namespace vkr::Render
 {
@@ -56,8 +57,9 @@ namespace vkr::Render
 		IDXGIAdapter1* GetDXGIAdapter() const;
 		const Ref<CommandQueue>& GetCommandQueue(ContextType contextType) const;
 		const Ref<CommandListPool>& GetCommandListPool(ContextType contextType) const;
-		DescriptorHeap* GetDescriptorHeap(DescriptorHeapType type) const;
 		Ref<Context> GetContext(ContextType contextType) const;
+		RenderThread* GetRenderThread(ContextType contextType) const;
+		DescriptorHeap* GetDescriptorHeap(DescriptorHeapType type) const;
 
 	private:
 		void InitRootSignatures();
@@ -76,6 +78,7 @@ namespace vkr::Render
 		Ref<Context> m_Contexts[CONTEXT_TYPE_COUNT];//For now lets keep just a single context of every type on the device itself (prone to change)
 		Ref<CommandQueue> m_CommandQueue[CONTEXT_TYPE_COUNT];
 		Ref<CommandListPool> m_CommandListPool[CONTEXT_TYPE_COUNT];
+		UniquePtr<RenderThread> m_RenderThreads[CONTEXT_TYPE_COUNT];
 
 		Ref<Context> m_RaytracingBuildContext;
 		Ref<CommandQueue> m_RaytracingBuildQueue;
@@ -91,9 +94,15 @@ namespace vkr::Render
 		UniquePtr<TempBufferAllocator> m_TempBufferAllocators[TEMP_BUFFER_USAGE_COUNT];
 		std::vector<UniquePtr<TempBufferAllocator>> m_TempBuffersPendingDelete;
 
+		ShaderCache m_ShaderCache;
+		TextureCache m_TextureCache;
+
 		static Device* g_Instance;
 	};
 
 	inline Device* GetDevice() { return Device::g_Instance; }
+	Ref<RenderTaskEvent> QueueGraphicsTask(RenderTaskFn task);
+	Ref<RenderTaskEvent> QueueComputeTask(RenderTaskFn task);
+	Ref<RenderTaskEvent> QueueCopyTask(RenderTaskFn task);
 }
 

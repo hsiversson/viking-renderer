@@ -20,13 +20,27 @@ namespace vkr::Render
 		return m_ByteCode.size();
 	}
 
-	const vkr::Vector3u& Shader::GetNumThreads() const
+	const Vector3u& Shader::GetNumThreads() const
 	{
 		return m_NumThreads;
 	}
 
-	vkr::Render::ShaderStage Shader::GetShaderStage() const
+	ShaderStage Shader::GetShaderStage() const
 	{
 		return m_Stage;
 	}
+
+	Ref<Shader> ShaderCache::Get(uint64_t hash) const
+	{
+		if (!m_Cache.contains(hash))
+			return nullptr;
+
+		return m_Cache.at(hash);
+	}
+
+	void ShaderCache::Insert(uint64_t hash, const Ref<Shader>& shader)
+	{
+		m_Cache[hash] = shader;
+	}
+
 }

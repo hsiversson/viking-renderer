@@ -30,6 +30,11 @@ namespace vkr::Render
 	Device::~Device()
 	{
 		g_Instance = nullptr;
+
+		for (uint32_t i = 0; i < CONTEXT_TYPE_COUNT; ++i)
+		{
+			m_RenderThreads[i]->Stop();
+		}
 	}
 
 	bool Device::Init()
@@ -171,10 +176,10 @@ namespace vkr::Render
 
 	Ref<Texture> Device::LoadTexture(const std::filesystem::path& filepath)
 	{
-		//if (Ref<Texture> tex = m_TextureCache.Get(filepath))
-		//{
-		//	return tex;
-		//}
+		if (Ref<Texture> tex = m_TextureCache.Get(filepath))
+		{
+			return tex;
+		}
 
 		TextureLoader* loader = nullptr;
 		auto loaderSearch = m_TextureLoaderByExtension.find(filepath.extension());
@@ -197,7 +202,7 @@ namespace vkr::Render
 		}
 
 		Ref<Texture> texture = CreateTexture(textureDesc, &textureData);
-		//m_TextureCache.Insert(filepath, texture);
+		m_TextureCache.Insert(filepath, texture);
 		return texture;
 	}
 
@@ -269,8 +274,7 @@ namespace vkr::Render
 
 	TempBuffer Device::GetTempBuffer(TempBufferUsage usage, uint32_t byteSize, uint32_t initialDataSize, const void* initialData)
 	{
-		// 256 is mainly for constant buffers though. We should align differently based on buffer usage
-		const uint32_t size = Align(byteSize, 256);
+		const uint32_t size = Align(byteSize, usage == TEMP_BUFFER_USAGE_CONSTANTS ? 256 : 4);
 
 		TempBuffer outTempBuffer;
 		if (!m_TempBufferAllocators[usage]->Allocate(size, outTempBuffer))
@@ -280,7 +284,7 @@ namespace vkr::Render
 
 			m_TempBuffersPendingDelete.push_back(std::move(m_TempBufferAllocators[usage]));
 
-			m_TempBufferAllocators[usage] = MakeUnique<TempBufferAllocator>(usage, size);
+			m_TempBufferAllocators[usage] = MakeUnique<TempBufferAllocator>(usage, newSize);
 			if (!m_TempBufferAllocators[usage]->Allocate(size, outTempBuffer))
 			{
 				assert(false);
@@ -306,7 +310,7 @@ namespace vkr::Render
 		Ref<Buffer> tlas = m_RaytracingBuildContext->BuildRaytracingAccelerationStructure(buildDesc);
 
 		m_RaytracingBuildContext->End();
-		Event event = m_RaytracingBuildContext->Flush();
+		Fence event = m_RaytracingBuildContext->Flush();
 
 		tlas->SetGpuPending(event);
 		return tlas;
@@ -323,7 +327,7 @@ namespace vkr::Render
 		Ref<Buffer> blas = m_RaytracingBuildContext->BuildRaytracingAccelerationStructure(buildDesc);
 
 		m_RaytracingBuildContext->End();
-		Event event = m_RaytracingBuildContext->Flush();
+		Fence event = m_RaytracingBuildContext->Flush();
 
 		blas->SetGpuPending(event);
 		return blas;
@@ -359,14 +363,19 @@ namespace vkr::Render
 		return m_CommandListPool[contextType];
 	}
 
-	DescriptorHeap* Device::GetDescriptorHeap(DescriptorHeapType type) const
-	{
-		return m_DescriptorHeaps[type].get();
-	}
-
 	Ref<Context> Device::GetContext(ContextType contextType) const
 	{
 		return m_Contexts[contextType];
+	}
+
+	RenderThread* Device::GetRenderThread(ContextType contextType) const
+	{
+		return m_RenderThreads[contextType].get();
+	}
+
+	DescriptorHeap* Device::GetDescriptorHeap(DescriptorHeapType type) const
+	{
+		return m_DescriptorHeaps[type].get();
 	}
 
 	void Device::InitRootSignatures()
@@ -390,17 +399,15 @@ namespace vkr::Render
 
 	void Device::InitCommandQueues()
 	{
-		m_CommandQueue[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandQueue>(CONTEXT_TYPE_GRAPHICS);
-		m_CommandListPool[CONTEXT_TYPE_GRAPHICS] = MakeRef<CommandListPool>(CONTEXT_TYPE_GRAPHICS);
-		m_Contexts[CONTEXT_TYPE_GRAPHICS] = MakeRef<Context>(CONTEXT_TYPE_GRAPHICS, m_CommandQueue[CONTEXT_TYPE_GRAPHICS]);
-
-		m_CommandQueue[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandQueue>(CONTEXT_TYPE_COMPUTE);
-		m_CommandListPool[CONTEXT_TYPE_COMPUTE] = MakeRef<CommandListPool>(CONTEXT_TYPE_COMPUTE);
-		m_Contexts[CONTEXT_TYPE_COMPUTE] = MakeRef<Context>(CONTEXT_TYPE_COMPUTE, m_CommandQueue[CONTEXT_TYPE_COMPUTE]);
-
-		m_CommandQueue[CONTEXT_TYPE_COPY] = MakeRef<CommandQueue>(CONTEXT_TYPE_COPY);
-		m_CommandListPool[CONTEXT_TYPE_COPY] = MakeRef<CommandListPool>(CONTEXT_TYPE_COPY);
-		m_Contexts[CONTEXT_TYPE_COPY] = MakeRef<Context>(CONTEXT_TYPE_COPY, m_CommandQueue[CONTEXT_TYPE_COPY]);
+		for (uint32_t i = 0; i < CONTEXT_TYPE_COUNT; ++i)
+		{
+			const ContextType contextType = ContextType(i);
+			m_CommandQueue[contextType] = MakeRef<CommandQueue>(contextType);
+			m_CommandListPool[contextType] = MakeRef<CommandListPool>(contextType);
+			m_Contexts[contextType] = MakeRef<Context>(contextType, m_CommandQueue[contextType]);
+			m_RenderThreads[contextType] = MakeUnique<RenderThread>(contextType);
+			m_RenderThreads[contextType]->Start();
+		}
 
 		m_RaytracingBuildQueue = MakeRef<CommandQueue>(CONTEXT_TYPE_COMPUTE);
 		m_RaytracingBuildPool = MakeRef<CommandListPool>(CONTEXT_TYPE_COMPUTE);
@@ -451,7 +458,7 @@ namespace vkr::Render
 		m_RaytracingBuildContext->BufferBarrier(bufferBarrier);
 
 		m_RaytracingBuildContext->End();
-		Event event = m_RaytracingBuildContext->Flush();
+		Fence event = m_RaytracingBuildContext->Flush();
 
 		// set event on outBuffer to have it track its build status
 		outBuffer->SetGpuPending(event);
@@ -459,4 +466,20 @@ namespace vkr::Render
 		d3dCmdList4->Release();
 		return outBuffer;
 	}
+
+	Ref<RenderTaskEvent> QueueGraphicsTask(RenderTaskFn task)
+	{
+		return GetDevice()->GetRenderThread(CONTEXT_TYPE_GRAPHICS)->QueueTask(task);
+	}
+
+	Ref<RenderTaskEvent> QueueComputeTask(RenderTaskFn task)
+	{
+		return GetDevice()->GetRenderThread(CONTEXT_TYPE_COMPUTE)->QueueTask(task);
+	}
+
+	Ref<RenderTaskEvent> QueueCopyTask(RenderTaskFn task)
+	{
+		return GetDevice()->GetRenderThread(CONTEXT_TYPE_COPY)->QueueTask(task);
+	}
+
 }

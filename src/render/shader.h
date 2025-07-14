@@ -42,4 +42,14 @@ namespace vkr::Render
 		// Reflection data
 		Vector3u m_NumThreads;
 	};
+
+	class ShaderCache
+	{
+	public:
+		Ref<Shader> Get(uint64_t hash) const;
+		void Insert(uint64_t hash, const Ref<Shader>& shader);
+
+	private:
+		std::unordered_map<uint64_t, Ref<Shader>> m_Cache;
+	};
 }

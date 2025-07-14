@@ -115,7 +115,7 @@ namespace vkr::Graphics
 		Ref<Render::Buffer> rtTLAS = Render::GetDevice()->CreateTLAS(prepareData.m_RaytracingInstances.size(), prepareData.m_RaytracingInstances.data());
 
 		Render::BufferViewDesc rtTLASDesc = {};
-		rtTLASDesc.m_IsRaytracingAccelerationStructure = true;
+		rtTLASDesc.m_Usage = Render::BUFFER_VIEW_USAGE_RAYTRACING_ACCELERATION_STRUCTURE;
 		prepareData.m_RaytracingTLAS = Render::GetDevice()->CreateBufferView(rtTLASDesc, rtTLAS);
 	}
 }

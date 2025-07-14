@@ -5,7 +5,7 @@
 namespace vkr::Render
 {
 	CommandQueue::CommandQueue(ContextType type)
-		: m_Fence(MakeUnique<Fence>())
+		: m_FenceResource(MakeUnique<FenceResource>())
 		, m_Type(type)
 	{
 		D3D12_COMMAND_QUEUE_DESC cmdQueueDesc = {};
@@ -28,40 +28,40 @@ namespace vkr::Render
 
 	CommandQueue::~CommandQueue()
 	{
-		m_Fence->Wait(m_Fence->GetLastValue());
+		m_FenceResource->Wait(m_FenceResource->GetLastValue());
 	}
 
-	Event CommandQueue::Signal()
+	Fence CommandQueue::Signal()
 	{
-		Event event;
-		event.m_Value = m_Fence->Increment();
-		event.m_Fence = m_Fence.get();
+		Fence event;
+		event.m_Value = m_FenceResource->Increment();
+		event.m_FenceResource = m_FenceResource.get();
 
-		m_CommandQueue->Signal(m_Fence->GetFence(), event.m_Value);
+		m_CommandQueue->Signal(m_FenceResource->GetFence(), event.m_Value);
 
 		return event;
 	}
 
-	void CommandQueue::InsertWait(const Event& event)
+	void CommandQueue::InsertWait(const Fence& event)
 	{
 		// No need to wait for work on the same queue.
-		if (event.m_Fence == m_Fence.get())
+		if (event.m_FenceResource == m_FenceResource.get())
 			return;
 
-		m_CommandQueue->Wait(event.m_Fence->GetFence(), event.m_Value);
+		m_CommandQueue->Wait(event.m_FenceResource->GetFence(), event.m_Value);
 	}
 
 	bool CommandQueue::Wait(bool block)
 	{
-		return m_Fence->Wait(m_Fence->GetLastValue());
+		return m_FenceResource->Wait(m_FenceResource->GetLastValue());
 	}
 
-	Event CommandQueue::Submit(const Ref<CommandList>& commandList)
+	Fence CommandQueue::Submit(const Ref<CommandList>& commandList)
 	{
 		return Submit(1, &commandList);
 	}
 
-	Event CommandQueue::Submit(uint32_t numCommandLists, const Ref<CommandList>* commandLists)
+	Fence CommandQueue::Submit(uint32_t numCommandLists, const Ref<CommandList>* commandLists)
 	{
 		std::vector<ID3D12CommandList*> cmdLists;
 		for (uint32_t i = 0; i < numCommandLists; ++i)
@@ -77,13 +77,20 @@ namespace vkr::Render
 		}
 		else
 		{
-			return Event();
+			return Fence();
 		}
+	}
+
+	Fence CommandQueue::GetNextFence() const
+	{
+		Fence fence;
+		fence.m_Value = m_FenceResource->GetNextValue();
+		fence.m_FenceResource = m_FenceResource.get();
+		return fence;
 	}
 
 	ID3D12CommandQueue* CommandQueue::GetD3DCommandQueue() const
 	{
 		return m_CommandQueue.Get();
 	}
-
 }

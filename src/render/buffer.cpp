@@ -65,6 +65,18 @@ namespace vkr::Render
 		{
 			memcpy(m_DataPtr + offset, data, byteSize);
 		}
+		else
+		{
+			Device* device = GetDevice();
+			Ref<Context> copyCtx = GetDevice()->GetContext(CONTEXT_TYPE_COPY);
+			TempBuffer staging = GetDevice()->GetTempBuffer(TEMP_BUFFER_USAGE_STAGING, byteSize, byteSize, data);
+
+			copyCtx->Begin();
+			copyCtx->CopyBuffer(this, offset, staging.m_Buffer.get(), staging.m_Offset, byteSize);
+			copyCtx->End();
+			SetGpuPending(copyCtx->Flush());
+			SyncGpu();
+		}
 		//else if (isRenderThread)
 		//{
 		//	// Create staging buffer
@@ -133,7 +145,7 @@ namespace vkr::Render
 		}
 	}
 
-	void TempBufferAllocator::EndChunk(Event event)
+	void TempBufferAllocator::EndChunk(Fence event)
 	{
 		uint64_t end = m_Head.load(std::memory_order_relaxed);
 		m_Chunks.push_back({ m_ChunkStart, end, event });

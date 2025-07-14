@@ -3,6 +3,7 @@
 #include <mutex>
 #include <queue>
 #include <format>
+#include "core/event.h"
 
 namespace vkr
 {
@@ -20,9 +21,9 @@ namespace vkr
 			std::string m_Message;
 			std::string m_FunctionName;
 			std::string m_File;
-			uint32_t m_LineNumber;
-			std::time_t m_Time;
-			LogMessageType m_Type;
+			uint32_t m_LineNumber = 0;
+			std::time_t m_Time = 0;
+			LogMessageType m_Type = LOG_MESSAGE_TYPE_INFO;
 		};
 
 	public:
@@ -42,6 +43,7 @@ namespace vkr
 		std::mutex m_Mutex;
 		std::thread m_Thread;
 		std::queue<PendingMessage> m_PendingMessages;
+		Event m_HasWorkEvent;
 
 		bool m_IsActive;
 

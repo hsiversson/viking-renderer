@@ -6,9 +6,9 @@ namespace vkr::Render
 {
 	struct BufferDesc
 	{
-		Format m_Format;
-		uint32_t m_ElementSize;
-		uint32_t m_ElementCount;
+		Format m_Format = FORMAT_UNKNOWN;
+		uint32_t m_ElementSize = 0;
+		uint32_t m_ElementCount = 0;
 		bool m_Writable = false;
 		bool m_CpuWritable = false;
 		bool m_IsRaytracingAccelerationStructure = false;
@@ -58,7 +58,7 @@ namespace vkr::Render
 		{
 			uint64_t start;
 			uint64_t end;
-			Event event;
+			Fence event;
 		};
 
 	public:
@@ -66,7 +66,7 @@ namespace vkr::Render
 
 		void StartChunk();
 		bool Allocate(uint64_t size, TempBuffer& outBuf);
-		void EndChunk(Event event);
+		void EndChunk(Fence event);
 
 		uint64_t GetCapacity() const;
 		TempBufferUsage GetUsage() const;

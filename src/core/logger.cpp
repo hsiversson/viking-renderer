@@ -40,6 +40,7 @@ namespace vkr
 
 		std::unique_lock<std::mutex> lock(g_Instance->m_Mutex);
 		g_Instance->m_PendingMessages.push(pendingMessage);
+		g_Instance->m_HasWorkEvent.Signal();
 	}
 
 	void Logger::QueueMessage(LogMessageType type, const std::wstring& message, const char* functionName /*= nullptr*/, const char* file /*= nullptr*/, uint32_t lineNumber /*= 0*/)
@@ -63,6 +64,9 @@ namespace vkr
 	{
 		while (m_IsActive)
 		{
+			m_HasWorkEvent.Wait();
+			m_HasWorkEvent.Reset();
+
 			while (!m_PendingMessages.empty())
 			{
 				PendingMessage msg;
@@ -75,8 +79,6 @@ namespace vkr
 				const std::string outputString = std::format("{}({}): {}\n", msg.m_File.c_str(), msg.m_LineNumber, msg.m_Message.c_str());
 				OutputDebugString(outputString.c_str());
 			}
-
-			std::this_thread::yield();
 		}
 	}
 }
