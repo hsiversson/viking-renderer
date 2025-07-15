@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 
-add_executable(Raytracer WIN32 "raytracer_sample.cpp")
+file(GLOB_RECURSE RAYTRACER_SRC CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.h"
+)
+
+add_executable(Raytracer WIN32 ${RAYTRACER_SRC})
 
 target_link_libraries(Raytracer VikingRenderer)
 

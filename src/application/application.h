@@ -1,6 +1,8 @@
 #pragma once
-#include "core/types.h"
+
+#include "core/inputmanager.h"
 #include "core/timer.h"
+#include "core/types.h"
 
 namespace vkr
 {
@@ -40,12 +42,16 @@ namespace vkr
 
 		ReturnCode Launch(const ApplicationInitDesc& desc);
 
+		virtual void AppInit() {}
+		virtual void Tick(float deltaTime) {}
+		virtual void AppShutdown() {}
+
 	private:
 		ReturnCode Init(const ApplicationInitDesc& desc);
 		ReturnCode MainLoop();
 		ReturnCode Exit();
 
-	private:
+	protected:
 		ElapsedTimer m_ElapsedTimer;
 		UniquePtr<Render::Device> m_RenderDevice;
 		Ref<Render::SwapChain> m_SwapChain;
@@ -58,5 +64,7 @@ namespace vkr
 		Ref<Graphics::View> m_View;
 
 		Vector2u m_WindowSize;
+
+		UniquePtr<InputManager> m_InputManager;
 	};
 }

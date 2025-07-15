@@ -49,6 +49,10 @@ namespace vkr
 
 		m_Window = MakeRef<Render::Window>(desc.m_WindowTitle.c_str(), desc.m_Resolution, desc.m_ShowCmd);
 
+		m_InputManager = MakeUnique<InputManager>();
+
+		m_Window->AddMessageHandler(m_InputManager.get());
+
 		m_RenderDevice = MakeUnique<Render::Device>();
 		if (!m_RenderDevice->Init())
 			return RETURN_ERROR;
@@ -57,44 +61,26 @@ namespace vkr
 		if (!m_SwapChain)
 			return RETURN_INVALID_ARG;
 
-		//////////////////////////////////////////////////
-		// these parts should not be in application
+		m_Scene = MakeUnique<Graphics::Scene>();
+
 		m_ViewRenderer = MakeUnique<Graphics::ViewRenderer>();
 		if (!m_ViewRenderer->Init())
 			return RETURN_ERROR;
 
-		m_Scene = MakeUnique<Graphics::Scene>();
+		
 		m_View = m_Scene->CreateView();
 		m_View->SetRenderSize(desc.m_Resolution);
-		//////////////////////////////////////////////////
 
 		m_WindowSize = desc.m_Resolution;
+
+		
+
+		AppInit();
 		return RETURN_OK;
 	}
 
 	ReturnCode Application::MainLoop()
 	{
-		//////////////////////////////////////////////////
-		// these parts should not be in application
-
-		m_RenderDevice->BeginFrame();
-
-		Graphics::ModelLoader_GLTF loader;
-		Ref<Graphics::Model> model;
-		model = loader.Load("../../../content/models/cp_noodles/scene.gltf");
-		Ref<Graphics::ModelObject> modelinst = MakeRef<Graphics::ModelObject>(); 
-		modelinst->SetLocalTransform(Compose(Mat33::Identity(), Vector3f(0.0f, 0.0f, 0.0f)));
-
-		modelinst->SetModel(model);
-		m_Scene->AddObject(modelinst);
-
-		Ref<Graphics::Camera> camera = MakeRef<Graphics::Camera>();
-		Mat43 camtransform = Compose(Mat33::Identity(), Vector3f(0, 2.0f, -4.0f));
-		camera->SetLocalTransform(camtransform);
-		camera->SetupPerspective(std::numbers::pi / 2.0f, (float)m_WindowSize.x / (float)m_WindowSize.y, 0.1f, 1000.0f);
-
-		m_RenderDevice->EndFrame();
-		//////////////////////////////////////////////////
 
 		bool running = true;
 		while (running)
@@ -107,25 +93,22 @@ namespace vkr
 			// TODO: Apply changes coming from window messages
 			// TODO: Apply changes going to window
 
+			m_View->SetOutputTarget(m_SwapChain->GetOutputRenderTarget());
+
 			m_ElapsedTimer.Tick();
 
 			m_RenderDevice->BeginFrame();
 
-			//////////////////////////////////////////////////
-			// these parts should not be in application
-			//modelinst->SetLocalTransform(Compose(CreateRotationY(m_ElapsedTimer.ElapsedTime() * 0.25f), Vector3f(0.0f, 0.0f, 0.0f)));
-
-			m_View->SetOutputTarget(m_SwapChain->GetOutputRenderTarget());
-			m_View->SetCamera(*camera);
+			Tick(m_ElapsedTimer.DeltaTime());
 
 			m_Scene->Update();
 			m_Scene->PrepareView(*m_View);
 			m_ViewRenderer->RenderView(*m_View);
-			//////////////////////////////////////////////////
 
 			m_SwapChain->Present();
 
 			m_RenderDevice->EndFrame();
+			m_InputManager->EndFrame();
 		}
 
 		return RETURN_OK;

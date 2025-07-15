@@ -1,12 +1,6 @@
 #include "window.h"
 
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
+
 
 namespace vkr::Render
 {
@@ -27,7 +21,17 @@ namespace vkr::Render
 		WndClsEx.hIconSm = LoadIcon(nullptr, IDI_APPLICATION);
 		RegisterClassEx(&WndClsEx);
 
-		m_NativeHandle = CreateWindow(g_WindowClassName, name, WS_OVERLAPPEDWINDOW, 100, 100, size.x, size.y, nullptr, nullptr, nullptr, nullptr);
+		m_NativeHandle = CreateWindow(g_WindowClassName, name, WS_OVERLAPPEDWINDOW, 100, 100, size.x, size.y, nullptr, nullptr, nullptr, this);
+
+		RAWINPUTDEVICE rid = {};
+		rid.usUsagePage = 0x01; // Generic desktop controls
+		rid.usUsage = 0x02;     // Mouse
+		rid.dwFlags = RIDEV_INPUTSINK; // Or RIDEV_NOLEGACY to suppress WM_MOUSE*
+		rid.hwndTarget = (HWND)m_NativeHandle;
+
+		RegisterRawInputDevices(&rid, 1, sizeof(rid));
+
+		ShowCursor(false);
 
 		ShowWindow((HWND)m_NativeHandle, showCmd);
 		UpdateWindow((HWND)m_NativeHandle);
@@ -60,8 +64,14 @@ namespace vkr::Render
 		return true;
 	}
 
-	LRESULT CALLBACK WndProc(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+	LRESULT Window::ProcessMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 	{
+		//If a handler handles the message should we do anything else with it?
+		for (auto handler : m_MessageHandlers)
+		{
+			handler->ProcessMessage(Msg, wParam, lParam);
+		}
+
 		switch (Msg)
 		{
 		case WM_DESTROY:
@@ -71,5 +81,25 @@ namespace vkr::Render
 			return DefWindowProc(hwnd, Msg, wParam, lParam);
 		}
 		return 0;
+	}
+
+	LRESULT CALLBACK WndProc(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+	{
+		if (Msg == WM_NCCREATE) {
+			// This is the first message received — set the user data
+			CREATESTRUCT* pCreate = reinterpret_cast<CREATESTRUCT*>(lParam);
+			Window* pWindow = reinterpret_cast<Window*>(pCreate->lpCreateParams);
+			SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pWindow));
+			return DefWindowProc(hwnd, Msg, wParam, lParam);
+		}
+
+		Window* app = (Window*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+		if (app)
+		{
+			return app->ProcessMessage(hwnd, Msg, wParam, lParam);
+		}
+
+		return DefWindowProc(hwnd, Msg, wParam, lParam);
+		
 	}
 }

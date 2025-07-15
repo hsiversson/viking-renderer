@@ -6,7 +6,7 @@
 #endif
 #include <windows.h>
 
-#include "application/application.h"
+#include "raytracer_app.h"
 
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
@@ -16,7 +16,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 	appInitDesc.m_ShowCmd = nShowCmd;
 	appInitDesc.m_Mode = vkr::ApplicationMode::Editor;
 
-	vkr::Application app;
+	RaytracerApp app;
 	vkr::ReturnCode result = app.Launch(appInitDesc);
 
 	return static_cast<int32_t>(result);
