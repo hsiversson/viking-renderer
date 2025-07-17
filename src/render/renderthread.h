@@ -22,6 +22,7 @@ namespace vkr::Render
 		~RenderThread();
 		void Start();
 		void Stop();
+
 		Ref<RenderTaskEvent> QueueTask(RenderTaskFn task);
 
 	private:

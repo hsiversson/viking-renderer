@@ -33,22 +33,22 @@ namespace vkr::Render
 
 	Fence CommandQueue::Signal()
 	{
-		Fence event;
-		event.m_Value = m_FenceResource->Increment();
-		event.m_FenceResource = m_FenceResource.get();
+		Fence fence;
+		fence.m_Value = m_FenceResource->Increment();
+		fence.m_FenceResource = m_FenceResource.get();
 
-		m_CommandQueue->Signal(m_FenceResource->GetFence(), event.m_Value);
+		m_CommandQueue->Signal(m_FenceResource->GetFence(), fence.m_Value);
 
-		return event;
+		return fence;
 	}
 
-	void CommandQueue::InsertWait(const Fence& event)
+	void CommandQueue::InsertWait(const Fence& fence)
 	{
 		// No need to wait for work on the same queue.
-		if (event.m_FenceResource == m_FenceResource.get())
+		if (fence.m_FenceResource == m_FenceResource.get())
 			return;
 
-		m_CommandQueue->Wait(event.m_FenceResource->GetFence(), event.m_Value);
+		m_CommandQueue->Wait(fence.m_FenceResource->GetFence(), fence.m_Value);
 	}
 
 	bool CommandQueue::Wait(bool block)
@@ -85,6 +85,14 @@ namespace vkr::Render
 	{
 		Fence fence;
 		fence.m_Value = m_FenceResource->GetNextValue();
+		fence.m_FenceResource = m_FenceResource.get();
+		return fence;
+	}
+
+	Fence CommandQueue::GetLastFence() const
+	{
+		Fence fence;
+		fence.m_Value = m_FenceResource->GetLastValue();
 		fence.m_FenceResource = m_FenceResource.get();
 		return fence;
 	}

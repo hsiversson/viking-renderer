@@ -56,7 +56,8 @@ namespace vkr
 
 	Logger::~Logger()
 	{
-		m_IsActive = false;
+		m_IsActive = false; 
+		m_HasWorkEvent.Signal();
 		m_Thread.join();
 	}
 

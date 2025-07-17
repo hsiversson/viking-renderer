@@ -3,6 +3,7 @@
 #include "rendercommon.h"
 #include "resourcedescriptor.h"
 #include "rendertaskevent.h"
+#include "renderresourceinterface.h"
 #include "utils/hash.h"
 
 #include <unordered_map>
@@ -25,7 +26,7 @@ namespace vkr::Render
 		ResourceStateLayout m_CurrentLayout;
 	};
 
-	class Resource
+	class Resource : public IRenderResource
 	{
 	public:
 		Resource();
@@ -37,9 +38,9 @@ namespace vkr::Render
 
 		Ref<ResourceDescriptor> GetDescriptor(uint64_t hash);
 		template<typename DescType>	Ref<ResourceDescriptor> GetDescriptor(const DescType& desc)
-		{ 
+		{
 			uint64_t hash = vkr::hash_fnv64(reinterpret_cast<const uint8_t*>(&desc), sizeof(desc));
-			return GetDescriptor(hash); 
+			return GetDescriptor(hash);
 		}
 
 		bool TrackDescriptor(uint64_t hash, const WeakPtr<ResourceDescriptor>& descriptor);
@@ -49,6 +50,7 @@ namespace vkr::Render
 		const ResourceStateTracking& GetStateTracking() const;
 
 		void SetGpuPending(Fence event);
+		const Fence& GetGpuPending() const;
 		bool IsGpuPending() const;
 		void SyncGpu();
 

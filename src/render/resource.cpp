@@ -64,6 +64,11 @@ namespace vkr::Render
 		m_GpuPendingEvent = event;
 	}
 
+	const Fence& Resource::GetGpuPending() const
+	{
+		return m_GpuPendingEvent;
+	}
+
 	bool Resource::IsGpuPending() const
 	{
 		return m_GpuPendingEvent.IsPending();

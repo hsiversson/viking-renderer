@@ -19,13 +19,23 @@ source_group(Render FILES ${VKR_RENDER_SOURCES})
 file(GLOB_RECURSE VKR_UTILS_SOURCES ${VKR_SRC_DIR}/utils/*.cpp ${VKR_SRC_DIR}/utils/*.h)
 source_group(Utils FILES ${VKR_UTILS_SOURCES})
 
+file(GLOB VKR_PRECOMPILED_HEADER ${VKR_SRC_DIR}/vkr_precompiled.h)
+source_group("Precompiled Header" FILES ${VKR_PRECOMPILED_HEADER})
+
 add_library(VikingRenderer 
 			${VKR_CORE_SOURCES}
 			${VKR_APPLICATION_SOURCES}
 			${VKR_GRAPHICS_SOURCES}
 			${VKR_SHADER_SOURCES} 
 			${VKR_RENDER_SOURCES}
-            ${VKR_UTILS_SOURCES}) 
+            ${VKR_UTILS_SOURCES}
+			${VKR_PRECOMPILED_HEADER}) 
+
+target_precompile_headers(VikingRenderer PUBLIC ${VKR_PRECOMPILED_HEADER})
+source_group("Generated Files" FILES ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}.dir/cmake_pch.cxx)
+foreach(config_type ${CMAKE_CONFIGURATION_TYPES})
+    source_group("Generated Files" FILES ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}.dir/${config_type}/cmake_pch.hxx)
+endforeach()
 
 find_package(directx-dxc CONFIG REQUIRED)
 target_link_libraries(VikingRenderer PRIVATE Microsoft::DirectXShaderCompiler)

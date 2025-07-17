@@ -27,73 +27,33 @@ namespace vkr::Graphics
 
 	void ViewRenderer::RenderView(View& view)
 	{
-		RenderViewContext renderViewCtx(view);
+		View* viewPtr = &view; 
+		viewPtr->BeginRender();
+		Render::QueueGraphicsTask([this, viewPtr]() mutable { UpdateSceneData(*viewPtr); });
+		Render::QueueGraphicsTask([this, viewPtr]() mutable { UpdateRtScene(*viewPtr); });
+		Render::QueueGraphicsTask([this, viewPtr]() mutable { DepthPrepass(*viewPtr); });
+		Ref<Render::RenderTaskEvent> lastRenderEvent = Render::QueueGraphicsTask([this, viewPtr]() mutable { ForwardPass(*viewPtr); });
+		viewPtr->EndRender();
 
-		ViewRenderData& renderData = view.GetMutableRenderData();
+		//UpdateRtScene(view);
+		//UpdateParticles(view);
 
-		//Fill in the instance data (later we can just keep this as a normal buffer instead of temp that we need to rebuild per frame)
-		auto instanceDataBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, renderData.m_InstanceData.size(), renderData.m_InstanceData.size(), renderData.m_InstanceData.data());
-		
-		Render::BufferViewDesc instanceDataBufferDesc = {}; // Byteaddressbuffer
-		instanceDataBufferDesc.m_ElementStart = instanceDataBuffer.m_Offset;
-		instanceDataBufferDesc.m_ElementCount = renderData.m_InstanceData.size();
-		instanceDataBufferDesc.m_ElementSize = 1;
-		instanceDataBufferDesc.m_Usage = Render::BUFFER_VIEW_USAGE_RAW;
-		instanceDataBufferDesc.m_Format = Render::FORMAT_UNKNOWN;
-		renderData.m_InstanceDataBufferView = Render::GetDevice()->CreateBufferView(instanceDataBufferDesc, instanceDataBuffer.m_Buffer);
+		//DepthPrepass(view);
 
-		//Fill in the instance data indices
-		auto instanceDataOffsetBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, renderData.m_InstanceDataOffsetBuffer.size()*sizeof(uint32_t), renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), renderData.m_InstanceDataOffsetBuffer.data());
-		
-		Render::BufferViewDesc instanceDataOffsetBufferDesc = {}; // Typed uint buffer
-		instanceDataOffsetBufferDesc.m_ElementStart = instanceDataOffsetBuffer.m_Offset / sizeof(uint32_t);
-		instanceDataOffsetBufferDesc.m_ElementCount = renderData.m_InstanceDataOffsetBuffer.size();
-		instanceDataOffsetBufferDesc.m_Usage = Render::BUFFER_VIEW_USAGE_TYPED;
-		instanceDataOffsetBufferDesc.m_Format = Render::FORMAT_R32_UINT;
-		renderData.m_InstanceDataOffsetBufferView = Render::GetDevice()->CreateBufferView(instanceDataOffsetBufferDesc, instanceDataBuffer.m_Buffer);
-
-		//Construct the per scene constant buffer
-		struct alignas(16) PerSceneConstantData
-		{
-			Mat44 WorldToClip;
-			uint32_t InstanceDataBufferDescriptorIndex; // Descriptor index to the global buffer where all instance data for the scene is stored
-			uint32_t InstanceDataOffsetBufferDescriptorIndex;
-			uint32_t pad0;
-			uint32_t pad1;
-			Vector3f CameraWorldPosition;
-			uint32_t pad2;
-			Vector3f DirectionalLightDirection;
-			uint32_t pad3;
-			Vector3f DirectionalLightColor;
-			uint32_t pad4;
-		};
-		PerSceneConstantData persceneconstantdata;
-		Mat43 CamWorld = const_cast<Camera&>(view.GetCamera()).GetWorldTransform();
-		persceneconstantdata.CameraWorldPosition = Vector3f(CamWorld[9], CamWorld[10], CamWorld[11]);
-		persceneconstantdata.WorldToClip = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
-		persceneconstantdata.DirectionalLightDirection = Vector3f(0.2, -0.5, 0.6);
-		persceneconstantdata.DirectionalLightColor = Vector3f(4.0, 4.0, 4.0);
-		persceneconstantdata.InstanceDataBufferDescriptorIndex = renderData.m_InstanceDataBufferView->GetIndex();
-		persceneconstantdata.InstanceDataOffsetBufferDescriptorIndex = renderData.m_InstanceDataOffsetBufferView->GetIndex();
-		renderData.m_PerSceneConstantBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(PerSceneConstantData), sizeof(PerSceneConstantData), &persceneconstantdata);
-		
-		UpdateRtScene(view);
-		UpdateParticles(view);
-		DepthPrepass(view);
 		//Lets just do a simple forward render for now, remove when raytracing is in place
-		ForwardPass(view);
+		//ForwardPass(view);
+
 		//
-		TraceRadiance(view);
-		ApplyUpscaling(view);
-		ApplyPostEffects(view);
-		FinalizeFrame(view);
+		//TraceRadiance(view);
+		//ApplyUpscaling(view);
+		//ApplyPostEffects(view);
+		//FinalizeFrame(view);
 	}
 
 	void ViewRenderer::ForwardPass(View& view)
 	{
 		const ViewRenderData& renderData = view.GetRenderData();
-		Ref<vkr::Render::Context> ctx = Render::GetDevice()->GetContext(vkr::Render::CONTEXT_TYPE_GRAPHICS);
-		ctx->Begin();
+		Render::Context* ctx = Render::Context::GetCurrentContext();
 
 		//Transition to RT the output
 		std::vector<Render::TextureBarrierDesc> barriers;
@@ -176,13 +136,69 @@ namespace vkr::Graphics
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COMMON;
 			ctx->TextureBarrier(barrierDesc);
 		}
-		ctx->End();
-		ctx->Flush();
+	}
+
+	void ViewRenderer::UpdateSceneData(View& view)
+	{
+		ViewRenderData& renderData = view.GetMutableRenderData();
+
+		//Fill in the instance data (later we can just keep this as a normal buffer instead of temp that we need to rebuild per frame)
+		auto instanceDataBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, renderData.m_InstanceData.size(), renderData.m_InstanceData.size(), renderData.m_InstanceData.data());
+
+		Render::BufferViewDesc instanceDataBufferDesc = {}; // Byteaddressbuffer
+		instanceDataBufferDesc.m_ElementStart = instanceDataBuffer.m_Offset;
+		instanceDataBufferDesc.m_ElementCount = renderData.m_InstanceData.size();
+		instanceDataBufferDesc.m_ElementSize = 1;
+		instanceDataBufferDesc.m_Usage = Render::BUFFER_VIEW_USAGE_RAW;
+		instanceDataBufferDesc.m_Format = Render::FORMAT_UNKNOWN;
+		renderData.m_InstanceDataBufferView = Render::GetDevice()->CreateBufferView(instanceDataBufferDesc, instanceDataBuffer.m_Buffer);
+
+		//Fill in the instance data indices
+		auto instanceDataOffsetBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), renderData.m_InstanceDataOffsetBuffer.data());
+
+		Render::BufferViewDesc instanceDataOffsetBufferDesc = {}; // Typed uint buffer
+		instanceDataOffsetBufferDesc.m_ElementStart = instanceDataOffsetBuffer.m_Offset / sizeof(uint32_t);
+		instanceDataOffsetBufferDesc.m_ElementCount = renderData.m_InstanceDataOffsetBuffer.size();
+		instanceDataOffsetBufferDesc.m_Usage = Render::BUFFER_VIEW_USAGE_TYPED;
+		instanceDataOffsetBufferDesc.m_Format = Render::FORMAT_R32_UINT;
+		renderData.m_InstanceDataOffsetBufferView = Render::GetDevice()->CreateBufferView(instanceDataOffsetBufferDesc, instanceDataBuffer.m_Buffer);
+
+		//Construct the per scene constant buffer
+		struct alignas(16) PerSceneConstantData
+		{
+			Mat44 WorldToClip;
+			uint32_t InstanceDataBufferDescriptorIndex; // Descriptor index to the global buffer where all instance data for the scene is stored
+			uint32_t InstanceDataOffsetBufferDescriptorIndex;
+			uint32_t pad0;
+			uint32_t pad1;
+			Vector3f CameraWorldPosition;
+			uint32_t pad2;
+			Vector3f DirectionalLightDirection;
+			uint32_t pad3;
+			Vector3f DirectionalLightColor;
+			uint32_t pad4;
+		};
+		PerSceneConstantData persceneconstantdata;
+		Mat43 CamWorld = const_cast<Camera&>(view.GetCamera()).GetWorldTransform();
+		persceneconstantdata.CameraWorldPosition = Vector3f(CamWorld[9], CamWorld[10], CamWorld[11]);
+		persceneconstantdata.WorldToClip = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
+		persceneconstantdata.DirectionalLightDirection = Vector3f(0.2, -0.5, 0.6);
+		persceneconstantdata.DirectionalLightColor = Vector3f(4.0, 4.0, 4.0);
+		persceneconstantdata.InstanceDataBufferDescriptorIndex = renderData.m_InstanceDataBufferView->GetIndex();
+		persceneconstantdata.InstanceDataOffsetBufferDescriptorIndex = renderData.m_InstanceDataOffsetBufferView->GetIndex();
+		renderData.m_PerSceneConstantBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(PerSceneConstantData), sizeof(PerSceneConstantData), &persceneconstantdata);
+
 	}
 
 	void ViewRenderer::UpdateRtScene(View& view)
 	{
+		ViewRenderData& renderData = view.GetMutableRenderData();
 
+		Ref<Render::Buffer> rtTLAS = Render::GetDevice()->CreateTLAS(renderData.m_RaytracingInstances.size(), renderData.m_RaytracingInstances.data());
+
+		Render::BufferViewDesc rtTLASDesc = {};
+		rtTLASDesc.m_Usage = Render::BUFFER_VIEW_USAGE_RAYTRACING_ACCELERATION_STRUCTURE;
+		renderData.m_RaytracingTLAS = Render::GetDevice()->CreateBufferView(rtTLASDesc, rtTLAS);
 	}
 
 	void ViewRenderer::UpdateParticles(View& view)
@@ -193,8 +209,9 @@ namespace vkr::Graphics
 	void ViewRenderer::DepthPrepass(View& view)
 	{
 		const ViewRenderData& renderData = view.GetRenderData();
-		Ref<vkr::Render::Context> ctx = Render::GetDevice()->GetContext(vkr::Render::CONTEXT_TYPE_GRAPHICS);
-		ctx->Begin();
+		Render::Context* ctx = Render::Context::GetCurrentContext();
+
+		ctx->InsertWait(renderData.m_RaytracingTLAS->GetBuffer()->GetGpuPending());
 
 		//Transition DS to write
 		std::vector<Render::TextureBarrierDesc> barriers;
@@ -253,8 +270,6 @@ namespace vkr::Graphics
 			ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
 			ctx->DrawIndexedInstanced(batch.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount, batch.m_Count);
 		}
-		ctx->End();
-		ctx->Flush();
 	}
 
 	void ViewRenderer::TraceRadiance(View& view)

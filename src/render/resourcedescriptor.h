@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rendercommon.h"
+#include "renderresourceinterface.h"
 
 namespace vkr::Render
 {
@@ -19,7 +20,7 @@ namespace vkr::Render
 		RESOURCE_DESCRIPTOR_TYPE_COUNT
 	};
 
-	class ResourceDescriptor : public std::enable_shared_from_this<ResourceDescriptor>
+	class ResourceDescriptor : public IRenderResource, public std::enable_shared_from_this<ResourceDescriptor>
 	{
 		friend class DescriptorHeap;
 	public:

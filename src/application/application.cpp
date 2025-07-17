@@ -27,6 +27,7 @@ namespace vkr
 
 	Application::~Application()
 	{
+		m_Scene->DestroyView(m_View);
 		Logger::Destroy();
 	}
 
@@ -81,7 +82,7 @@ namespace vkr
 
 	ReturnCode Application::MainLoop()
 	{
-
+		MovingAverage<uint32_t, 64> m_FpsMovingAverage;
 		bool running = true;
 		while (running)
 		{
@@ -93,24 +94,29 @@ namespace vkr
 			// TODO: Apply changes coming from window messages
 			// TODO: Apply changes going to window
 
-			m_View->SetOutputTarget(m_SwapChain->GetOutputRenderTarget());
-
 			m_ElapsedTimer.Tick();
+			m_FpsMovingAverage.Add(static_cast<uint32_t>(std::roundf(1.0f / m_ElapsedTimer.DeltaTime())));
+			//VKR_LOG("FPS: {}", m_FpsMovingAverage.GetAverage());
 
-			m_RenderDevice->BeginFrame();
-
+			// App tick
 			Tick(m_ElapsedTimer.DeltaTime());
 
+			// TODO: Move scene/world ownership into app? 
 			m_Scene->Update();
 			m_Scene->PrepareView(*m_View);
-			m_ViewRenderer->RenderView(*m_View);
 
-			m_SwapChain->Present();
-
-			m_RenderDevice->EndFrame();
+			{
+				Render::QueueGraphicsTask(std::bind(&Render::Device::BeginFrame, m_RenderDevice.get()));
+				Render::QueueGraphicsTask([this]() { m_View->SetOutputTarget(m_SwapChain->GetOutputRenderTarget()); });
+				m_ViewRenderer->RenderView(*m_View);
+				Render::QueueGraphicsTask(std::bind(&Render::SwapChain::Present, m_SwapChain.get()));
+				Render::QueueGraphicsTask(std::bind(&Render::Device::EndFrame, m_RenderDevice.get()));
+			}
 			m_InputManager->EndFrame();
 		}
 
+		m_RenderDevice->WaitForGpuIdle();
+		
 		return RETURN_OK;
 	}
 

@@ -65,6 +65,9 @@ namespace vkr::Render
 		{
 			memcpy(m_DataPtr + offset, data, byteSize);
 		}
+		else if (false /*IsRenderThread*/)
+		{
+		}
 		else
 		{
 			Device* device = GetDevice();

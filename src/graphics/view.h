@@ -52,6 +52,7 @@ namespace vkr::Graphics
 		std::array<ViewRenderData, 2> m_ViewRenderData;
 		uint32_t m_PrepareDataIndex;
 		uint32_t m_RenderDataIndex;
+		Ref<Render::RenderTaskEvent> m_EndRenderEvent;
 
 		Camera m_Camera;
 		Ref<vkr::Render::RenderTargetView> m_OutputDescriptor;

@@ -53,12 +53,15 @@ namespace vkr::Render
 		if (m_MaxCounter < m_NumElements)
 		{
 			uint32_t index = 0;
-			if (m_FreeList.empty())
-				index = m_MaxCounter++;
-			else
 			{
-				index = m_FreeList.front();
-				m_FreeList.pop();
+				std::unique_lock<std::mutex> lock(m_FreeListMutex);
+				if (m_FreeList.empty())
+					index = m_MaxCounter++;
+				else
+				{
+					index = m_FreeList.front();
+					m_FreeList.pop();
+				}
 			}
 
 			descriptor.m_D3DHandle = m_D3DHeap->GetCPUDescriptorHandleForHeapStart();
@@ -75,6 +78,7 @@ namespace vkr::Render
 	void DescriptorHeap::Release(const ResourceDescriptor& descriptor)
 	{
 		// TODO: thread safety
+		std::unique_lock<std::mutex> lock(m_FreeListMutex);
 		m_FreeList.push(descriptor.GetIndex());
 	}
 

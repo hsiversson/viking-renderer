@@ -33,6 +33,7 @@ namespace vkr::Render
 		uint32_t m_NumElements;
 		uint32_t m_MaxCounter = 0;
 		uint32_t m_DescriptorSize;
+		std::mutex m_FreeListMutex;
 		std::queue<uint32_t> m_FreeList;
 
 		const DescriptorHeapType m_Type;

@@ -34,4 +34,9 @@ namespace vkr::Render
 	{
 		return m_Fence.Wait(block);
 	}
+
+	bool RenderTaskEvent::IsPending() const
+	{
+		return !m_Event.IsSignalled() || m_Fence.IsPending();
+	}
 }

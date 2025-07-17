@@ -18,7 +18,6 @@ namespace vkr::Render
 
 	bool Texture::Init(const TextureDesc& desc, const TextureData* initialData /*= nullptr*/)
 	{
-
 		D3D12_RESOURCE_DESC1 textureDesc = D3DConvertTextureDesc(desc);
 		m_TextureDesc = desc;
 		m_TextureDesc.m_MipLevels = textureDesc.MipLevels;
@@ -165,6 +164,13 @@ namespace vkr::Render
 					d3dCmdList->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, &srcBox);
 				}
 			}
+
+			TextureBarrierDesc barrier = {};
+			barrier.m_Texture = this;
+			barrier.m_TargetAccess = RESOURCE_STATE_ACCESS_COMMON;
+			barrier.m_TargetLayout = RESOURCE_STATE_LAYOUT_COMMON;
+			barrier.m_TargetSync = RESOURCE_STATE_SYNC_ALL;
+			ctx->TextureBarrier(barrier);
 
 			ctx->End();
 			SetGpuPending(ctx->Flush());

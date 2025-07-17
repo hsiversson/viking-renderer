@@ -16,6 +16,8 @@ namespace vkr::Render
 		bool WaitForEvent(bool block = true);
 		bool WaitForFence(bool block = true);
 
+		bool IsPending() const;
+
 	private:
 		Fence m_Fence;
 		Event m_Event;

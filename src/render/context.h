@@ -128,8 +128,13 @@ namespace vkr::Render
 		void CopyBuffer(Buffer* dst, uint64_t dstOffset, Buffer* src, uint64_t srcOffset, uint32_t size);
 		void CopyTexture(Texture* dst, Texture* src);
 
+		// Synchronization
+		void InsertWait(const Fence& fence);
+
 		ContextType GetType() const;
 		CommandList* GetCommandList() const;
+
+		static Context* GetCurrentContext();
 
 	private:
 		struct DrawState
@@ -152,7 +157,9 @@ namespace vkr::Render
 		Ref<CommandList> m_CommandList;
 		ID3D12GraphicsCommandList* m_CurrentD3DCommandList;
 		ID3D12GraphicsCommandList7* m_CurrentD3DCommandList7;
+		uint32_t m_NumRecordedCommands;
 
+		std::vector<Fence> m_FencesToWaitFor;
 		std::vector<Ref<CommandList>> m_CommandListsToSubmit;
 		Fence m_LastFlushEvent;
 

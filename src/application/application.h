@@ -53,15 +53,16 @@ namespace vkr
 
 	protected:
 		ElapsedTimer m_ElapsedTimer;
-		UniquePtr<Render::Device> m_RenderDevice;
-		Ref<Render::SwapChain> m_SwapChain;
-		Ref<Render::Window> m_Window;
 
 		// app probably shouldn't own these,
 		// eventual GameWorld or some graphics module should.
 		UniquePtr<Graphics::ViewRenderer> m_ViewRenderer;
-		UniquePtr<Graphics::Scene> m_Scene;
 		Ref<Graphics::View> m_View;
+		UniquePtr<Graphics::Scene> m_Scene;
+
+		Ref<Render::SwapChain> m_SwapChain;
+		UniquePtr<Render::Device> m_RenderDevice;
+		Ref<Render::Window> m_Window;
 
 		Vector2u m_WindowSize;
 

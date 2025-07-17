@@ -111,11 +111,5 @@ namespace vkr::Graphics
 		
 		CollectBatchesForPass(prepareData.m_DepthPassData, DepthPSOSelector);
 		CollectBatchesForPass(prepareData.m_ForwardPassData, DefaultPSOSelector);
-		
-		Ref<Render::Buffer> rtTLAS = Render::GetDevice()->CreateTLAS(prepareData.m_RaytracingInstances.size(), prepareData.m_RaytracingInstances.data());
-
-		Render::BufferViewDesc rtTLASDesc = {};
-		rtTLASDesc.m_Usage = Render::BUFFER_VIEW_USAGE_RAYTRACING_ACCELERATION_STRUCTURE;
-		prepareData.m_RaytracingTLAS = Render::GetDevice()->CreateBufferView(rtTLASDesc, rtTLAS);
 	}
 }

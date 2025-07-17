@@ -18,6 +18,7 @@ namespace vkr::Render
 	class TextureLoader;
 	class CommandQueue;
 	class CommandListPool;
+	class RenderResourceDestructionQueue;
 
 	class Device
 	{
@@ -30,6 +31,8 @@ namespace vkr::Render
 
 		void BeginFrame();
 		void EndFrame();
+
+		void WaitForGpuIdle();
 		
 		Ref<SwapChain> CreateSwapChain(void* windowHandle, const Vector2u& size);
 
@@ -61,13 +64,13 @@ namespace vkr::Render
 		RenderThread* GetRenderThread(ContextType contextType) const;
 		DescriptorHeap* GetDescriptorHeap(DescriptorHeapType type) const;
 
+		void OnResourceDestroy(Resource* resource);
+
 	private:
 		void InitRootSignatures();
 		void InitTextureLoaders();
 		void InitCommandQueues();
 		void InitDescriptorHeaps();
-
-		Ref<Buffer> CreateRaytracingAccelerationStructure(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC& buildDesc);
 
 	private:
 		ComPtr<IDXGIFactory2> m_Factory;
@@ -87,6 +90,8 @@ namespace vkr::Render
 		UniquePtr<ShaderCompiler> m_ShaderCompiler;
 		Ref<RootSignature> m_RootSignatures[PIPELINE_STATE_TYPE_COUNT];
 
+		UniquePtr<RenderResourceDestructionQueue> m_RenderResourceDestructionQueue;
+
 		std::unordered_map<std::filesystem::path, UniquePtr<TextureLoader>> m_TextureLoaderByExtension;
 		UniquePtr<DescriptorHeap> m_DescriptorHeaps[RESOURCE_DESCRIPTOR_TYPE_COUNT];
 
@@ -101,6 +106,7 @@ namespace vkr::Render
 	};
 
 	inline Device* GetDevice() { return Device::g_Instance; }
+	Ref<RenderTaskEvent> QueueRenderTask(ContextType type, RenderTaskFn task);
 	Ref<RenderTaskEvent> QueueGraphicsTask(RenderTaskFn task);
 	Ref<RenderTaskEvent> QueueComputeTask(RenderTaskFn task);
 	Ref<RenderTaskEvent> QueueCopyTask(RenderTaskFn task);

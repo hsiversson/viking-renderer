@@ -22,6 +22,7 @@ namespace vkr::Graphics
 
 	private:
 		void ForwardPass(View& view);
+		void UpdateSceneData(View& view);
 		void UpdateRtScene(View& view);
 		void UpdateParticles(View& view);
 

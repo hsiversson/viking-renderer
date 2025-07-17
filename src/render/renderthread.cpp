@@ -11,26 +11,35 @@ namespace vkr::Render
 
 	RenderThread::~RenderThread()
 	{
-		m_Thread.join();
 	}
 
 	void RenderThread::Start()
 	{
-		m_IsRunning = true;
-		m_Thread = std::thread(&RenderThread::ThreadFunc, this);
+		if (!m_IsRunning)
+		{
+			m_IsRunning = true;
+			m_Thread = std::thread(&RenderThread::ThreadFunc, this);
+		}
 	}
 
 	void RenderThread::Stop()
 	{
-		m_IsRunning = false;
-		m_HasWorkEvent.Signal();
+		if (m_IsRunning)
+		{
+			m_IsRunning = false;
+			m_HasWorkEvent.Signal();
+			m_Thread.join();
+		}
 	}
 
 	Ref<RenderTaskEvent> RenderThread::QueueTask(RenderTaskFn task)
 	{
+		if (!m_IsRunning)
+			return nullptr;
+
 		RenderTask renderTask;
 		renderTask.m_Task = task;
-		renderTask.m_Event = MakeRef<RenderTaskEvent>();;
+		renderTask.m_Event = MakeRef<RenderTaskEvent>();
 
 		{
 			std::unique_lock<std::mutex> lock(m_PendingTasksMutex);
@@ -50,7 +59,7 @@ namespace vkr::Render
 			m_HasWorkEvent.Reset();
 
 			RenderTask task;
-			while (!m_PendingTasks.empty())
+			while (m_IsRunning && !m_PendingTasks.empty())
 			{
 				{
 					std::unique_lock<std::mutex> lock(m_PendingTasksMutex);
@@ -66,5 +75,4 @@ namespace vkr::Render
 			}
 		}
 	}
-
 }

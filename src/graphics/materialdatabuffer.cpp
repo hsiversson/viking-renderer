@@ -6,7 +6,6 @@ namespace vkr::Graphics
 {
 	MaterialDataBuffer::MaterialDataBuffer()
 	{
-
 	}
 
 	MaterialDataBuffer::~MaterialDataBuffer()

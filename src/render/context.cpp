@@ -16,6 +16,7 @@ namespace vkr::Render
 		: m_CommandQueue(commandQueue)
 		, m_CurrentD3DCommandList(nullptr)
 		, m_CurrentD3DCommandList7(nullptr)
+		, m_NumRecordedCommands(0)
 		, m_Type(type)
 	{
 	}
@@ -31,13 +32,28 @@ namespace vkr::Render
 		m_CurrentD3DCommandList->QueryInterface(IID_PPV_ARGS(&m_CurrentD3DCommandList7));
 		m_CommandList->Open();
 		g_CurrentContext = this;
+		m_NumRecordedCommands = 0;
 	}
 
 	void Context::End()
 	{
 		// insert potential auto transitions/barriers
-		m_CommandList->Close();
-		m_CommandListsToSubmit.push_back(m_CommandList);
+		if (m_CommandList)
+		{
+			m_CommandList->Close();
+			if (m_NumRecordedCommands > 0)
+			{
+				m_CommandListsToSubmit.push_back(m_CommandList);
+			}
+			else
+			{
+				CommandListPool::PendingCommandLists pending;
+				pending.m_CommandLists.push_back(m_CommandList);
+				pending.m_Event = m_LastFlushEvent;
+				GetDevice()->GetCommandListPool(m_Type)->ReturnCommandList(pending);
+			}
+		}
+
 		if (m_CurrentD3DCommandList7)
 			m_CurrentD3DCommandList7->Release();
 		m_CurrentD3DCommandList7 = nullptr;
@@ -49,15 +65,23 @@ namespace vkr::Render
 
 	Fence Context::Flush()
 	{
-		m_LastFlushEvent = m_CommandQueue->Submit(m_CommandListsToSubmit.size(), m_CommandListsToSubmit.data());
+		if (!m_CommandListsToSubmit.empty())
+		{
+			for (uint32_t i = 0; i < m_FencesToWaitFor.size(); ++i)
+			{
+				m_CommandQueue->InsertWait(m_FencesToWaitFor[i]);
+			}
+			m_FencesToWaitFor.clear();
 
-		CommandListPool::PendingCommandLists pending;
-		pending.m_CommandLists.insert(pending.m_CommandLists.end(), m_CommandListsToSubmit.begin(), m_CommandListsToSubmit.end());
-		pending.m_Event = m_LastFlushEvent;
-		GetDevice()->GetCommandListPool(m_Type)->ReturnCommandList(pending);
+			m_LastFlushEvent = m_CommandQueue->Submit(m_CommandListsToSubmit.size(), m_CommandListsToSubmit.data());
 
-		m_CommandListsToSubmit.clear();
+			CommandListPool::PendingCommandLists pending;
+			pending.m_CommandLists.insert(pending.m_CommandLists.end(), m_CommandListsToSubmit.begin(), m_CommandListsToSubmit.end());
+			pending.m_Event = m_LastFlushEvent;
+			GetDevice()->GetCommandListPool(m_Type)->ReturnCommandList(pending);
 
+			m_CommandListsToSubmit.clear();
+		}
 		return m_LastFlushEvent;
 	}
 
@@ -65,6 +89,7 @@ namespace vkr::Render
 	{
 		UpdateState();
 		m_CurrentD3DCommandList->Dispatch(Groups.x, Groups.y, Groups.z);
+		++m_NumRecordedCommands;
 	}
 
 	void Context::DispatchThreads(Ref<PipelineState> pipelineState, const Vector3u& threads)
@@ -140,6 +165,7 @@ namespace vkr::Render
 			barrierGroup.NumBarriers = barriers.size();
 
 			m_CurrentD3DCommandList7->Barrier(1, &barrierGroup);
+			++m_NumRecordedCommands;
 		}
 	}
 
@@ -180,6 +206,7 @@ namespace vkr::Render
 			barrierGroup.NumBarriers = barriers.size();
 
 			m_CurrentD3DCommandList7->Barrier(1, &barrierGroup);
+			++m_NumRecordedCommands;
 		}
 	}
 
@@ -214,6 +241,7 @@ namespace vkr::Render
 			barrierGroup.NumBarriers = barriers.size();
 
 			m_CurrentD3DCommandList7->Barrier(1, &barrierGroup);
+			++m_NumRecordedCommands;
 		}
 	}
 
@@ -307,7 +335,6 @@ namespace vkr::Render
 				m_RenderTargetUpdate = false;
 			}
 			
-
 			CurrentState = NewState;
 			m_StateUpdate = false;
 		}
@@ -319,12 +346,14 @@ namespace vkr::Render
 		for (uint32_t i = 0; i < numRtvs; ++i)
 		{
 			m_CurrentD3DCommandList->ClearRenderTargetView(rtvs[i]->GetHandle(), clearColor, 0, nullptr);
+			++m_NumRecordedCommands;
 		}
 	}
 
 	void Context::ClearDepthStencil(Ref<DepthStencilView> dsv, float clearValue)
 	{
 		m_CurrentD3DCommandList->ClearDepthStencilView(dsv->GetHandle(), D3D12_CLEAR_FLAG_DEPTH, clearValue, 0, 0, nullptr);
+		++m_NumRecordedCommands;
 	}
 
 	Ref<Buffer> Context::BuildRaytracingAccelerationStructure(const RaytracingAccelerationStructureBuildDesc& desc)
@@ -412,6 +441,7 @@ namespace vkr::Render
 		outBufferDesc.m_IsRaytracingAccelerationStructure = true;
 
 		Ref<Buffer> outBuffer = device->CreateBuffer(outBufferDesc);
+		assert(outBuffer);
 		buildDesc.DestAccelerationStructureData = outBuffer->GetD3DResource()->GetGPUVirtualAddress();
 
 		BufferBarrierDesc bufferBarrier = {};
@@ -421,6 +451,7 @@ namespace vkr::Render
 		BufferBarrier(bufferBarrier);
 
 		m_CurrentD3DCommandList7->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
+		++m_NumRecordedCommands;
 
 		bufferBarrier.m_TargetAccess = RESOURCE_STATE_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_READ;
 		bufferBarrier.m_TargetSync = RESOURCE_STATE_SYNC_ALL;
@@ -437,6 +468,11 @@ namespace vkr::Render
 	CommandList* Context::GetCommandList() const
 	{
 		return m_CommandList.get();
+	}
+
+	Context* Context::GetCurrentContext()
+	{
+		return g_CurrentContext;
 	}
 
 	void Context::BindRenderTargets(Ref<RenderTargetView>* rtviews, size_t viewCount)
@@ -488,6 +524,7 @@ namespace vkr::Render
 	{
 		UpdateState();
 		m_CurrentD3DCommandList->DrawInstanced(vertexCount, instanceCount, startVertex, startInstance);
+		++m_NumRecordedCommands;
 	}
 
 	void Context::DrawIndexed(uint32_t indexCount, uint32_t startIndex, uint32_t startVertex)
@@ -499,6 +536,7 @@ namespace vkr::Render
 	{
 		UpdateState();
 		m_CurrentD3DCommandList->DrawIndexedInstanced(indexCount, instanceCount, startIndex, startVertex, startInstance);
+		++m_NumRecordedCommands;
 	}
 
 	void Context::SetPrimitiveTopology(PrimitiveTopology topologyType)
@@ -536,22 +574,30 @@ namespace vkr::Render
 	{
 		// validate that resources have the same layout
 		m_CurrentD3DCommandList->CopyResource(dst->GetD3DResource(), src->GetD3DResource());
+		++m_NumRecordedCommands;
 	}
 
 	void Context::CopyResource(Texture* dst, Texture* src)
 	{
 		// validate that resources have the same layout
 		m_CurrentD3DCommandList->CopyResource(dst->GetD3DResource(), src->GetD3DResource());
+		++m_NumRecordedCommands;
 	}
 
 	void Context::CopyBuffer(Buffer* dst, uint64_t dstOffset, Buffer* src, uint64_t srcOffset, uint32_t size)
 	{
 		m_CurrentD3DCommandList->CopyBufferRegion(dst->GetD3DResource(), dstOffset, src->GetD3DResource(), srcOffset, size);
+		++m_NumRecordedCommands;
 	}
 
 	void Context::CopyTexture(Texture* dst, Texture* src)
 	{
 
+	}
+
+	void Context::InsertWait(const Fence& fence)
+	{
+		m_FencesToWaitFor.push_back(fence);
 	}
 
 }

@@ -32,18 +32,14 @@ namespace vkr::Graphics
 
 	void View::BeginPrepare()
 	{
+		// Make sure render from last frame has finished before we swap indices?
+		Render::QueueGraphicsTask([](){})->WaitForEvent();
 		m_PrepareDataIndex = (m_PrepareDataIndex + 1) % m_ViewRenderData.size();
 		GetPrepareData().Clear();
 	}
 
 	void View::EndPrepare()
 	{
-		// Make sure render from last frame has finished before we swap indices?
-		if (m_IsRendering)
-		{
-			// stall
-		}
-
 		m_RenderDataIndex = m_PrepareDataIndex;
 	}
 
@@ -55,6 +51,7 @@ namespace vkr::Graphics
 	void View::EndRender()
 	{
 		m_IsRendering = false;
+		m_EndRenderEvent = Render::QueueGraphicsTask([]() {});
 	}
 
 	void View::SetCamera(Camera& camera)

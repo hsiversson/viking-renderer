@@ -35,6 +35,7 @@ namespace vkr::Render
 		{
 			m_RenderThreads[i]->Stop();
 		}
+		m_RenderResourceDestructionQueue->Flush();
 	}
 
 	bool Device::Init()
@@ -89,7 +90,6 @@ namespace vkr::Render
 		D3D12CreateDevice(m_Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_Device));
 		m_Device.As(&m_Device10);
 
-		m_ShaderCompiler = MakeUnique<ShaderCompiler>();
 
 		InitDescriptorHeaps();
 		InitRootSignatures();
@@ -100,6 +100,10 @@ namespace vkr::Render
 		{
 			m_TempBufferAllocators[i] = MakeUnique<TempBufferAllocator>(TempBufferUsage(i), 1 * 1024 * 1024);
 		}
+
+		m_ShaderCompiler = MakeUnique<ShaderCompiler>();
+		m_RenderResourceDestructionQueue = MakeUnique<RenderResourceDestructionQueue>();
+		m_RenderResourceDestructionQueue->Start();
 		return true;
 	}
 
@@ -120,6 +124,11 @@ namespace vkr::Render
 
 		// TODO: add end chunk to all temp buffers pending delete
 		// TODO: garbage collect temp buffers pending delete
+	}
+
+	void Device::WaitForGpuIdle()
+	{
+		QueueGraphicsTask([]() {})->Wait();
 	}
 
 	Ref<SwapChain> Device::CreateSwapChain(void* windowHandle, const Vector2u& size)
@@ -378,6 +387,15 @@ namespace vkr::Render
 		return m_DescriptorHeaps[type].get();
 	}
 
+	void Device::OnResourceDestroy(Resource* resource)
+	{
+		if (resource)
+		{
+			ID3D12Resource* d3dResource = resource->GetD3DResource();
+
+		}
+	}
+
 	void Device::InitRootSignatures()
 	{
 		for (int i = 0; i < PipelineStateType::PIPELINE_STATE_TYPE_COUNT; i++)
@@ -422,64 +440,31 @@ namespace vkr::Render
 		m_DescriptorHeaps[DESCRIPTOR_HEAP_TYPE_DEPTH_STENCIL] = MakeUnique<DescriptorHeap>(DESCRIPTOR_HEAP_TYPE_DEPTH_STENCIL, 16);
 	}
 
-	Ref<Buffer> Device::CreateRaytracingAccelerationStructure(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC& buildDesc)
+	Ref<RenderTaskEvent> QueueRenderTask(ContextType type, RenderTaskFn task)
 	{
-		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuildInfo = {};
-		m_Device10->GetRaytracingAccelerationStructurePrebuildInfo(&buildDesc.Inputs, &prebuildInfo);
-
-		TempBuffer scratchBuffer = GetTempBuffer(TEMP_BUFFER_USAGE_RAYTRACING_ACCELERATION_STRUCTURE, prebuildInfo.ScratchDataSizeInBytes);
-		buildDesc.ScratchAccelerationStructureData = scratchBuffer.m_Buffer->GetD3DResource()->GetGPUVirtualAddress() + scratchBuffer.m_Offset;
-
-		BufferDesc outBufferDesc = {};
-		outBufferDesc.m_ElementSize = 1;
-		outBufferDesc.m_ElementCount = prebuildInfo.ResultDataMaxSizeInBytes;
-		outBufferDesc.m_IsRaytracingAccelerationStructure = true;
-
-		Ref<Buffer> outBuffer = CreateBuffer(outBufferDesc);
-		buildDesc.DestAccelerationStructureData = outBuffer->GetD3DResource()->GetGPUVirtualAddress();
-
-		m_RaytracingBuildContext->Begin();
-
-		CommandList* cmdList = m_RaytracingBuildContext->GetCommandList();
-		ID3D12GraphicsCommandList* d3dCmdList = cmdList->GetD3DCommandList();
-		ID3D12GraphicsCommandList4* d3dCmdList4 = nullptr;
-		d3dCmdList->QueryInterface(IID_PPV_ARGS(&d3dCmdList4));
-
-		BufferBarrierDesc bufferBarrier = {};
-		bufferBarrier.m_Buffer = outBuffer.get();
-		bufferBarrier.m_TargetAccess = RESOURCE_STATE_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_WRITE;
-		bufferBarrier.m_TargetSync = RESOURCE_STATE_SYNC_ALL;
-		m_RaytracingBuildContext->BufferBarrier(bufferBarrier);
-
-		d3dCmdList4->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
-
-		bufferBarrier.m_TargetAccess = RESOURCE_STATE_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_READ;
-		bufferBarrier.m_TargetSync = RESOURCE_STATE_SYNC_ALL;
-		m_RaytracingBuildContext->BufferBarrier(bufferBarrier);
-
-		m_RaytracingBuildContext->End();
-		Fence event = m_RaytracingBuildContext->Flush();
-
-		// set event on outBuffer to have it track its build status
-		outBuffer->SetGpuPending(event);
-
-		d3dCmdList4->Release();
-		return outBuffer;
+		if (Device* device = GetDevice())
+		{
+			return device->GetRenderThread(type)->QueueTask(task);
+		}
+		else
+		{
+			return nullptr;
+		}
 	}
 
 	Ref<RenderTaskEvent> QueueGraphicsTask(RenderTaskFn task)
 	{
-		return GetDevice()->GetRenderThread(CONTEXT_TYPE_GRAPHICS)->QueueTask(task);
+		return QueueRenderTask(CONTEXT_TYPE_GRAPHICS, task);
 	}
 
 	Ref<RenderTaskEvent> QueueComputeTask(RenderTaskFn task)
 	{
-		return GetDevice()->GetRenderThread(CONTEXT_TYPE_COMPUTE)->QueueTask(task);
+		return QueueRenderTask(CONTEXT_TYPE_COMPUTE, task);
 	}
 
 	Ref<RenderTaskEvent> QueueCopyTask(RenderTaskFn task)
 	{
-		return GetDevice()->GetRenderThread(CONTEXT_TYPE_COPY)->QueueTask(task);
+		return QueueRenderTask(CONTEXT_TYPE_COPY, task);
 	}
 
 }

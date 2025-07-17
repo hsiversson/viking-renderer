@@ -15,13 +15,14 @@ namespace vkr::Render
 		~CommandQueue();
 
 		Fence Signal();
-		void InsertWait(const Fence& waitable);
+		void InsertWait(const Fence& fence);
 		bool Wait(bool block = true);
 
 		Fence Submit(const Ref<CommandList>& commandList);
 		Fence Submit(uint32_t numCommandLists, const Ref<CommandList>* commandLists);
 
 		Fence GetNextFence() const;
+		Fence GetLastFence() const;
 		ID3D12CommandQueue* GetD3DCommandQueue() const;
 
 	private:
