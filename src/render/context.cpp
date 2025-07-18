@@ -592,7 +592,16 @@ namespace vkr::Render
 
 	void Context::CopyTexture(Texture* dst, Texture* src)
 	{
+		D3D12_TEXTURE_COPY_LOCATION dstLocation;
+		dstLocation.pResource = dst->GetD3DResource();
+		dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		dstLocation.SubresourceIndex = 0;
 
+		D3D12_TEXTURE_COPY_LOCATION srcLocation;
+		srcLocation.pResource = src->GetD3DResource();
+		srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		srcLocation.SubresourceIndex = 0;
+		m_CurrentD3DCommandList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
 	}
 
 	void Context::InsertWait(const Fence& fence)

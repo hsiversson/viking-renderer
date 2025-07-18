@@ -108,6 +108,18 @@ namespace vkr::Graphics
 		dsvDesc.m_Mip = 0;
 		m_DepthBufferView = Render::GetDevice()->CreateDepthStencilView(dsvDesc, m_DepthBuffer);
 
+		//Create scene texture, later on this one will be upscaled into the final output texture
+		Render::TextureDesc sceneTextureDesc;
+		sceneTextureDesc.m_AllowDepthStencil = false;
+		sceneTextureDesc.m_AllowRenderTarget = true;
+		sceneTextureDesc.m_Dimension = Render::ResourceDimension::Texture2D;
+		sceneTextureDesc.m_ArraySize = 1;
+		sceneTextureDesc.m_Format = Render::FORMAT_RGB10A2_UNORM; //TODO: Is there a way to know which format we should be creating this in?? This should match final output texture format
+		sceneTextureDesc.m_MipLevels = 1;
+		sceneTextureDesc.m_Size = { m_MaxRenderSize.x, m_MaxRenderSize.y, 0 };
+		sceneTextureDesc.m_Writable = true;
+		m_SceneTexture = Render::GetDevice()->CreateTexture(sceneTextureDesc);
+
 		return true;
 	}
 

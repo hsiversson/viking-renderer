@@ -64,17 +64,14 @@ namespace vkr
 
 		m_Scene = MakeUnique<Graphics::Scene>();
 
-		m_ViewRenderer = MakeUnique<Graphics::ViewRenderer>();
-		if (!m_ViewRenderer->Init())
-			return RETURN_ERROR;
-
-		
 		m_View = m_Scene->CreateView();
 		m_View->SetRenderSize(desc.m_Resolution);
 
-		m_WindowSize = desc.m_Resolution;
+		m_ViewRenderer = MakeUnique<Graphics::ViewRenderer>();
+		if (!m_ViewRenderer->Init(*m_View))
+			return RETURN_ERROR;
 
-		
+		m_WindowSize = desc.m_Resolution;
 
 		AppInit();
 		return RETURN_OK;

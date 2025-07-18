@@ -75,11 +75,16 @@ namespace vkr::Render
 		if (AllocateDescriptor())
 		{
 			const TextureDesc& textureDesc = resource->m_TextureDesc;
+			Render::Format finalFormat = textureDesc.m_Format;
+			if (finalFormat == FORMAT_D32_FLOAT)
+			{
+				finalFormat = FORMAT_R32_FLOAT; // Special path to be able to use depth buffers as SRV/UAV
+			}
 
 			if (desc.m_Writable)
 			{
 				D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-				uavDesc.Format = D3DConvertFormat(textureDesc.m_Format);
+				uavDesc.Format = D3DConvertFormat(finalFormat);
 				if (textureDesc.m_Dimension == ResourceDimension::Texture1D)
 				{
 					uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
@@ -96,7 +101,7 @@ namespace vkr::Render
 			else
 			{
 				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-				srvDesc.Format = D3DConvertFormat(textureDesc.m_Format);
+				srvDesc.Format = D3DConvertFormat(finalFormat);
 				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 				if (textureDesc.m_Dimension == ResourceDimension::Texture1D)
 				{

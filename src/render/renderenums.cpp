@@ -44,6 +44,7 @@ namespace vkr::Render
 		case FORMAT_R32_FLOAT:
 		case FORMAT_R32_UINT:
 		case FORMAT_R32_SINT:
+		case FORMAT_R32_TYPELESS:
 		case FORMAT_RGB10A2_UNORM:
 		case FORMAT_RGB10A2_UINT:
 		case FORMAT_RG11B10_FLOAT:

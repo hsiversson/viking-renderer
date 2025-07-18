@@ -5,6 +5,9 @@
 namespace vkr::Render
 {
 	class Device;
+	class Shader;
+	class PipelineState;
+	class TextureView;
 }
 
 namespace vkr::Graphics
@@ -16,7 +19,7 @@ namespace vkr::Graphics
 		ViewRenderer();
 		~ViewRenderer();
 
-		bool Init();
+		bool Init(View& view);
 
 		void RenderView(View& view);
 
@@ -30,6 +33,8 @@ namespace vkr::Graphics
 
 		void TraceRadiance(View& view);
 
+		void RenderSky(View& view);
+
 		void ApplyUpscaling(View& view);
 		void ApplyPostEffects(View& view);
 		void FinalizeFrame(View& view);
@@ -39,5 +44,12 @@ namespace vkr::Graphics
 		// UniquePtr<Environment> m_Environment;
 		// UniquePtr<VegetationSystem> m_VegetationSystem;
 		// UniquePtr<VfxSimulator> m_VfxSimulator;
+
+		//Global shader cache??
+		Ref<Render::Shader> m_SkyComputeShader;
+		Ref<Render::PipelineState> m_SkyPSO;
+
+		Ref<Render::TextureView> m_SceneTextureUAVView;
+		Ref<Render::TextureView> m_DepthSRVView;
 	};
 }

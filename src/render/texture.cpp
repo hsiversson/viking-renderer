@@ -22,6 +22,13 @@ namespace vkr::Render
 		m_TextureDesc = desc;
 		m_TextureDesc.m_MipLevels = textureDesc.MipLevels;
 
+		if (textureDesc.Format == DXGI_FORMAT_D32_FLOAT)
+		{
+			//Special path for depth buffer. Using this format instead will allow us to use the depth buffer later for SRV use as well
+			//Converting the format through the view
+			textureDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+		}
+
 		D3D12_BARRIER_LAYOUT initialLayout = D3D12_BARRIER_LAYOUT_COMMON;
 		m_StateTracking.m_CurrentAccess = RESOURCE_STATE_ACCESS_COMMON;
 		m_StateTracking.m_CurrentLayout = RESOURCE_STATE_LAYOUT_COMMON;
@@ -42,13 +49,16 @@ namespace vkr::Render
 		}
 
 		D3D12_CLEAR_VALUE optimizedClearValue;
-		if (desc.m_AllowRenderTarget || desc.m_AllowDepthStencil)
+		optimizedClearValue.Format = D3DConvertFormat(desc.m_Format);
+		if (desc.m_AllowRenderTarget)
 		{
-			optimizedClearValue.Format = textureDesc.Format;
 			optimizedClearValue.Color[0] = 0.0f;
 			optimizedClearValue.Color[1] = 0.0f;
 			optimizedClearValue.Color[2] = 0.0f;
 			optimizedClearValue.Color[3] = 0.0f;
+		}
+		else if(desc.m_AllowDepthStencil)
+		{
 			optimizedClearValue.DepthStencil = { 0.0f, 0 };
 		}
 

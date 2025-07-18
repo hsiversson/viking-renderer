@@ -18,6 +18,7 @@ namespace vkr::Graphics
 		~View();
 
 		void SetRenderSize(const Vector2u& size);
+		Vector2u GetRenderSize() { return m_MaxRenderSize; }
 
 		void BeginPrepare();
 		void EndPrepare();
@@ -38,7 +39,9 @@ namespace vkr::Graphics
 		void SetOutputTarget(Ref<vkr::Render::RenderTargetView> outputdescriptor) { m_OutputDescriptor = outputdescriptor; }
 		Ref<vkr::Render::RenderTargetView> GetOutputTarget() const { return m_OutputDescriptor; }
 
-		Ref<vkr::Render::DepthStencilView> GetDepthBuffer() const { return m_DepthBufferView; }
+		Ref<Render::DepthStencilView> GetDepthBuffer() const { return m_DepthBufferView; }
+		Ref<Render::Texture> GetDepthBufferTexture() const { return m_DepthBuffer; }
+		Ref<Render::Texture> GetSceneTexture() const { return m_SceneTexture; }
 
 		void SetPrimary(bool value);
 
@@ -63,6 +66,11 @@ namespace vkr::Graphics
 		// encapsulate targets in a sub struct?
 		Ref<Render::Texture> m_DepthBuffer;
 		Ref<vkr::Render::DepthStencilView> m_DepthBufferView;
+
+		//Texture on which to render the scene pre-upscale
+		Ref<Render::Texture> m_SceneTexture;
+
+		//Global shaders
 
 		bool m_IsRendering;
 		bool m_IsPrimary;

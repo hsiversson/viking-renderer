@@ -25,9 +25,10 @@ namespace vkr::Render
 		{
 		case PIPELINE_STATE_TYPE_COMPUTE:
 		{
-			D3D12_COMPUTE_PIPELINE_STATE_DESC ComputeDesc;
+			D3D12_COMPUTE_PIPELINE_STATE_DESC ComputeDesc = {};
 			ComputeDesc.pRootSignature = rootSignature->GetD3DRootSignature();
 			ComputeDesc.CS = { desc.Compute.m_ComputeShader->GetByteCode(), desc.Compute.m_ComputeShader->GetByteCodeSize() };
+			ComputeDesc.NodeMask = 1;
 			ComputeDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 			hr = device->CreateComputePipelineState(&ComputeDesc, IID_PPV_ARGS(&m_PipelineState));
 			if (FAILED(hr))

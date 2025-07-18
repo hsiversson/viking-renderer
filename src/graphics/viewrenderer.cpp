@@ -18,10 +18,21 @@ namespace vkr::Graphics
 
 	}
 
-	bool ViewRenderer::Init()
+	bool ViewRenderer::Init(View& view)
 	{
 		// init any renderer subsystems
 		// ex. upscalers, water, vegetation, environment, particle/vfx, light culling
+
+		//Initializing global shaders
+		Render::Device* device = Render::GetDevice();
+		m_SkyComputeShader = device->CreateShader("../../../content/shaders/sky.hlsl", L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
+
+		Render::PipelineStateDesc skyPSODesc = {};
+		skyPSODesc.m_Type = Render::PIPELINE_STATE_TYPE_COMPUTE;
+		skyPSODesc.Compute.m_ComputeShader = m_SkyComputeShader.get();
+
+		m_SkyPSO = device->CreatePipelineState(skyPSODesc);
+
 		return true;
 	}
 
@@ -32,7 +43,9 @@ namespace vkr::Graphics
 		Render::QueueGraphicsTask([this, viewPtr]() mutable { UpdateSceneData(*viewPtr); });
 		Render::QueueGraphicsTask([this, viewPtr]() mutable { UpdateRtScene(*viewPtr); });
 		Render::QueueGraphicsTask([this, viewPtr]() mutable { DepthPrepass(*viewPtr); });
-		Ref<Render::RenderTaskEvent> lastRenderEvent = Render::QueueGraphicsTask([this, viewPtr]() mutable { ForwardPass(*viewPtr); });
+		Render::QueueGraphicsTask([this, viewPtr]() mutable { ForwardPass(*viewPtr); });
+		Render::QueueGraphicsTask([this, viewPtr]() mutable { RenderSky(*viewPtr); });
+		Ref<Render::RenderTaskEvent> lastRenderEvent = Render::QueueGraphicsTask([this, viewPtr]() mutable { FinalizeFrame(*viewPtr); });
 		viewPtr->EndRender();
 
 		//UpdateRtScene(view);
@@ -45,9 +58,61 @@ namespace vkr::Graphics
 
 		//
 		//TraceRadiance(view);
+		//RenderSky(view);
 		//ApplyUpscaling(view);
 		//ApplyPostEffects(view);
 		//FinalizeFrame(view);
+	}
+
+	void ViewRenderer::RenderSky(View& view)
+	{
+		const ViewRenderData& renderData = view.GetRenderData();
+		Render::Context* ctx = Render::Context::GetCurrentContext();
+		
+		// Create an UAV from the backbuffer
+		Render::TextureViewDesc sceneViewDesc;
+		sceneViewDesc.m_Mip = 0;
+		sceneViewDesc.m_Writable = true;
+		m_SceneTextureUAVView = Render::GetDevice()->CreateTextureView(sceneViewDesc, view.GetSceneTexture()); //Is efficient 
+
+		//Transition to UAV the output
+		std::vector<Render::TextureBarrierDesc> barriers;
+		{
+			Render::TextureBarrierDesc barrierDesc;
+			barrierDesc.m_Texture = view.GetSceneTexture().get();
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
+			barriers.push_back(barrierDesc);
+		}
+
+		m_DepthSRVView = Render::GetDevice()->CreateTextureView(Render::TextureViewDesc(), view.GetDepthBufferTexture());
+		// Depth should be already transitioned to read state by now
+		
+		ctx->BindPSO(m_SkyPSO);
+
+		struct alignas(16) ConstantData
+		{
+			uint32_t SceneTextureDescriptor;
+			uint32_t DepthTextureDescriptor;
+		};
+		ConstantData data;
+		data.SceneTextureDescriptor = m_SceneTextureUAVView->GetIndex();
+		data.DepthTextureDescriptor = m_DepthSRVView->GetIndex();
+
+		//Per batch buffer
+		auto perbatchbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData), sizeof(data), (void*)&data);
+		std::vector<Ref<vkr::Render::Buffer>> buffers;
+		std::vector<uint64_t> offsets;
+		buffers.push_back(renderData.m_PerSceneConstantBuffer.m_Buffer);
+		offsets.push_back(renderData.m_PerSceneConstantBuffer.m_Offset);
+		buffers.push_back(perbatchbuffer.m_Buffer);
+		offsets.push_back(perbatchbuffer.m_Offset);
+		ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
+
+		uint32_t GroupsX = ceil(view.GetRenderSize().x / 8);
+		uint32_t GroupsY = ceil(view.GetRenderSize().y / 8);
+		ctx->Dispatch({GroupsX, GroupsY, 1});
 	}
 
 	void ViewRenderer::ForwardPass(View& view)
@@ -55,11 +120,15 @@ namespace vkr::Graphics
 		const ViewRenderData& renderData = view.GetRenderData();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 
+		Render::RenderTargetViewDesc sceneRTViewDesc;
+		sceneRTViewDesc.m_Mip = 0;
+		Ref<Render::RenderTargetView> sceneRTView = Render::GetDevice()->CreateRenderTargetView(sceneRTViewDesc, view.GetSceneTexture());
+
 		//Transition to RT the output
 		std::vector<Render::TextureBarrierDesc> barriers;
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = view.GetOutputTarget()->GetTexture();
+			barrierDesc.m_Texture = view.GetSceneTexture().get();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_RENDER_TARGET;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_RENDER_TARGET;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
@@ -78,7 +147,7 @@ namespace vkr::Graphics
 
 
 		std::vector<vkr::Ref<vkr::Render::RenderTargetView>> rendertargets;
-		rendertargets.push_back(view.GetOutputTarget());
+		rendertargets.push_back(sceneRTView);
 
 		ctx->ClearRenderTargets(rendertargets.data(), rendertargets.size());
 		//ctx->ClearDepthStencil(view.GetDepthBuffer(), 0.0f);
@@ -121,15 +190,6 @@ namespace vkr::Graphics
 			ctx->DrawIndexedInstanced(batch.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount, batch.m_Count);
 		}
 
-		//Transition output to present
-		{
-			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = view.GetOutputTarget()->GetTexture();
-			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
-			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_PRESENT;
-			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COMMON;
-			ctx->TextureBarrier(barrierDesc);
-		}
 	}
 
 	void ViewRenderer::UpdateSceneData(View& view)
@@ -290,7 +350,41 @@ namespace vkr::Graphics
 	void ViewRenderer::FinalizeFrame(View& view)
 	{
 		// finalizing work recorded here
-		// copy to view output resource?
+		// 
+		Render::Context* ctx = Render::Context::GetCurrentContext();
+		// Copy scene texture to view output resource
 		// for main view, that would probably be the swapchain backbuffer
+
+		//Transition scene texture to copy source
+		{
+			Render::TextureBarrierDesc barrierDesc;
+			barrierDesc.m_Texture = view.GetSceneTexture().get();
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_COPY_SOURCE;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COPY_SOURCE;
+			ctx->TextureBarrier(barrierDesc);
+		}
+		//Transition backbuffer to copy dest
+		{
+			Render::TextureBarrierDesc barrierDesc;
+			barrierDesc.m_Texture = view.GetOutputTarget()->GetTexture();
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_COPY_TARGET;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COPY_TARGET;
+			ctx->TextureBarrier(barrierDesc);
+		}
+
+		//Perform copy operation
+		ctx->CopyTexture(view.GetOutputTarget()->GetTexture(), view.GetSceneTexture().get());
+		
+		//Transition output to present
+		{
+			Render::TextureBarrierDesc barrierDesc;
+			barrierDesc.m_Texture = view.GetOutputTarget()->GetTexture();
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_PRESENT;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COMMON;
+			ctx->TextureBarrier(barrierDesc);
+		}
 	}
 }
