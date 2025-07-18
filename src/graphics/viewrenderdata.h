@@ -63,7 +63,7 @@ namespace vkr::Graphics
 		std::vector<Render::RaytracingInstanceDesc> m_RaytracingInstances;
 
 		std::vector<RenderObject> m_VisibleMeshes;
-		std::vector<Light> m_VisibleLights;
+		std::vector<LocalLight> m_VisibleLights;
 		MeshPassData m_DepthPassData;
 		MeshPassData m_ForwardPassData;
 

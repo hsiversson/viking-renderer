@@ -168,22 +168,28 @@ namespace vkr::Graphics
 			uint32_t MaterialDataBufferDescriptorIndex;
 			uint32_t pad0;
 			Vector3f CameraWorldPosition;
-			uint32_t pad2;
-			Vector3f DirectionalLightDirection;
-			uint32_t pad3;
-			Vector3f DirectionalLightColor;
-			uint32_t pad4;
+			uint32_t NumDirectionalLightsInUse;
+			DirectionalLight DirectionalLights[2];
 		};
-		PerSceneConstantData persceneconstantdata;
+		PerSceneConstantData perSceneConstantData = {};
 		Mat43 CamWorld = const_cast<Camera&>(view.GetCamera()).GetWorldTransform();
-		persceneconstantdata.CameraWorldPosition = Vector3f(CamWorld[9], CamWorld[10], CamWorld[11]);
-		persceneconstantdata.WorldToClip = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
-		persceneconstantdata.DirectionalLightDirection = Vector3f(0.2, -0.5, 0.6);
-		persceneconstantdata.DirectionalLightColor = Vector3f(4.0, 4.0, 4.0);
-		persceneconstantdata.InstanceDataBufferDescriptorIndex = renderData.m_InstanceDataBufferView->GetIndex();
-		persceneconstantdata.InstanceDataOffsetBufferDescriptorIndex = renderData.m_InstanceDataOffsetBufferView->GetIndex();
-		persceneconstantdata.MaterialDataBufferDescriptorIndex = renderData.m_MaterialDataBuffer.GetBufferView()->GetIndex();
-		renderData.m_PerSceneConstantBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(PerSceneConstantData), sizeof(PerSceneConstantData), &persceneconstantdata);
+		perSceneConstantData.CameraWorldPosition = Vector3f(CamWorld[9], CamWorld[10], CamWorld[11]);
+		perSceneConstantData.WorldToClip = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
+		perSceneConstantData.InstanceDataBufferDescriptorIndex = renderData.m_InstanceDataBufferView->GetIndex();
+		perSceneConstantData.InstanceDataOffsetBufferDescriptorIndex = renderData.m_InstanceDataOffsetBufferView->GetIndex();
+		perSceneConstantData.MaterialDataBufferDescriptorIndex = renderData.m_MaterialDataBuffer.GetBufferView()->GetIndex();
+
+		perSceneConstantData.NumDirectionalLightsInUse = 2;
+
+		perSceneConstantData.DirectionalLights[0].Emission = Vector3f(2.0, 2.0, 8.0);
+		perSceneConstantData.DirectionalLights[0].Direction = Vector3f(0.2, -0.5, 0.6);
+		perSceneConstantData.DirectionalLights[0].Radius = 1.0f;
+
+		perSceneConstantData.DirectionalLights[1].Emission = Vector3f(8.0, 2.0, 2.0);
+		perSceneConstantData.DirectionalLights[1].Direction = Vector3f(-0.2, -0.5, 0.6);
+		perSceneConstantData.DirectionalLights[1].Radius = 1.0f;
+
+		renderData.m_PerSceneConstantBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(PerSceneConstantData), sizeof(PerSceneConstantData), &perSceneConstantData);
 
 	}
 

@@ -37,6 +37,7 @@ float4 MainPS(PSInput input) : SV_TARGET
     compressedNormal = compressedNormal * 2.0f - 1.0f; //Convert to -1,1 space
     //Reconstruct Z component of normal
     float3 detailnormal = normalize(float3(compressedNormal.x, compressedNormal.y, sqrt(1.0f - compressedNormal.x * compressedNormal.x - compressedNormal.y * compressedNormal.y)));
+    detailnormal.y = -detailnormal.y;
     //Convert normal to worldspace using the tangent frame
     float3 normal = normalize(input.normal);
     float3 tangent = normalize(input.tangent.rgb);
@@ -51,55 +52,55 @@ float4 MainPS(PSInput input) : SV_TARGET
     float roughness = pbrParams.g;
     float metallic = pbrParams.b;
     
-    //Lighting
-    
-    float3 N = worldNormal;
     float3 V = normalize(SceneConstants.CameraPosition - input.worldPosition);
-    
-    //Directional light lighting
-    float3 L = normalize(-SceneConstants.DirectionalLightDirection);
-    float3 H = normalize(V + L);
-    
-    float3 radiance = SceneConstants.DirectionalLightColor; //Directional light doesnt attenuate with distance
-    
-    float3 F0 = float3(0.04,0.04,0.04);
-    F0 = lerp(F0, albedo, metallic);
-    float3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-    float NDF = DistributionGGX(N, H, roughness);
-    float G = GeometrySmith(N, V, L, roughness);
-    
-    float3 numerator = NDF * G * F;
-    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
-    float3 specular = numerator / denominator;
-    
-    float3 kS = F;
-    float3 kD = float3(1.0,1.0,1.0) - kS;
-    kD *= 1.0 - metallic;
-    
-    float NdotL = max(dot(N, L), 0.0);
-    float3 Lo = (kD * albedo / PI + specular) * radiance * NdotL;
-    
-    float3 ambient = float3(0.03,0.03,0.03) * albedo * ao;
-    float3 color = ambient + Lo;
-    
-    //Shadowing
+    float3 N = worldNormal;
     
     RaytracingAccelerationStructure RaytracingScene = ResourceDescriptorHeap[RaytracingSceneDescriptor];
+    float3 lightingResult = float3(0.0, 0.0, 0.0);
+    //Lighting
     
-    RayDesc ray;
-    ray.Origin = input.worldPosition + input.normal * 0.00001f;
-    ray.Direction = L;
-    ray.TMin = 0.01f;
-    ray.TMax = 1000000.0f;
-    
-    RayQuery<RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> rayQuery;
-    rayQuery.TraceRayInline(RaytracingScene, 0, 0xff, ray);
-    rayQuery.Proceed();
-    
-    if (rayQuery.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+    //Directional light lighting
+    for (uint i = 0; i < SceneConstants.NumDirectionalLightsInUse; ++i)
     {
-        color = float3(0, 0, 0);
+        const DirectionalLightData dirLight = SceneConstants.DirectionalLights[i];
+        const float3 L = normalize(-dirLight.Direction);
+        const float3 H = normalize(V + L);
+        
+        RayDesc ray;
+        ray.Origin = input.worldPosition + input.normal * 0.00001f;
+        ray.Direction = L;
+        ray.TMin = 0.01f;
+        ray.TMax = 1000000.0f;
+    
+        RayQuery<RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> rayQuery;
+        rayQuery.TraceRayInline(RaytracingScene, 0, 0xff, ray);
+        rayQuery.Proceed();
+        
+        if (rayQuery.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+        {
+            continue; // we hit geometry, this means we're in shadow for this light
+        }
+        
+        float3 F0 = float3(0.04, 0.04, 0.04);
+        F0 = lerp(F0, albedo, metallic);
+        float3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+        float NDF = DistributionGGX(N, H, roughness);
+        float G = GeometrySmith(N, V, L, roughness);
+    
+        float3 numerator = NDF * G * F;
+        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+        float3 specular = numerator / denominator;
+    
+        float3 kS = F;
+        float3 kD = float3(1.0, 1.0, 1.0) - kS;
+        kD *= 1.0 - metallic;
+    
+        float NdotL = max(dot(N, L), 0.0);
+        float3 Lo = (kD * albedo / PI + specular) * dirLight.Emission * NdotL;
+    
+        float3 ambient = float3(0.03, 0.03, 0.03) * albedo * ao;
+        lightingResult += ambient + Lo;
     }
     
-    return float4(color, 1.0f);
+    return float4(lightingResult, 1.0f);
 }

@@ -3,16 +3,22 @@
 
 namespace vkr::Graphics
 {
-	enum LightType
+	struct DirectionalLight
 	{
-		LIGHT_TYPE_DIRECTIONAL,
-		LIGHT_TYPE_POINT,
-		LIGHT_TYPE_SPOT,
-
-		LIGHT_TYPE_COUNT
+		Vector3f Emission;
+		float Radius;
+		Vector3f Direction;
+		float _unused;
 	};
 
-	struct Light
+	enum LocalLightType
+	{
+		LOCAL_LIGHT_TYPE_POINT,
+		LOCAL_LIGHT_TYPE_SPOT,
+		LOCAL_LIGHT_TYPE_COUNT
+	};
+
+	struct LocalLight
 	{
 		Vector3f m_Position;
 		float m_Range;
