@@ -2,6 +2,7 @@
 #include "light.h"
 #include "render/buffer.h"
 #include "render/device.h"
+#include "materialdatabuffer.h"
 
 namespace vkr::Render
 {
@@ -12,7 +13,7 @@ namespace vkr::Render
 namespace vkr::Graphics
 {
 	class Mesh;
-	class Material;
+	class MaterialInstance;
 	class PipelineState;
 
 	struct InstanceData
@@ -24,7 +25,7 @@ namespace vkr::Graphics
 	struct RenderObject
 	{
 		Mesh* m_Mesh;
-		Material* m_Material;
+		MaterialInstance* m_Material;
 		uint32_t m_InstanceDataIndex;
 		float m_DistanceToCamera;
 
@@ -47,11 +48,6 @@ namespace vkr::Graphics
 		Ref<Render::PipelineState> m_PSO = nullptr;
 		size_t m_StartOffset = 0;
 		size_t m_Count = 0;
-
-		//Material instance data
-		uint32_t m_AlbedoTextureIndex = 0; //TODO: This is really material instance data. Move it to material buffers when we implement that part
-		uint32_t m_NormalTextureIndex = 0;
-		uint32_t m_MetallicRoughnessTextureIndex = 0;
 	};
 
 	struct MeshPassData
@@ -78,10 +74,10 @@ namespace vkr::Graphics
 		std::vector<uint32_t> m_InstanceDataOffsetBuffer;
 		Ref<Render::BufferView> m_InstanceDataOffsetBufferView;
 
+		MaterialDataBuffer m_MaterialDataBuffer;
+
 		Render::TempBuffer m_PerSceneConstantBuffer;
 		
 		uint32_t m_TotalInstanceCount = 0;
-
-		std::vector<uint8_t> m_MaterialDataBuffer;
 	};
 }

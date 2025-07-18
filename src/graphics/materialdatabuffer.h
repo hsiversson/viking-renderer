@@ -28,6 +28,7 @@ namespace vkr::Graphics
 
 		const std::vector<uint8_t>& GetData() const;
 		Render::Buffer* GetBuffer() const;
+		Render::BufferView* GetBufferView() const;
 
 	private:
 		std::vector<uint8_t> m_Data;

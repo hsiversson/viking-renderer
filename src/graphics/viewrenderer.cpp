@@ -102,17 +102,11 @@ namespace vkr::Graphics
 			struct alignas(16) ConstantData
 			{
 				uint32_t m_BatchStart;
-				uint32_t AlbedoTextureDescriptor;
-				uint32_t NormalTextureDescriptor;
-				uint32_t MetallicRoughnessTextureDescriptor;
 				uint32_t RaytracingSceneDescriptor;
 
 			};
 			ConstantData data;
 			data.m_BatchStart = batch.m_StartOffset;
-			data.AlbedoTextureDescriptor = batch.m_AlbedoTextureIndex;
-			data.NormalTextureDescriptor = batch.m_NormalTextureIndex;
-			data.MetallicRoughnessTextureDescriptor = batch.m_MetallicRoughnessTextureIndex;
 			data.RaytracingSceneDescriptor = renderData.m_RaytracingTLAS->GetIndex();
 
 			//Per batch buffer
@@ -142,6 +136,8 @@ namespace vkr::Graphics
 	{
 		ViewRenderData& renderData = view.GetMutableRenderData();
 
+		renderData.m_MaterialDataBuffer.PrepareBuffer();
+
 		//Fill in the instance data (later we can just keep this as a normal buffer instead of temp that we need to rebuild per frame)
 		auto instanceDataBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, renderData.m_InstanceData.size(), renderData.m_InstanceData.size(), renderData.m_InstanceData.data());
 
@@ -169,8 +165,8 @@ namespace vkr::Graphics
 			Mat44 WorldToClip;
 			uint32_t InstanceDataBufferDescriptorIndex; // Descriptor index to the global buffer where all instance data for the scene is stored
 			uint32_t InstanceDataOffsetBufferDescriptorIndex;
+			uint32_t MaterialDataBufferDescriptorIndex;
 			uint32_t pad0;
-			uint32_t pad1;
 			Vector3f CameraWorldPosition;
 			uint32_t pad2;
 			Vector3f DirectionalLightDirection;
@@ -186,6 +182,7 @@ namespace vkr::Graphics
 		persceneconstantdata.DirectionalLightColor = Vector3f(4.0, 4.0, 4.0);
 		persceneconstantdata.InstanceDataBufferDescriptorIndex = renderData.m_InstanceDataBufferView->GetIndex();
 		persceneconstantdata.InstanceDataOffsetBufferDescriptorIndex = renderData.m_InstanceDataOffsetBufferView->GetIndex();
+		persceneconstantdata.MaterialDataBufferDescriptorIndex = renderData.m_MaterialDataBuffer.GetBufferView()->GetIndex();
 		renderData.m_PerSceneConstantBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(PerSceneConstantData), sizeof(PerSceneConstantData), &persceneconstantdata);
 
 	}
@@ -247,16 +244,10 @@ namespace vkr::Graphics
 			struct alignas(16) ConstantData
 			{
 				uint32_t m_BatchStart;
-				uint32_t AlbedoTextureDescriptor;
-				uint32_t NormalTextureDescriptor;
-				uint32_t MetallicRoughnessTextureDescriptor;
 				uint32_t RaytracingSceneDescriptor;
 			};
 			ConstantData data;
 			data.m_BatchStart = batch.m_StartOffset;
-			data.AlbedoTextureDescriptor = batch.m_AlbedoTextureIndex;
-			data.NormalTextureDescriptor = batch.m_NormalTextureIndex;
-			data.MetallicRoughnessTextureDescriptor = batch.m_MetallicRoughnessTextureIndex;
 			data.RaytracingSceneDescriptor = renderData.m_RaytracingTLAS->GetIndex();
 
 			//Per batch buffer

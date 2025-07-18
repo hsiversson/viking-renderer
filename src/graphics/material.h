@@ -24,7 +24,8 @@ namespace vkr::Graphics
 	{
 		Opaque,
 		AlphaTested,
-		Translucent
+		Translucent,
+		Additive,
 	};
 
 	enum class MaterialParameterType
@@ -45,6 +46,54 @@ namespace vkr::Graphics
 	{
 		std::string m_Identifier;
 		MaterialParameterType m_Type = MaterialParameterType::Undefined;
+
+		const char* GetHLSLType() const
+		{
+			switch (m_Type)
+			{
+			case vkr::Graphics::MaterialParameterType::StaticBool:
+				return "uint";
+			case vkr::Graphics::MaterialParameterType::Float:
+				return "float";
+			case vkr::Graphics::MaterialParameterType::Float2:
+				return "float2";
+			case vkr::Graphics::MaterialParameterType::Float3:
+				return "float3";
+			case vkr::Graphics::MaterialParameterType::Float4:
+				return "float4";
+			case vkr::Graphics::MaterialParameterType::Texture:
+				return "Texture2D";
+			case vkr::Graphics::MaterialParameterType::Sampler:
+				return "SamplerState";
+			default:
+				assert(false);
+				return nullptr;
+			}
+		}
+
+		const char* GetPackedHLSLType() const
+		{
+			switch (m_Type)
+			{
+			case vkr::Graphics::MaterialParameterType::StaticBool:
+				return "uint";
+			case vkr::Graphics::MaterialParameterType::Float:
+				return "float";
+			case vkr::Graphics::MaterialParameterType::Float2:
+				return "float2";
+			case vkr::Graphics::MaterialParameterType::Float3:
+				return "float3";
+			case vkr::Graphics::MaterialParameterType::Float4:
+				return "float4";
+			case vkr::Graphics::MaterialParameterType::Texture:
+				return "uint";
+			case vkr::Graphics::MaterialParameterType::Sampler:
+				return "uint";
+			default:
+				assert(false);
+				return nullptr;
+			}
+		}
 
 		MaterialParameterDesc() = default;
 		MaterialParameterDesc(const std::string& identifier, MaterialParameterType type)
@@ -115,6 +164,7 @@ namespace vkr::Graphics
 		const std::vector<MaterialParameterDesc>& GetParameters() const;
 
 	private:
+		std::string GenerateGetMaterialParametersFunction();
 		Ref<Render::PipelineState> GetOrCreatePSO(const Render::VertexLayout& vertexLayout, bool depthOnly);
 
 	private:
@@ -127,9 +177,15 @@ namespace vkr::Graphics
 		std::vector<MaterialParameterDesc> m_Parameters;
 		std::unordered_map<std::string, MaterialParameterValue> m_ParameterValues;
 
-		MaterialDesc m_Desc;
+		MaterialBlendMode m_BlendMode = MaterialBlendMode::Opaque;
+		MaterialType m_Type = MaterialType::Surface;
+
+		bool m_WriteVelocity;
+		bool m_TwoSided;
+		bool m_FrontCounterClockwise;
 	};
 
+	class MaterialDataBuffer;
 	class MaterialInstance
 	{
 	public:
@@ -139,6 +195,10 @@ namespace vkr::Graphics
 		const MaterialParameterValue* GetParameterValue(const std::string& identifier) const;
 		const MaterialParameterDesc* GetParameter(const std::string& identifier) const;
 		const std::vector<MaterialParameterDesc>& GetParameters() const;
+
+		uint32_t GatherMaterialData(MaterialDataBuffer& materialDataBuffer);
+
+		Material* GetMaterial() const;
 
 	private:
 		Ref<Material> m_Material;

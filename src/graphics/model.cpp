@@ -48,11 +48,12 @@ namespace vkr::Graphics
 			return false;
 		}
 
-		outPart.m_Material = MakeRef<Material>();
-		if (!outPart.m_Material->Init(partDesc.m_MaterialDesc))
+		Ref<Material> material = MakeRef<Material>();
+		if (!material->Init(partDesc.m_MaterialDesc))
 		{
 			return false;
 		}
+		outPart.m_Material = MakeRef<MaterialInstance>(material);
 
 		outPart.m_ChildParts.reserve(partDesc.m_ChildDescs.size());
 		for (uint32_t i = 0; i < partDesc.m_ChildDescs.size(); ++i)

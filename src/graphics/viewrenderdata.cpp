@@ -18,6 +18,8 @@ namespace vkr::Graphics
 		m_InstanceDataOffsetBuffer.clear();
 		m_InstanceDataOffsetBufferView = {};
 
+		m_MaterialDataBuffer.Clear();
+
 		m_PerSceneConstantBuffer = {};
 
 		m_TotalInstanceCount = 0;

@@ -31,7 +31,7 @@ namespace vkr::Graphics
 		Graphics::RenderObject obj;
 		InstanceData data;
 		data.m_Transform = part.m_LocalTransform * parentWorldTransform;
-		data.m_MaterialID = 0; //TODO
+		data.m_MaterialID = part.m_Material->GatherMaterialData(renderData.m_MaterialDataBuffer); //TODO
 		uint8_t* genericdata = (uint8_t*) &data;
 		//Serialize instance data into byte buffer
 		obj.m_InstanceDataIndex = renderData.m_InstanceData.size();

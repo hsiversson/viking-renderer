@@ -2,6 +2,7 @@
 #include "render/texture.h"
 #include "render/pipelinestate.h"
 #include "render/device.h"
+#include "materialdatabuffer.h"
 
 namespace vkr::Graphics
 {
@@ -18,15 +19,21 @@ namespace vkr::Graphics
 
 	bool Material::Init(const MaterialDesc& desc)
 	{
-		Render::Device* device = Render::GetDevice();
-		m_PixelShader = device->CreateShader("../../../content/shaders/simpleforwardtestPS.hlsl", L"MainPS", vkr::Render::SHADER_STAGE_PIXEL);
-
 		for (const auto& param : desc.m_Parameters)
 		{
 			AddParameter(param.first, param.second);
 		}
 
-		m_Desc = desc;
+		Render::Device* device = Render::GetDevice();
+		std::string shaderCode = GenerateGetMaterialParametersFunction();
+		shaderCode += ReadFileToString("../../../content/shaders/simpleforwardtestPS.hlsl");
+		m_PixelShader = device->CreateShaderFromString(shaderCode, L"MainPS", vkr::Render::SHADER_STAGE_PIXEL);
+
+		m_BlendMode = desc.m_BlendMode;
+		m_Type = desc.m_Type;
+		m_WriteVelocity = desc.m_WriteVelocity;
+		m_TwoSided = desc.m_TwoSided;
+		m_FrontCounterClockwise = desc.m_FrontCounterClockwise;
 		return true;
 	}
 
@@ -67,6 +74,53 @@ namespace vkr::Graphics
 	const std::vector<MaterialParameterDesc>& Material::GetParameters() const
 	{
 		return m_Parameters;
+	}
+
+	std::string Material::GenerateGetMaterialParametersFunction()
+	{
+		std::ostringstream ss;
+
+		ss << "#include \"sceneconstants.hlsl\"\n";
+
+		ss << "struct MaterialParameters\n";
+		ss << "{\n";
+		for (const MaterialParameterDesc& param : m_Parameters)
+		{
+			ss << "    " << param.GetHLSLType() << " " << param.m_Identifier << ";\n";
+		}
+		ss << "};\n\n";
+		ss << "struct PackedMaterialParameters\n";
+		ss << "{\n";
+		for (const MaterialParameterDesc& param : m_Parameters)
+		{
+			ss << "    " << param.GetPackedHLSLType() << " " << param.m_Identifier << ";\n";
+		}
+		ss << "};\n\n";
+
+		ss << "MaterialParameters LoadMaterialParameters(uint offset)\n";
+		ss << "{\n";
+		ss << "    ByteAddressBuffer materialDataBuffer = ResourceDescriptorHeap[SceneConstants.MaterialDataBufferDescriptorIndex];\n";
+		ss << "    PackedMaterialParameters packedParams = materialDataBuffer.Load<PackedMaterialParameters>(offset);\n";
+		ss << "    MaterialParameters result;\n";
+		for (const MaterialParameterDesc& param : m_Parameters)
+		{
+			if (param.m_Type == MaterialParameterType::Texture)
+			{
+				ss << "    result." << param.m_Identifier << " = ResourceDescriptorHeap[NonUniformResourceIndex(packedParams." << param.m_Identifier << ")];\n";
+			}
+			else if (param.m_Type == MaterialParameterType::Sampler)
+			{
+				ss << "    result." << param.m_Identifier << " = SamplerDescriptorHeap[NonUniformResourceIndex(packedParams." << param.m_Identifier << ")];\n";
+			}
+			else
+			{
+				ss << "    result." << param.m_Identifier << " = packedParams." << param.m_Identifier << ";\n";
+			}
+		}
+		ss << "    return result;\n";
+		ss << "}\n\n";
+
+		return ss.str();
 	}
 
 	Ref<Render::PipelineState> Material::GetOrCreatePSO(const Render::VertexLayout& vertexLayout, bool depthOnly)
@@ -171,7 +225,7 @@ namespace vkr::Graphics
 				"	VSOutput output;\n"
 				"	InstanceData data = GetInstanceData<InstanceData>(BatchInstanceDataOffsetStart, instanceID);"
 				"	output.worldPosition = mul(data.ModelToWorld, float4(input.position0, 1.0f)).xyz;\n"
-				"	output.clipPosition = mul(WorldToClip, float4(output.worldPosition, 1.0f));\n"
+				"	output.clipPosition = mul(SceneConstants.WorldToClip, float4(output.worldPosition, 1.0f));\n"
 				"	output.normal = input.normal0;\n"
 				"	output.tangent = input.tangent0;\n"
 				"	output.uv = input.uv0;\n"
@@ -187,8 +241,8 @@ namespace vkr::Graphics
 			psoDesc.Default.m_VertexShader = vertexShader.get();
 			psoDesc.Default.m_PixelShader = depthOnly ? nullptr : m_PixelShader.get();
 			psoDesc.Default.m_VertexLayout = vertexLayout;
-			psoDesc.Default.m_RasterizerState.m_CullMode = m_Desc.m_TwoSided ? Render::FACE_CULL_MODE_NONE : Render::FACE_CULL_MODE_BACK;
-			psoDesc.Default.m_RasterizerState.m_FrontIsCounterClockwise = m_Desc.m_FrontCounterClockwise;
+			psoDesc.Default.m_RasterizerState.m_CullMode = m_TwoSided ? Render::FACE_CULL_MODE_NONE : Render::FACE_CULL_MODE_BACK;
+			psoDesc.Default.m_RasterizerState.m_FrontIsCounterClockwise = m_FrontCounterClockwise;
 			psoDesc.Default.m_RenderTargetState.m_Formats[0] = Render::Format::FORMAT_RGB10A2_UNORM;
 
 			if (depthOnly)
@@ -206,7 +260,7 @@ namespace vkr::Graphics
 				psoDesc.Default.m_DepthStencilState.m_DSFormat = Render::Format::FORMAT_D32_FLOAT;
 			}
 
-			if (m_Desc.m_BlendMode == MaterialBlendMode::Translucent)
+			if (m_BlendMode == MaterialBlendMode::Translucent)
 			{
 				psoDesc.Default.m_BlendState.RTBlends[0].m_Enabled = true;
 				psoDesc.Default.m_BlendState.RTBlends[0].m_Operation = Render::BLEND_OP_ADD;
@@ -265,6 +319,84 @@ namespace vkr::Graphics
 	{
 		assert(m_Material && "Material template is required.");
 		return m_Material->GetParameters();
+	}
+
+	uint32_t MaterialInstance::GatherMaterialData(MaterialDataBuffer& materialDataBuffer)
+	{
+		assert(m_Material && "Material template is required.");
+		const std::vector<MaterialParameterDesc>& parameters = m_Material->GetParameters();
+
+		std::vector<uint8_t> materialData;
+		for (uint32_t i = 0; i < parameters.size(); ++i)
+		{
+			const MaterialParameterDesc& paramDesc = parameters[i];
+			const MaterialParameterValue* paramValue = GetParameterValue(paramDesc.m_Identifier);
+
+			switch (paramValue->GetType())
+			{
+			case MaterialParameterType::StaticBool:
+			{
+				const uint32_t value = static_cast<uint32_t>(paramValue->Get<bool>());
+				const uint8_t* valuePtr = reinterpret_cast<const uint8_t*>(&value);
+				materialData.insert(materialData.end(), valuePtr, valuePtr + sizeof(uint32_t));
+				break;
+			}
+			case MaterialParameterType::Float:
+			{
+				const float value = paramValue->Get<float>();
+				const uint8_t* valuePtr = reinterpret_cast<const uint8_t*>(&value);
+				materialData.insert(materialData.end(), valuePtr, valuePtr + sizeof(float));
+				break;
+			}
+			case MaterialParameterType::Float2:
+			{
+				const Vector2f value = paramValue->Get<Vector2f>();
+				const uint8_t* valuePtr = reinterpret_cast<const uint8_t*>(&value);
+				materialData.insert(materialData.end(), valuePtr, valuePtr + sizeof(Vector2f));
+				break;
+			}
+			case MaterialParameterType::Float3:
+			{
+				const Vector3f value = paramValue->Get<Vector3f>();
+				const uint8_t* valuePtr = reinterpret_cast<const uint8_t*>(&value);
+				materialData.insert(materialData.end(), valuePtr, valuePtr + sizeof(Vector3f));
+				break;
+			}
+			case MaterialParameterType::Float4:
+			{
+				const Vector4f value = paramValue->Get<Vector4f>();
+				const uint8_t* valuePtr = reinterpret_cast<const uint8_t*>(&value);
+				materialData.insert(materialData.end(), valuePtr, valuePtr + sizeof(Vector4f));
+				break;
+			}
+			case MaterialParameterType::Texture:
+			{
+				const Ref<Render::TextureView>& tex = paramValue->Get<Ref<Render::TextureView>>();
+				const uint32_t value = tex->GetIndex();
+				const uint8_t* valuePtr = reinterpret_cast<const uint8_t*>(&value);
+				materialData.insert(materialData.end(), valuePtr, valuePtr + sizeof(uint32_t));
+				break;
+			}
+			case MaterialParameterType::Sampler:
+			{
+				const Ref<Render::Sampler>& sampler = paramValue->Get<Ref<Render::Sampler>>();
+				const uint32_t value = sampler->GetIndex();
+				const uint8_t* valuePtr = reinterpret_cast<const uint8_t*>(&value);
+				materialData.insert(materialData.end(), valuePtr, valuePtr + sizeof(uint32_t));
+				break;
+			}
+			default:
+				assert(false);
+				return 0;
+			}
+		}
+		
+		return materialDataBuffer.AddData(materialData.size(), materialData.data());
+	}
+
+	Material* MaterialInstance::GetMaterial() const
+	{
+		return m_Material.get();
 	}
 
 }

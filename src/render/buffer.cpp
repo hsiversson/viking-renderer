@@ -61,6 +61,11 @@ namespace vkr::Render
 
 	void Buffer::UploadData(uint64_t offset, uint32_t byteSize, const void* data)
 	{
+		if (!data || byteSize == 0)
+		{
+			return;
+		}
+
 		if (m_DataPtr)
 		{
 			memcpy(m_DataPtr + offset, data, byteSize);

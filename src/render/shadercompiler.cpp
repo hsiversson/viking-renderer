@@ -91,6 +91,10 @@ namespace vkr::Render
 		compileArguments.push_back(L"-flegacy-macro-expansion");
 		compileArguments.push_back(DXC_ARG_ALL_RESOURCES_BOUND);
 
+		// TODO: fix paths
+		compileArguments.push_back(L"-I");
+		compileArguments.push_back(L"../../../content/shaders");
+
 		if (CommandLine::Has("shader_debug"))
 		{
 			compileArguments.push_back(DXC_ARG_DEBUG);

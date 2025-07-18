@@ -1,13 +1,10 @@
-#include "../../../content/shaders/sceneconstants.hlsl"
-#include "../../../content/shaders/instancing.hlsl"
-#include "../../../content/shaders/pbrutils.hlsl"
+#include "sceneconstants.hlsl"
+#include "instancing.hlsl"
+#include "pbrutils.hlsl"
 
 cbuffer PerBatchConstantBuffer : register(b0)
 {
     uint BatchInstanceDataOffsetStart;
-    uint AlbedoTextureDescriptor;
-    uint NormalTextureDescriptor;
-    uint MetallicRoughnessTextureDescriptor;
     uint RaytracingSceneDescriptor;
 };
 
@@ -29,17 +26,17 @@ struct InstanceData
     uint MaterialID;
 };
 
-
 float4 MainPS(PSInput input) : SV_TARGET
 {
-    InstanceData data = GetInstanceData < InstanceData > (BatchInstanceDataOffsetStart, input.instanceID);
-    Texture2D albedoTexture = ResourceDescriptorHeap[AlbedoTextureDescriptor];
-    float3 albedo = albedoTexture.Sample(g_SamplerBilinearClamp, input.uv).rgb;
-    Texture2D normalTexture = ResourceDescriptorHeap[NormalTextureDescriptor];
-    float2 compressednormal = normalTexture.Sample(g_SamplerBilinearClamp, input.uv).rg;
-    compressednormal = compressednormal * 2.0f - 1.0f; //Convert to -1,1 space
+    InstanceData data = GetInstanceData<InstanceData>(BatchInstanceDataOffsetStart, input.instanceID);
+    
+    MaterialParameters materialParameters = LoadMaterialParameters(data.MaterialID);
+    
+    float3 albedo = materialParameters.albedoTexture.Sample(g_SamplerBilinearClamp, input.uv).rgb;
+    float2 compressedNormal = materialParameters.normalTexture.Sample(g_SamplerBilinearClamp, input.uv).rg;
+    compressedNormal = compressedNormal * 2.0f - 1.0f; //Convert to -1,1 space
     //Reconstruct Z component of normal
-    float3 detailnormal = normalize(float3(compressednormal.x, compressednormal.y, sqrt(1.0f - compressednormal.x * compressednormal.x - compressednormal.y * compressednormal.y)));
+    float3 detailnormal = normalize(float3(compressedNormal.x, compressedNormal.y, sqrt(1.0f - compressedNormal.x * compressedNormal.x - compressedNormal.y * compressedNormal.y)));
     //Convert normal to worldspace using the tangent frame
     float3 normal = normalize(input.normal);
     float3 tangent = normalize(input.tangent.rgb);
@@ -48,23 +45,22 @@ float4 MainPS(PSInput input) : SV_TARGET
                                        tangent.y, binormal.y, normal.y,
                                        tangent.z, binormal.z, normal.z);
     float3 localNormal = mul(tangentToLocal, detailnormal);
-    float3 worldnormal = normalize(mul(data.LocalToWorld, float4(localNormal, 0)).xyz);
-    Texture2D metallicRoughnessTexture = ResourceDescriptorHeap[MetallicRoughnessTextureDescriptor];
-    float4 pbrParams = metallicRoughnessTexture.Sample(g_SamplerBilinearClamp, input.uv);
+    float3 worldNormal = normalize(mul(data.LocalToWorld, float4(localNormal, 0)).xyz);
+    float4 pbrParams = materialParameters.materialTexture.Sample(g_SamplerBilinearClamp, input.uv);
     float ao = pbrParams.r;
     float roughness = pbrParams.g;
     float metallic = pbrParams.b;
     
     //Lighting
     
-    float3 N = worldnormal;
-    float3 V = normalize(CameraPosition - input.worldPosition);
+    float3 N = worldNormal;
+    float3 V = normalize(SceneConstants.CameraPosition - input.worldPosition);
     
     //Directional light lighting
-    float3 L = normalize(-DirectionalLightDirection);
+    float3 L = normalize(-SceneConstants.DirectionalLightDirection);
     float3 H = normalize(V + L);
     
-    float3 radiance = DirectionalLightColor; //Directional light doesnt attenuate with distance
+    float3 radiance = SceneConstants.DirectionalLightColor; //Directional light doesnt attenuate with distance
     
     float3 F0 = float3(0.04,0.04,0.04);
     F0 = lerp(F0, albedo, metallic);
@@ -96,7 +92,7 @@ float4 MainPS(PSInput input) : SV_TARGET
     ray.TMin = 0.01f;
     ray.TMax = 1000000.0f;
     
-    RayQuery < RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH > rayQuery;
+    RayQuery<RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> rayQuery;
     rayQuery.TraceRayInline(RaytracingScene, 0, 0xff, ray);
     rayQuery.Proceed();
     

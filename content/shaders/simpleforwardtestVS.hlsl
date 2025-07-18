@@ -1,5 +1,5 @@
-#include "../../../content/shaders/sceneconstants.hlsl"
-#include "../../../content/shaders/instancing.hlsl"
+#include "sceneconstants.hlsl"
+#include "instancing.hlsl"
 
 cbuffer PerBatchConstantBuffer : register(b0)
 {

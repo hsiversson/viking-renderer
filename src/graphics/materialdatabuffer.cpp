@@ -5,6 +5,7 @@
 namespace vkr::Graphics
 {
 	MaterialDataBuffer::MaterialDataBuffer()
+		: m_RequireDataUpload(false)
 	{
 	}
 
@@ -60,6 +61,11 @@ namespace vkr::Graphics
 	Render::Buffer* MaterialDataBuffer::GetBuffer() const
 	{
 		return m_Buffer.get();
+	}
+
+	Render::BufferView* MaterialDataBuffer::GetBufferView() const
+	{
+		return m_BufferView.get();
 	}
 
 }

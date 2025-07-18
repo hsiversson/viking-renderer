@@ -25,7 +25,7 @@ namespace vkr::Graphics
 		struct Part
 		{
 			Ref<Mesh> m_Mesh;
-			Ref<Material> m_Material;
+			Ref<MaterialInstance> m_Material;
 			Mat44 m_LocalTransform;
 			std::vector<Part> m_ChildParts;
 		};
