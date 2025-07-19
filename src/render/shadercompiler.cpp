@@ -186,10 +186,11 @@ namespace vkr::Render
 				DxcBuffer reflectionBuffer;
 				reflectionBuffer.Ptr = reflectionData->GetBufferPointer();
 				reflectionBuffer.Size = reflectionData->GetBufferSize();
-				reflectionBuffer.Encoding = 1;
+				reflectionBuffer.Encoding = 0;
 
 				ComPtr<ID3D12ShaderReflection> reflection;
-				if (SUCCEEDED(m_Utils->CreateReflection(&reflectionBuffer, IID_PPV_ARGS(&reflection))))
+				HRESULT hr = m_Utils->CreateReflection(&reflectionBuffer, IID_PPV_ARGS(&reflection));
+				if (SUCCEEDED(hr))
 				{
 					D3D12_SHADER_DESC shaderDesc = {};
 					reflection->GetDesc(&shaderDesc);

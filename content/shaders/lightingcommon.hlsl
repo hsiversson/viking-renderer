@@ -3,7 +3,6 @@
 
 #include "common.hlsl"
 #include "sceneconstants.hlsl"
-#include "bsdf.hlsl"
-
+#include "shading.hlsl"
 
 #endif //LIGHTING_COMMON_HLSL
