@@ -15,14 +15,16 @@ void CameraController::Init(Ref<Graphics::Camera> camera, InputManager* inputMan
 
 void CameraController::Tick(float deltaTime)
 {
-
-	Vector2f rotdelta = m_InputManager->GetMouseDelta();
-	m_YawDeg += rotdelta.x * m_MouseSensitivity;
-	m_YawDeg = std::fmod(m_YawDeg, 360.0f);
-	if (m_YawDeg < 0.0f)
-		m_YawDeg += 360.0f;
-	m_PitchDeg -= rotdelta.y * m_MouseSensitivity;
-	m_PitchDeg = std::clamp(m_PitchDeg, -89.0f, 89.0f);
+	if (m_InputManager->IsPressed(MouseRight))
+	{
+		Vector2f rotdelta = m_InputManager->GetMouseDelta();
+		m_YawDeg += rotdelta.x * m_MouseSensitivity;
+		m_YawDeg = std::fmod(m_YawDeg, 360.0f);
+		if (m_YawDeg < 0.0f)
+			m_YawDeg += 360.0f;
+		m_PitchDeg -= rotdelta.y * m_MouseSensitivity;
+		m_PitchDeg = std::clamp(m_PitchDeg, -89.0f, 89.0f);
+	}
 
 	float pitchRad = DEG_TO_RAD(m_PitchDeg);
 	float yawRad = DEG_TO_RAD(m_YawDeg);

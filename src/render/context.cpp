@@ -558,6 +558,7 @@ namespace vkr::Render
 		vp.MinDepth = depthMin;
 		vp.MaxDepth = depthMax;
 		m_CurrentD3DCommandList->RSSetViewports(1, &vp);
+		++m_NumRecordedCommands;
 	}
 
 	void Context::SetScissorRect(uint32_t left, uint32_t top, uint32_t right, uint32_t bottom)
@@ -568,6 +569,7 @@ namespace vkr::Render
 		rect.right = right;
 		rect.bottom = bottom;
 		m_CurrentD3DCommandList->RSSetScissorRects(1, &rect);
+		++m_NumRecordedCommands;
 	}
 
 	void Context::CopyResource(Buffer* dst, Buffer* src)
@@ -602,6 +604,7 @@ namespace vkr::Render
 		srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 		srcLocation.SubresourceIndex = 0;
 		m_CurrentD3DCommandList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
+		++m_NumRecordedCommands;
 	}
 
 	void Context::InsertWait(const Fence& fence)
