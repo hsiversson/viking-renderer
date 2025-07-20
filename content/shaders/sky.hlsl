@@ -54,6 +54,24 @@ void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
         i = clamp(i, 0, ColorCount - 2);
         float4 SunsetColor = lerp(sunsetColors[i], sunsetColors[i + 1], localT);
         
+        // Calculate simple sun disk
+        for (uint lightIdx = 0; lightIdx < SceneConstants.NumDirectionalLightsInUse; ++lightIdx)
+        {
+            const DirectionalLightData dirLight = SceneConstants.DirectionalLights[lightIdx];
+
+            float sunDot = dot(toPixelDir, -normalize(dirLight.Direction)); // cos(angle)
+            float cosInner = cos(dirLight.Radius); // Hard edge
+            float cosOuter = cos(dirLight.Radius * 2.0f); // Feathered falloff
+
+            float sunFactor = saturate((sunDot - cosOuter) / (cosInner - cosOuter));
+
+            // Optionally apply power falloff for a softer edge
+            sunFactor = pow(sunFactor, 4.0); // tweak this for sharpness
+            
+            float3 sunDiskColor = dirLight.Emission * sunFactor;
+            SunsetColor.rgb += sunDiskColor;
+        }
+        
         BackbufferTexture[dispatchThreadID.xy] = SunsetColor;
     }
 

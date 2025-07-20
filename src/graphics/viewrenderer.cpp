@@ -244,12 +244,12 @@ namespace vkr::Graphics
 		perSceneConstantData.NumDirectionalLightsInUse = 2;
 
 		perSceneConstantData.DirectionalLights[0].Emission = Vector3f(2.0, 2.0, 8.0);
-		perSceneConstantData.DirectionalLights[0].Direction = Vector3f(0.2, -0.5, 0.6);
-		perSceneConstantData.DirectionalLights[0].Radius = 1.0f;
+		perSceneConstantData.DirectionalLights[0].Direction = Vector3f(0.4, -0.5, 0.6);
+		perSceneConstantData.DirectionalLights[0].Radius = 0.02f;
 
 		perSceneConstantData.DirectionalLights[1].Emission = Vector3f(8.0, 2.0, 2.0);
-		perSceneConstantData.DirectionalLights[1].Direction = Vector3f(-0.2, -0.5, 0.6);
-		perSceneConstantData.DirectionalLights[1].Radius = 1.0f;
+		perSceneConstantData.DirectionalLights[1].Direction = Vector3f(-0.4, -0.5, 0.6);
+		perSceneConstantData.DirectionalLights[1].Radius = 0.02f;
 
 		renderData.m_PerSceneConstantBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(PerSceneConstantData), sizeof(PerSceneConstantData), &perSceneConstantData);
 
