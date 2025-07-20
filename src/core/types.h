@@ -251,6 +251,8 @@ namespace vkr
 	Mat44 Inverse(const Mat44& m);
 	Mat44 Inverse(const Mat43& m);
 
+	Mat44 Transpose(const Mat44& m);
+
 	using ReturnCode = int32_t;
 	enum ReturnCodes : int32_t 
 	{

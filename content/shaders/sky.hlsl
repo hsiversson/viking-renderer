@@ -1,4 +1,5 @@
 // Valhalla awaits!!
+#include "sceneconstants.hlsl"
 
 cbuffer PerBatchConstantBuffer : register(b0)
 {
@@ -20,7 +21,7 @@ void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     float4(1.00, 0.85, 0.60, 1.0) // Pale yellow/gold (sun glow)
     };
     
-    RWTexture2D<float4> BackbufferTexture = ResourceDescriptorHeap[ BackbufferDescriptorIndex];
+    RWTexture2D<float4> BackbufferTexture = ResourceDescriptorHeap[BackbufferDescriptorIndex];
     Texture2D<float> DepthTexture = ResourceDescriptorHeap[DepthbufferDescriptorIndex];
     
     uint width, height;
@@ -30,9 +31,22 @@ void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     
     float depth = DepthTexture.Load(int3(dispatchThreadID.xy, 0)).r;
+    
     if (depth == 0.0f)
     {
-        float t = dispatchThreadID.y / (float) (height - 1);
+        float2 uv = (dispatchThreadID.xy + 0.5) / float2(width, height);
+        uv.y = 1.0 - uv.y;
+        float2 ndc = uv * 2.0f - 1.0f;
+        float4 clipPos = float4(ndc.x, ndc.y, 1.0f, 1.0f);
+        float4 worldPos = mul(SceneConstants.InvWorldToClip, clipPos);
+        worldPos /= worldPos.w;
+        
+        float3 camToPixel = worldPos.xyz - SceneConstants.CameraPosition;
+        
+        float3 toPixelDir = normalize(camToPixel);
+        
+        float t = 1.0 - abs(dot(toPixelDir, float3(0, 1, 0)));
+        
         t = saturate(t);
         float scaled = t * (ColorCount - 1);
         int i = (int) floor(scaled);

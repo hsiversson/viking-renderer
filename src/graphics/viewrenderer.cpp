@@ -223,6 +223,7 @@ namespace vkr::Graphics
 		struct alignas(16) PerSceneConstantData
 		{
 			Mat44 WorldToClip;
+			Mat44 InvWorldToClip;
 			uint32_t InstanceDataBufferDescriptorIndex; // Descriptor index to the global buffer where all instance data for the scene is stored
 			uint32_t InstanceDataOffsetBufferDescriptorIndex;
 			uint32_t MaterialDataBufferDescriptorIndex;
@@ -235,6 +236,7 @@ namespace vkr::Graphics
 		Mat43 CamWorld = const_cast<Camera&>(view.GetCamera()).GetWorldTransform();
 		perSceneConstantData.CameraWorldPosition = Vector3f(CamWorld[9], CamWorld[10], CamWorld[11]);
 		perSceneConstantData.WorldToClip = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
+		perSceneConstantData.InvWorldToClip = Inverse(perSceneConstantData.WorldToClip);
 		perSceneConstantData.InstanceDataBufferDescriptorIndex = renderData.m_InstanceDataBufferView->GetIndex();
 		perSceneConstantData.InstanceDataOffsetBufferDescriptorIndex = renderData.m_InstanceDataOffsetBufferView->GetIndex();
 		perSceneConstantData.MaterialDataBufferDescriptorIndex = renderData.m_MaterialDataBuffer.GetBufferView()->GetIndex();
