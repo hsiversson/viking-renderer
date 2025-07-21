@@ -281,24 +281,24 @@ namespace vkr::Graphics
 			DirectionalLight DirectionalLights[2];
 		};
 
-		Mat44 ViewProjectionNoJitter = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
+		Mat44 ProjectionNoJitter = const_cast<Camera&>(view.GetCamera()).GetProjection();
 		//Select a new jitter offset for TAA for this frame
 		int jitterIdx = (m_CurrentJitterIndex++) % 16;
 		Vector2f jitter = (JitterHaltonSequence[jitterIdx] - 0.5f) / Vector2f(view.GetRenderSize()) * 2.0f;
-		Mat44 ViewProjection = ViewProjectionNoJitter;
-		ViewProjection[8] = jitter.x;
-		ViewProjection[9] = jitter.y;
+		Mat44 Projection = ProjectionNoJitter;
+		Projection[8] = jitter.x;
+		Projection[9] = jitter.y;
 
 		PerSceneConstantData perSceneConstantData = {};
 		Mat43 CamWorld = const_cast<Camera&>(view.GetCamera()).GetWorldTransform();
 		perSceneConstantData.CameraWorldPosition = Vector3f(CamWorld[9], CamWorld[10], CamWorld[11]);
 		perSceneConstantData.View = const_cast<Camera&>(view.GetCamera()).GetView();
 		perSceneConstantData.InvView = Inverse(perSceneConstantData.View);
-		perSceneConstantData.Projection = const_cast<Camera&>(view.GetCamera()).GetProjection();
+		perSceneConstantData.Projection = Projection;
 		perSceneConstantData.InvProjection = Inverse(perSceneConstantData.Projection);
-		perSceneConstantData.ViewProjection = ViewProjection;
+		perSceneConstantData.ViewProjection = perSceneConstantData.View * perSceneConstantData.Projection;
 		perSceneConstantData.InvViewProjection = Inverse(perSceneConstantData.ViewProjection);
-		perSceneConstantData.ViewProjectionNoJitter = ViewProjectionNoJitter;
+		perSceneConstantData.ViewProjectionNoJitter = perSceneConstantData.View * ProjectionNoJitter;
 		perSceneConstantData.InstanceDataBufferDescriptorIndex = renderData.m_InstanceDataBufferView->GetIndex();
 		perSceneConstantData.InstanceDataOffsetBufferDescriptorIndex = renderData.m_InstanceDataOffsetBufferView->GetIndex();
 		perSceneConstantData.MaterialDataBufferDescriptorIndex = renderData.m_MaterialDataBuffer.GetBufferView()->GetIndex();
