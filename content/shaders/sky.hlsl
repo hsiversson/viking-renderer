@@ -38,7 +38,7 @@ void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
         uv.y = 1.0 - uv.y;
         float2 ndc = uv * 2.0f - 1.0f;
         float4 clipPos = float4(ndc.x, ndc.y, 1.0f, 1.0f);
-        float4 worldPos = mul(SceneConstants.InvWorldToClip, clipPos);
+        float4 worldPos = mul(SceneConstants.InvViewProjection, clipPos);
         worldPos /= worldPos.w;
         
         float3 camToPixel = worldPos.xyz - SceneConstants.CameraPosition;

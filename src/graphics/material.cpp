@@ -225,7 +225,7 @@ namespace vkr::Graphics
 				"	VSOutput output;\n"
 				"	InstanceData data = GetInstanceData<InstanceData>(BatchInstanceDataOffsetStart, instanceID);"
 				"	output.worldPosition = mul(data.ModelToWorld, float4(input.position0, 1.0f)).xyz;\n"
-				"	output.clipPosition = mul(SceneConstants.WorldToClip, float4(output.worldPosition, 1.0f));\n"
+				"	output.clipPosition = mul(SceneConstants.ViewProjection, float4(output.worldPosition, 1.0f));\n"
 				"	output.normal = input.normal0;\n"
 				"	output.tangent = input.tangent0;\n"
 				"	output.uv = input.uv0;\n"

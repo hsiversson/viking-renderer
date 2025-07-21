@@ -6,10 +6,37 @@ namespace vkr
 	struct Vector2
 	{
 		T x, y;
+
+		template<typename U>
+		explicit operator Vector2<U>() const
+		{
+			return Vector2<U>(
+				static_cast<U>(x),
+				static_cast<U>(y)
+			);
+		}
 	};
 	using Vector2f = Vector2<float>;
 	using Vector2i = Vector2<int32_t>;
 	using Vector2u = Vector2<uint32_t>;
+
+	template<typename T>
+	Vector2<T> operator-(Vector2<T> v, float scalar)
+	{
+		return { v.x - scalar, v.y - scalar };
+	}
+
+	template<typename T>
+	Vector2<T> operator*(Vector2<T> v, float scalar)
+	{
+		return { v.x * scalar, v.y * scalar };
+	}
+
+	template<typename T>
+	Vector2<T> operator/(Vector2<T> v, Vector2<T> w)
+	{
+		return { v.x / w.x, v.y / w.y };
+	}
 
 	template<typename T>
 	struct Vector3

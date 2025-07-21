@@ -6,6 +6,25 @@
 #include "render/context.h"
 #include "render/device.h"
 
+static constexpr vkr::Vector2f JitterHaltonSequence[] = { 
+	{0.5,0.333333},
+	{0.25,0.666667},
+	{0.750000, 0.111111},
+	{0.125000, 0.444444},
+	{0.625000, 0.777778},
+	{0.375000, 0.222222},
+	{0.875000, 0.555556},
+	{0.062500, 0.888889},
+	{0.562500, 0.037037},
+	{0.312500, 0.370370},
+	{0.812500, 0.703704},
+	{0.187500, 0.148148},
+	{0.687500, 0.481481},
+	{0.437500, 0.814815},
+	{0.937500, 0.259259},
+	{ 0.031250, 0.592593 }
+};
+
 namespace vkr::Graphics
 {
 	ViewRenderer::ViewRenderer()
@@ -23,7 +42,9 @@ namespace vkr::Graphics
 		// init any renderer subsystems
 		// ex. upscalers, water, vegetation, environment, particle/vfx, light culling
 
-		//Initializing global shaders
+		//Initializing global shaders/resources
+
+		//Sky
 		Render::Device* device = Render::GetDevice();
 		m_SkyComputeShader = device->CreateShader("../../../content/shaders/sky.hlsl", L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
 
@@ -33,6 +54,27 @@ namespace vkr::Graphics
 
 		m_SkyPSO = device->CreatePipelineState(skyPSODesc);
 
+		//TAA
+		m_TAAHistoryBuffer = device->CreateTexture(view.GetSceneTexture()->m_TextureDesc);
+		m_TAAResolveBuffer = device->CreateTexture(view.GetSceneTexture()->m_TextureDesc);
+
+		Render::TextureViewDesc SRVViewDesc;
+		SRVViewDesc.m_Mip = 0;
+		SRVViewDesc.m_Writable = false;
+		Render::TextureViewDesc UAVViewDesc;
+		SRVViewDesc.m_Mip = 0;
+		SRVViewDesc.m_Writable = true;
+		m_TAAHistorySRVView = device->CreateTextureView(SRVViewDesc, m_TAAHistoryBuffer);
+		m_TAAHistoryUAVView = device->CreateTextureView(UAVViewDesc, m_TAAHistoryBuffer);
+		m_TAAResolveSRVView = device->CreateTextureView(SRVViewDesc, m_TAAResolveBuffer);
+		m_TAAResolveUAVView = device->CreateTextureView(UAVViewDesc, m_TAAResolveBuffer);
+
+		m_TAAResolveComputeShader = device->CreateShader("../../../content/shaders/taa.hlsl", L"ResolveCS", vkr::Render::SHADER_STAGE_COMPUTE);
+		Render::PipelineStateDesc taaPSODesc = {};
+		taaPSODesc.m_Type = Render::PIPELINE_STATE_TYPE_COMPUTE;
+		taaPSODesc.Compute.m_ComputeShader = m_TAAResolveComputeShader.get();
+
+		m_TAAResolvePSO = device->CreatePipelineState(taaPSODesc);
 		return true;
 	}
 
@@ -45,6 +87,7 @@ namespace vkr::Graphics
 		Render::QueueGraphicsTask([this, viewPtr]() mutable { DepthPrepass(*viewPtr); });
 		Render::QueueGraphicsTask([this, viewPtr]() mutable { ForwardPass(*viewPtr); });
 		Render::QueueGraphicsTask([this, viewPtr]() mutable { RenderSky(*viewPtr); });
+		Render::QueueGraphicsTask([this, viewPtr]() mutable { ApplyUpscaling(*viewPtr); });
 		Ref<Render::RenderTaskEvent> lastRenderEvent = Render::QueueGraphicsTask([this, viewPtr]() mutable { FinalizeFrame(*viewPtr); });
 		viewPtr->EndRender();
 
@@ -222,8 +265,13 @@ namespace vkr::Graphics
 		//Construct the per scene constant buffer
 		struct alignas(16) PerSceneConstantData
 		{
-			Mat44 WorldToClip;
-			Mat44 InvWorldToClip;
+			Mat44 View;
+			Mat44 InvView;
+			Mat44 Projection;
+			Mat44 InvProjection;
+			Mat44 ViewProjection;
+			Mat44 InvViewProjection;
+			Mat44 ViewProjectionNoJitter;
 			uint32_t InstanceDataBufferDescriptorIndex; // Descriptor index to the global buffer where all instance data for the scene is stored
 			uint32_t InstanceDataOffsetBufferDescriptorIndex;
 			uint32_t MaterialDataBufferDescriptorIndex;
@@ -232,11 +280,25 @@ namespace vkr::Graphics
 			uint32_t NumDirectionalLightsInUse;
 			DirectionalLight DirectionalLights[2];
 		};
+
+		Mat44 ViewProjectionNoJitter = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
+		//Select a new jitter offset for TAA for this frame
+		int jitterIdx = (m_CurrentJitterIndex++) % 16;
+		Vector2f jitter = (JitterHaltonSequence[jitterIdx] - 0.5f) / Vector2f(view.GetRenderSize()) * 2.0f;
+		Mat44 ViewProjection = ViewProjectionNoJitter;
+		ViewProjection[8] = jitter.x;
+		ViewProjection[9] = jitter.y;
+
 		PerSceneConstantData perSceneConstantData = {};
 		Mat43 CamWorld = const_cast<Camera&>(view.GetCamera()).GetWorldTransform();
 		perSceneConstantData.CameraWorldPosition = Vector3f(CamWorld[9], CamWorld[10], CamWorld[11]);
-		perSceneConstantData.WorldToClip = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
-		perSceneConstantData.InvWorldToClip = Inverse(perSceneConstantData.WorldToClip);
+		perSceneConstantData.View = const_cast<Camera&>(view.GetCamera()).GetView();
+		perSceneConstantData.InvView = Inverse(perSceneConstantData.View);
+		perSceneConstantData.Projection = const_cast<Camera&>(view.GetCamera()).GetProjection();
+		perSceneConstantData.InvProjection = Inverse(perSceneConstantData.Projection);
+		perSceneConstantData.ViewProjection = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
+		perSceneConstantData.InvViewProjection = Inverse(perSceneConstantData.ViewProjection);
+		perSceneConstantData.ViewProjectionNoJitter = ViewProjectionNoJitter;
 		perSceneConstantData.InstanceDataBufferDescriptorIndex = renderData.m_InstanceDataBufferView->GetIndex();
 		perSceneConstantData.InstanceDataOffsetBufferDescriptorIndex = renderData.m_InstanceDataOffsetBufferView->GetIndex();
 		perSceneConstantData.MaterialDataBufferDescriptorIndex = renderData.m_MaterialDataBuffer.GetBufferView()->GetIndex();
@@ -338,7 +400,85 @@ namespace vkr::Graphics
 
 	void ViewRenderer::ApplyUpscaling(View& view)
 	{
+		const ViewRenderData& renderData = view.GetRenderData();
 		// TAA, DLSS, FSR, XeSS etc.
+
+		//TAA Resolve
+		Render::Context* ctx = Render::Context::GetCurrentContext();
+		//Transition to UAV the resolve buffer
+		std::vector<Render::TextureBarrierDesc> barriers;
+		{
+			Render::TextureBarrierDesc barrierDesc;
+			barrierDesc.m_Texture = m_TAAResolveBuffer.get();
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
+			barriers.push_back(barrierDesc);
+		}
+		//Transition to SRV the scene texture
+		{
+			Render::TextureBarrierDesc barrierDesc;
+			barrierDesc.m_Texture = view.GetSceneTexture().get();
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_READ;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
+			barriers.push_back(barrierDesc);
+		}
+
+		ctx->BindPSO(m_TAAResolvePSO);
+
+		// Create an SRV from the backbuffer
+		Render::TextureViewDesc sceneViewDesc;
+		sceneViewDesc.m_Mip = 0;
+		sceneViewDesc.m_Writable = false;
+		m_SceneTextureSRVView = Render::GetDevice()->CreateTextureView(sceneViewDesc, view.GetSceneTexture()); //Is efficient 
+
+		struct alignas(16) ConstantData
+		{
+			uint32_t ResolveTextureDescriptorIndex;
+			uint32_t SceneTextureDescriptorIndex;
+			uint32_t HistoryTextureDescriptorIndex;
+			uint32_t pad0;
+		};
+		ConstantData data;
+		data.ResolveTextureDescriptorIndex = m_TAAResolveUAVView->GetIndex();
+		data.SceneTextureDescriptorIndex = m_SceneTextureSRVView->GetIndex();
+		data.HistoryTextureDescriptorIndex = m_TAAHistorySRVView->GetIndex();
+
+		//Per batch buffer
+		auto perbatchbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData), sizeof(data), (void*)&data);
+		std::vector<Ref<vkr::Render::Buffer>> buffers;
+		std::vector<uint64_t> offsets;
+		buffers.push_back(renderData.m_PerSceneConstantBuffer.m_Buffer);
+		offsets.push_back(renderData.m_PerSceneConstantBuffer.m_Offset);
+		buffers.push_back(perbatchbuffer.m_Buffer);
+		offsets.push_back(perbatchbuffer.m_Offset);
+		ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
+
+		ctx->DispatchThreads(Vector3u(view.GetRenderSize().x, view.GetRenderSize().y, 1));
+
+		//Update history buffer 
+		//Transition resolve texture to copy source
+		{
+			Render::TextureBarrierDesc barrierDesc;
+			barrierDesc.m_Texture = m_TAAResolveBuffer.get();
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_COPY_SOURCE;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COPY_SOURCE;
+			ctx->TextureBarrier(barrierDesc);
+		}
+		//Transition history texture to copy dest
+		{
+			Render::TextureBarrierDesc barrierDesc;
+			barrierDesc.m_Texture = m_TAAHistoryBuffer.get();
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_COPY_TARGET;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COPY_TARGET;
+			ctx->TextureBarrier(barrierDesc);
+		}
+
+		//Perform copy operation
+		ctx->CopyTexture(m_TAAHistoryBuffer.get(), m_TAAResolveBuffer.get());
 	}
 
 	void ViewRenderer::ApplyPostEffects(View& view)
@@ -357,15 +497,7 @@ namespace vkr::Graphics
 		// Copy scene texture to view output resource
 		// for main view, that would probably be the swapchain backbuffer
 
-		//Transition scene texture to copy source
-		{
-			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = view.GetSceneTexture().get();
-			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
-			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_COPY_SOURCE;
-			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COPY_SOURCE;
-			ctx->TextureBarrier(barrierDesc);
-		}
+		//Resolve buffer should already be in copy source
 		//Transition backbuffer to copy dest
 		{
 			Render::TextureBarrierDesc barrierDesc;
@@ -377,7 +509,7 @@ namespace vkr::Graphics
 		}
 
 		//Perform copy operation
-		ctx->CopyTexture(view.GetOutputTarget()->GetTexture(), view.GetSceneTexture().get());
+		ctx->CopyTexture(view.GetOutputTarget()->GetTexture(), m_TAAResolveBuffer.get());
 		
 		//Transition output to present
 		{

@@ -7,6 +7,7 @@ namespace vkr::Render
 	class Device;
 	class Shader;
 	class PipelineState;
+	class Texture;
 	class TextureView;
 }
 
@@ -50,6 +51,18 @@ namespace vkr::Graphics
 		Ref<Render::PipelineState> m_SkyPSO;
 
 		Ref<Render::TextureView> m_SceneTextureUAVView;
+		Ref<Render::TextureView> m_SceneTextureSRVView;
 		Ref<Render::TextureView> m_DepthSRVView;
+
+		//TAA
+		int m_CurrentJitterIndex = 0;
+		Ref<Render::Texture> m_TAAResolveBuffer;
+		Ref<Render::Texture> m_TAAHistoryBuffer;
+		Ref<Render::TextureView> m_TAAHistorySRVView;
+		Ref<Render::TextureView> m_TAAHistoryUAVView;
+		Ref<Render::TextureView> m_TAAResolveSRVView;
+		Ref<Render::TextureView> m_TAAResolveUAVView;
+		Ref<Render::Shader> m_TAAResolveComputeShader;
+		Ref<Render::PipelineState> m_TAAResolvePSO;
 	};
 }
