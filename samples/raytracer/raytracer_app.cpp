@@ -9,7 +9,6 @@
 #include "graphics/scene.h"
 #include "graphics/view.h"
 
-
 using namespace vkr;
 
 void RaytracerApp::AppInit()
@@ -27,7 +26,7 @@ void RaytracerApp::AppInit()
 	m_Camera = MakeRef<Graphics::Camera>();
 	Mat43 camtransform = Compose(Mat33::Identity(), Vector3f(0, 2.0f, -4.0f));
 	m_Camera->SetLocalTransform(camtransform);
-	m_Camera->SetupPerspective(std::numbers::pi / 2.0f, (float)m_WindowSize.x / (float)m_WindowSize.y, 0.1f, 1000.0f);
+	m_Camera->SetupPerspective(80.0f, (float)m_WindowSize.x / (float)m_WindowSize.y, 0.1f, 1000.0f);
 	m_RenderDevice->EndFrame();
 
 	auto camController = MakeRef<CameraController>();

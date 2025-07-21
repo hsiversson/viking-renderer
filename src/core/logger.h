@@ -1,4 +1,6 @@
 #pragma once
+
+#if ENABLE_LOGGING
 #include <thread>
 #include <mutex>
 #include <queue>
@@ -54,3 +56,11 @@ namespace vkr
 #define VKR_LOG(msg, ...)		vkr::Logger::Get()->QueueMessage(LOG_MESSAGE_TYPE_INFO, std::format(msg, ##__VA_ARGS__), __FUNCTION__, __FILE__, __LINE__);
 #define VKR_WARNING(msg, ...)	vkr::Logger::Get()->QueueMessage(LOG_MESSAGE_TYPE_WARNING, std::format(msg, ##__VA_ARGS__), __FUNCTION__, __FILE__, __LINE__);
 #define VKR_ERROR(msg, ...)		vkr::Logger::Get()->QueueMessage(LOG_MESSAGE_TYPE_ERROR, std::format(msg, ##__VA_ARGS__), __FUNCTION__, __FILE__, __LINE__);
+
+#else // ENABLE_LOGGING
+
+#define VKR_LOG(msg, ...)
+#define VKR_WARNING(msg, ...)
+#define VKR_ERROR(msg, ...)
+
+#endif // ENABLE_LOGGING

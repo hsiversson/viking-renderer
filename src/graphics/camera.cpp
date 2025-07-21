@@ -30,7 +30,7 @@ namespace vkr::Graphics
 
 	void Camera::SetupPerspective(float fov, float aspect, float nearZ, float farZ)
 	{
-		float yscale = 1.0f / tan(fov * 0.5f);
+		float yscale = 1.0f / tan(DegToRad(fov) * 0.5f);
 		float xscale = yscale / aspect;
 
 		float q = nearZ / (farZ - nearZ);

@@ -40,6 +40,7 @@ namespace vkr::Render
 		}
 
 		m_DescriptorSize = GetDevice()->GetD3DDevice()->GetDescriptorHandleIncrementSize(desc.Type);
+		m_NumElements = numDescriptors;
 	}
 
 	DescriptorHeap::~DescriptorHeap()

@@ -1,7 +1,5 @@
 #include "time.h"
 
-#include <windows.h>
-
 namespace vkr
 {
 

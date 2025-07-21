@@ -1,14 +1,6 @@
 #pragma once
 #include "core/types.h"
 
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
-
 namespace vkr::Render
 {
 	struct IMessageHandler

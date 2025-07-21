@@ -1,17 +1,6 @@
 #include "logger.h"
-#include "utils/str.h"
 
-#include <cassert>
-#include <chrono>
-
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
-
+#if ENABLE_LOGGING
 namespace vkr
 {
 	Logger* Logger::g_Instance = nullptr;
@@ -83,3 +72,4 @@ namespace vkr
 		}
 	}
 }
+#endif // ENABLE_LOGGING

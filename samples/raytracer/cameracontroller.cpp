@@ -26,8 +26,8 @@ void CameraController::Tick(float deltaTime)
 		m_PitchDeg = std::clamp(m_PitchDeg, -89.0f, 89.0f);
 	}
 
-	float pitchRad = DEG_TO_RAD(m_PitchDeg);
-	float yawRad = DEG_TO_RAD(m_YawDeg);
+	float pitchRad = DegToRad(m_PitchDeg);
+	float yawRad = DegToRad(m_YawDeg);
 
 	//Build final transform of camera
 	Vector3f camForward = Normalized(Vector3f(
