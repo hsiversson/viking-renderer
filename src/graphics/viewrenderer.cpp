@@ -296,7 +296,7 @@ namespace vkr::Graphics
 		perSceneConstantData.InvView = Inverse(perSceneConstantData.View);
 		perSceneConstantData.Projection = const_cast<Camera&>(view.GetCamera()).GetProjection();
 		perSceneConstantData.InvProjection = Inverse(perSceneConstantData.Projection);
-		perSceneConstantData.ViewProjection = const_cast<Camera&>(view.GetCamera()).GetViewProjection();
+		perSceneConstantData.ViewProjection = ViewProjection;
 		perSceneConstantData.InvViewProjection = Inverse(perSceneConstantData.ViewProjection);
 		perSceneConstantData.ViewProjectionNoJitter = ViewProjectionNoJitter;
 		perSceneConstantData.InstanceDataBufferDescriptorIndex = renderData.m_InstanceDataBufferView->GetIndex();
