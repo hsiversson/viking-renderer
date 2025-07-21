@@ -1,6 +1,9 @@
 #include "editor/editor.h"
 
 #if ENABLE_EDITOR
+
+#include "imgui.h"
+
 namespace vkr::Editor
 {
 	Manager::Manager()
@@ -23,4 +26,4 @@ namespace vkr::Editor
 
 	}
 }
-#endif // ENABLE_EDITOR
+#endif //ENABLE_EDITOR

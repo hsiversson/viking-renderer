@@ -16,4 +16,4 @@ namespace vkr::Editor
 	private:
 	};
 }
-#endif // ENABLE_EDITOR
+#endif //ENABLE_EDITOR

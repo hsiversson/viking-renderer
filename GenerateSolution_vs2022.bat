@@ -22,7 +22,9 @@ vcpkg\vcpkg.exe install directx-headers
 vcpkg\vcpkg.exe install directx12-agility
 vcpkg\vcpkg.exe install directx-dxc
 vcpkg\vcpkg.exe install directxtex
+vcpkg\vcpkg.exe install winpixevent
 vcpkg\vcpkg.exe install cgltf
+vcpkg\vcpkg.exe install imgui[core,docking-experimental]
 if errorlevel 1 goto ERROR_END
 
 :: CMAKE BUILD

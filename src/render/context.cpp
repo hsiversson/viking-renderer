@@ -8,6 +8,9 @@
 #include "commandqueue.h"
 #include "d3dconvert.h"
 
+#define USE_PIX
+#include "pix3.h"
+
 namespace vkr::Render
 {
 	thread_local Context* Context::g_CurrentContext = nullptr;
@@ -83,6 +86,16 @@ namespace vkr::Render
 			m_CommandListsToSubmit.clear();
 		}
 		return m_LastFlushEvent;
+	}
+
+	void Context::SetMarker(const char* label)
+	{
+		PIXBeginEvent(m_CurrentD3DCommandList, 0xFFFFFFFF, label);
+	}
+
+	void Context::EndMarker()
+	{
+		PIXEndEvent(m_CurrentD3DCommandList);
 	}
 
 	void Context::Dispatch(const Vector3u& Groups)

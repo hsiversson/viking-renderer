@@ -51,8 +51,14 @@ target_link_libraries(VikingRenderer PRIVATE Microsoft::DirectX-Headers Microsof
 find_package(directxtex CONFIG REQUIRED)
 target_link_libraries(VikingRenderer PRIVATE Microsoft::DirectXTex)
 
+find_package(winpixevent CONFIG REQUIRED)
+target_link_libraries(VikingRenderer PRIVATE Microsoft::WinPixEventRuntime)
+
 find_path(CGLTF_INCLUDE_DIRS "cgltf.h")
 target_include_directories(VikingRenderer PRIVATE ${CGLTF_INCLUDE_DIRS})
+
+find_package(imgui CONFIG REQUIRED)
+target_link_libraries(VikingRenderer PRIVATE imgui::imgui)
 
 target_include_directories(VikingRenderer PUBLIC ${VKR_SRC_DIR})
 

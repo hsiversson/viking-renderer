@@ -84,6 +84,10 @@ namespace vkr::Render
 		void End();
 		Fence Flush();
 
+		// Markers
+		void SetMarker(const char* label);
+		void EndMarker();
+
 		// Compute
 		void Dispatch(const Vector3u& Groups);
 		void DispatchThreads(const Vector3u& threads);
