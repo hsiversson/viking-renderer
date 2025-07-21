@@ -290,24 +290,25 @@ namespace vkr::Render
 				}
 			}
 
-			if (CurrentState.m_VertexBuffers != NewState.m_VertexBuffers)
+			if (CurrentState.m_VertexBuffers != NewState.m_VertexBuffers || CurrentState.m_VertexBufferOffsets != NewState.m_VertexBufferOffsets)
 			{
-				std::vector<D3D12_VERTEX_BUFFER_VIEW> bufferviews;
-				int idx = 0;
-				for (auto buffer : NewState.m_VertexBuffers)
+				std::vector<D3D12_VERTEX_BUFFER_VIEW> bufferViews;
+				for (uint32_t i = 0; i < NewState.m_VertexBuffers.size(); ++i)
 				{
+					const Ref<Buffer>& buffer = NewState.m_VertexBuffers[i];
+					const uint64_t offset = NewState.m_VertexBufferOffsets.empty() ? 0 : NewState.m_VertexBufferOffsets[i];
 					D3D12_VERTEX_BUFFER_VIEW view;
-					view.BufferLocation = buffer->GetD3DResource()->GetGPUVirtualAddress();
+					view.BufferLocation = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
 					view.SizeInBytes = buffer->GetDesc().m_ElementCount * buffer->GetDesc().m_ElementSize;
 					view.StrideInBytes = buffer->GetDesc().m_ElementSize;
-					bufferviews.push_back(view);
+					bufferViews.push_back(view);
 				}
-				m_CurrentD3DCommandList->IASetVertexBuffers(0, bufferviews.size(), bufferviews.data());
+				m_CurrentD3DCommandList->IASetVertexBuffers(0, bufferViews.size(), bufferViews.data());
 			}
-			if (CurrentState.m_IndexBuffer != NewState.m_IndexBuffer)
+			if (CurrentState.m_IndexBuffer != NewState.m_IndexBuffer || CurrentState.m_IndexBufferOffset != NewState.m_IndexBufferOffset)
 			{
 				D3D12_INDEX_BUFFER_VIEW view;
-				view.BufferLocation = NewState.m_IndexBuffer->GetD3DResource()->GetGPUVirtualAddress();
+				view.BufferLocation = NewState.m_IndexBuffer->GetD3DResource()->GetGPUVirtualAddress() + NewState.m_IndexBufferOffset;
 				view.SizeInBytes = NewState.m_IndexBuffer->GetDesc().m_ElementSize * NewState.m_IndexBuffer->GetDesc().m_ElementCount;
 				view.Format = D3DConvertFormat(NewState.m_IndexBuffer->GetDesc().m_Format);
 				m_CurrentD3DCommandList->IASetIndexBuffer(&view);
@@ -509,23 +510,22 @@ namespace vkr::Render
 		}
 	}
 
-	void Context::BindVertexBuffers(Ref<Buffer>* buffers, size_t buffercount)
+	void Context::BindVertexBuffers(Ref<Buffer>* buffers, size_t numVertexBuffers, uint64_t* offsets)
 	{
-		std::vector<Ref<Buffer>> vertexbuffers(buffers, buffers + buffercount);
-		if (NewState.m_VertexBuffers != vertexbuffers)
+		NewState.m_VertexBuffers = std::vector<Ref<Buffer>>(buffers, buffers + numVertexBuffers);
+		NewState.m_VertexBufferOffsets.clear();
+		if (offsets)
 		{
-			NewState.m_VertexBuffers = vertexbuffers;
-			m_StateUpdate = true;
+			NewState.m_VertexBufferOffsets = std::vector<uint64_t>(offsets, offsets + numVertexBuffers);
 		}
+		m_StateUpdate = true;
 	}
 
-	void Context::BindIndexBuffer(Ref<Buffer> indexbuffer)
+	void Context::BindIndexBuffer(Ref<Buffer> indexBuffer, uint64_t offset)
 	{
-		if (NewState.m_IndexBuffer != indexbuffer)
-		{
-			NewState.m_IndexBuffer = indexbuffer;
-			m_StateUpdate = true;
-		}
+		NewState.m_IndexBufferOffset = offset;
+		NewState.m_IndexBuffer = indexBuffer;
+		m_StateUpdate = true;
 	}
 
 	void Context::Draw(uint32_t vertexCount, uint32_t startVertex)

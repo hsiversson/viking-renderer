@@ -4,6 +4,7 @@
 namespace vkr::Render
 {
 	class PipelineState;
+	class RenderTaskEvent;
 }
 
 struct ImDrawList;
@@ -20,6 +21,9 @@ namespace vkr::Editor
 		void Render();
 
 	private:
+		void RenderTask(const uint32_t renderDataIndex);
+
+	private:
 		Ref<Render::PipelineState> m_SdrShader;
 		Ref<Render::PipelineState> m_HdrShader;
 
@@ -33,13 +37,17 @@ namespace vkr::Editor
 		struct RenderData
 		{
 			std::vector<ImDrawList*> m_DrawLists;
-			std::vector<ImGuiVertex> m_Vertices;
-			std::vector<uint16_t> m_Indices;
+			Vector2f m_ViewportOffset;
+			Vector2f m_ViewportSize;
+			Vector2f m_ViewportScale;
+			Ref<Render::RenderTaskEvent> m_Event;
 
 			RenderData() {}
 			~RenderData() { Clear(); }
 			void Clear();
 		};
+		std::array<RenderData, 3> m_RenderData;
+		uint32_t m_CurrentRenderDataIndex;
 	};
 }
 #endif //ENABLE_EDITOR

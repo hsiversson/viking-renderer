@@ -102,9 +102,9 @@ namespace vkr::Render
 
 		//Render state
 		void BindPSO(Ref<PipelineState> pipelineState);
-		void BindRootConstantBuffers(Ref<Buffer>* buffers, size_t bufferCount, uint64_t* offsets = nullptr);
-		void BindVertexBuffers(Ref<Buffer>* vertexbuffers, size_t vertexbuffercount);
-		void BindIndexBuffer(Ref<Buffer> indexbuffer);
+		void BindRootConstantBuffers(Ref<Buffer>* buffers, size_t numBuffers, uint64_t* offsets = nullptr);
+		void BindVertexBuffers(Ref<Buffer>* vertexBuffers, size_t numVertexBuffers, uint64_t* offsets = nullptr);
+		void BindIndexBuffer(Ref<Buffer> indexbuffer, uint64_t offset = 0);
 		void BindRenderTargets(Ref<RenderTargetView>* rtviews, size_t viewCount);
 		void BindDepthStencil(Ref<DepthStencilView> dsview);
 		void SetPrimitiveTopology(PrimitiveTopology topologyType);
@@ -145,7 +145,9 @@ namespace vkr::Render
 		{
 			PrimitiveTopology m_Topology = PRIMITIVE_TOPOLOGY_UNDEFINED;
 			std::vector<Ref<Buffer>> m_VertexBuffers;
+			std::vector<uint64_t> m_VertexBufferOffsets;
 			Ref<Buffer> m_IndexBuffer;
+			uint64_t m_IndexBufferOffset;
 			RootSignature* m_RootSignature = nullptr;
 			Ref<PipelineState> m_PipelineState = nullptr;
 			std::vector<Ref<Buffer>> m_RootCB;
