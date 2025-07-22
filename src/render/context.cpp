@@ -88,9 +88,9 @@ namespace vkr::Render
 		return m_LastFlushEvent;
 	}
 
-	void Context::SetMarker(const char* label)
+	void Context::BeginMarker(const char* label, uint32_t color)
 	{
-		PIXBeginEvent(m_CurrentD3DCommandList, 0xFFFFFFFF, label);
+		PIXBeginEvent(m_CurrentD3DCommandList, (0xff000000u | color), label);
 	}
 
 	void Context::EndMarker()

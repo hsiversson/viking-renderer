@@ -111,6 +111,7 @@ namespace vkr::Graphics
 	{
 		const ViewRenderData& renderData = view.GetRenderData();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
+		SET_CONTEXT_MARKER_FUNCTION(ctx);
 		
 		// Create an UAV from the backbuffer
 		Render::TextureViewDesc sceneViewDesc;
@@ -162,7 +163,7 @@ namespace vkr::Graphics
 	{
 		const ViewRenderData& renderData = view.GetRenderData();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
-		ctx->SetMarker("ViewRenderer::ForwardPass");
+		SET_CONTEXT_MARKER_FUNCTION(ctx);
 
 		Render::RenderTargetViewDesc sceneRTViewDesc;
 		sceneRTViewDesc.m_Mip = 0;
@@ -233,8 +234,6 @@ namespace vkr::Graphics
 			ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
 			ctx->DrawIndexedInstanced(batch.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount, batch.m_Count);
 		}
-
-		ctx->EndMarker();
 	}
 
 	void ViewRenderer::UpdateSceneData(View& view)
@@ -341,8 +340,7 @@ namespace vkr::Graphics
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 
 		ctx->InsertWait(renderData.m_RaytracingTLAS->GetBuffer()->GetGpuPending());
-
-		ctx->SetMarker("ViewRenderer::DepthPrepass");
+		SET_CONTEXT_MARKER_FUNCTION(ctx);
 
 		//Transition DS to write
 		std::vector<Render::TextureBarrierDesc> barriers;
@@ -395,8 +393,6 @@ namespace vkr::Graphics
 			ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
 			ctx->DrawIndexedInstanced(batch.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount, batch.m_Count);
 		}
-
-		ctx->EndMarker();
 	}
 
 	void ViewRenderer::TraceRadiance(View& view)
@@ -411,7 +407,8 @@ namespace vkr::Graphics
 
 		//TAA Resolve
 		Render::Context* ctx = Render::Context::GetCurrentContext();
-		ctx->SetMarker("ViewRenderer::ApplyUpscaling");
+		SET_CONTEXT_MARKER_FUNCTION(ctx);
+
 		//Transition to UAV the resolve buffer
 		std::vector<Render::TextureBarrierDesc> barriers;
 		{
@@ -486,7 +483,6 @@ namespace vkr::Graphics
 
 		//Perform copy operation
 		ctx->CopyTexture(m_TAAHistoryBuffer.get(), m_TAAResolveBuffer.get());
-		ctx->EndMarker();
 	}
 
 	void ViewRenderer::ApplyPostEffects(View& view)
@@ -502,7 +498,7 @@ namespace vkr::Graphics
 		// finalizing work recorded here
 		// 
 		Render::Context* ctx = Render::Context::GetCurrentContext();
-		ctx->SetMarker("ViewRenderer::FinalizeFrame");
+		SET_CONTEXT_MARKER_FUNCTION(ctx);
 		// Copy scene texture to view output resource
 		// for main view, that would probably be the swapchain backbuffer
 
@@ -529,7 +525,5 @@ namespace vkr::Graphics
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COMMON;
 			ctx->TextureBarrier(barrierDesc);
 		}
-
-		ctx->EndMarker();
 	}
 }

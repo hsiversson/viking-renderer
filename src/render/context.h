@@ -85,7 +85,7 @@ namespace vkr::Render
 		Fence Flush();
 
 		// Markers
-		void SetMarker(const char* label);
+		void BeginMarker(const char* label, uint32_t color);
 		void EndMarker();
 
 		// Compute
@@ -177,4 +177,23 @@ namespace vkr::Render
 		const ContextType m_Type;
 		static thread_local Context* g_CurrentContext;
 	};
+
+	class ContextMarkerScope
+	{
+	public:
+		ContextMarkerScope(Context* ctx, const char* label, uint32_t color) : m_Ctx(ctx) { ctx->BeginMarker(label, color); }
+		~ContextMarkerScope() { m_Ctx->EndMarker(); }
+	private:
+		Context* m_Ctx;
+	};
+
+#define _SET_CTX_MARKER_CONCAT_IMPL(x, y) x##y
+#define _SET_CTX_MARKER_CONCAT(x, y) _SET_CTX_MARKER_CONCAT_IMPL(x, y)
+
+// TODO: Begin/End category? Which would make any sub-scope markers use the same color as the previous scope.
+
+#define SET_CONTEXT_MARKER(ctx, label) vkr::Render::ContextMarkerScope _SET_CTX_MARKER_CONCAT(_ctxMarkerScope_, __LINE__)(ctx, label, vkr::Random::Rnd_u32())
+#define SET_CONTEXT_MARKER_COLORED(ctx, label, color) vkr::Render::ContextMarkerScope _SET_CTX_MARKER_CONCAT(_ctxMarkerScope_, __LINE__)(ctx, label, color)
+#define SET_CONTEXT_MARKER_FUNCTION(ctx) SET_CONTEXT_MARKER(ctx, __FUNCTION__)
+#define SET_CONTEXT_MARKER_FUNCTION_COLORED(ctx, color) SET_CONTEXT_MARKER_COLORED(ctx, __FUNCTION__, color)
 }

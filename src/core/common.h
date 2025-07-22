@@ -21,5 +21,6 @@ namespace vkr
 
 #include "types.h"
 #include "platform.h"
+#include "random.h"
 #include "utils/str.h"
 #include "logger.h"
