@@ -20,6 +20,9 @@ namespace vkr::Render
 		void* GetNativeHandle() const;
 		void AddMessageHandler(IMessageHandler* messageHandler) { m_MessageHandlers.insert(messageHandler); }
 
+		const Vector2u GetSize() const;
+		const Vector2f GetDpiScale() const;
+
 	private:
 		void* m_NativeHandle;
 		std::unordered_set<IMessageHandler*> m_MessageHandlers;

@@ -4,7 +4,9 @@
 namespace vkr::Render
 {
 	class PipelineState;
+	class TextureView;
 	class RenderTaskEvent;
+	class RenderTargetView;
 }
 
 struct ImDrawList;
@@ -20,12 +22,16 @@ namespace vkr::Editor
 
 		void Render();
 
+		void SetOutputTarget(const Ref<Render::RenderTargetView>& target);
+
 	private:
 		void RenderTask(const uint32_t renderDataIndex);
 
 	private:
 		Ref<Render::PipelineState> m_SdrShader;
 		Ref<Render::PipelineState> m_HdrShader;
+		Ref<Render::TextureView> m_FontTexture;
+		Ref<Render::RenderTargetView> m_RenderTarget;
 
 		struct ImGuiVertex
 		{

@@ -10,6 +10,11 @@ namespace vkr::Render
 
 	Window::Window(const char* name, const Vector2u& size, int32_t showCmd)
 	{
+		SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
+		RECT rc = { 0, 0, size.x, size.y };
+		AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
+		Vector2u actualSize = { rc.right - rc.left, rc.bottom - rc.top };
 
 		WNDCLASSEX WndClsEx = {};
 		WndClsEx.cbSize = sizeof(WNDCLASSEX);
@@ -21,7 +26,7 @@ namespace vkr::Render
 		WndClsEx.hIconSm = LoadIcon(nullptr, IDI_APPLICATION);
 		RegisterClassEx(&WndClsEx);
 
-		m_NativeHandle = CreateWindow(g_WindowClassName, name, WS_OVERLAPPEDWINDOW, 100, 100, size.x, size.y, nullptr, nullptr, nullptr, this);
+		m_NativeHandle = CreateWindow(g_WindowClassName, name, WS_OVERLAPPEDWINDOW, 100, 100, actualSize.x, actualSize.y, nullptr, nullptr, nullptr, this);
 
 		RAWINPUTDEVICE rid = {};
 		rid.usUsagePage = 0x01; // Generic desktop controls
@@ -31,7 +36,7 @@ namespace vkr::Render
 
 		RegisterRawInputDevices(&rid, 1, sizeof(rid));
 
-		ShowCursor(false);
+		//ShowCursor(false);
 
 		ShowWindow((HWND)m_NativeHandle, showCmd);
 		UpdateWindow((HWND)m_NativeHandle);
@@ -45,6 +50,24 @@ namespace vkr::Render
 	void* Window::GetNativeHandle() const
 	{
 		return m_NativeHandle;
+	}
+
+	const Vector2u Window::GetSize() const
+	{
+		RECT clientRect;
+		GetClientRect((HWND)m_NativeHandle, &clientRect);
+		int width = clientRect.right - clientRect.left;
+		int height = clientRect.bottom - clientRect.top;
+		return Vector2u(width, height);
+	}
+
+	const Vector2f Window::GetDpiScale() const
+	{
+		const uint32_t dpi = GetDpiForWindow((HWND)m_NativeHandle);
+		Vector2f dpiScale;
+		dpiScale.x = dpi / 96.0f;
+		dpiScale.y = dpi / 96.0f;
+		return dpiScale;
 	}
 
 	bool Window::PeekMessages()
@@ -76,11 +99,9 @@ namespace vkr::Render
 		{
 		case WM_DESTROY:
 			PostQuitMessage(0);
-			break;
-		default:
-			return DefWindowProc(hwnd, Msg, wParam, lParam);
+			return 0;
 		}
-		return 0;
+		return DefWindowProc(hwnd, Msg, wParam, lParam);
 	}
 
 	LRESULT CALLBACK WndProc(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)

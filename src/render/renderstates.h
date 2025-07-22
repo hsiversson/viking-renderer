@@ -33,6 +33,7 @@ namespace vkr::Render
 	struct VertexLayout
 	{
 		uint32_t GetStride() const;
+		void InsertAttribute(VertexAttribute::Type type, Format format, uint32_t index = 0, uint32_t bufferSlot = 0);
 		std::set<VertexAttribute> m_Attributes;
 
 		bool operator==(const VertexLayout& other) const = default;

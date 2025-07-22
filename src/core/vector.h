@@ -15,27 +15,36 @@ namespace vkr
 				static_cast<U>(y)
 			);
 		}
+
+		bool operator==(const Vector2& other) const { return x == other.x && y == other.y; }
+		bool operator!=(const Vector2& other) const { return !(*this == other); }
 	};
 	using Vector2f = Vector2<float>;
 	using Vector2i = Vector2<int32_t>;
 	using Vector2u = Vector2<uint32_t>;
 
 	template<typename T>
-	Vector2<T> operator-(Vector2<T> v, float scalar)
+	Vector2<T> operator-(const Vector2<T>& v, float scalar)
 	{
 		return { v.x - scalar, v.y - scalar };
 	}
 
 	template<typename T>
-	Vector2<T> operator*(Vector2<T> v, float scalar)
+	Vector2<T> operator*(const Vector2<T>& v, float scalar)
 	{
 		return { v.x * scalar, v.y * scalar };
 	}
 
 	template<typename T>
-	Vector2<T> operator/(Vector2<T> v, Vector2<T> w)
+	Vector2<T> operator*(const Vector2<T>& v0, const Vector2<T>& v1)
 	{
-		return { v.x / w.x, v.y / w.y };
+		return { v0.x * v1.x, v0.y * v1.y };
+	}
+
+	template<typename T>
+	Vector2<T> operator/(const Vector2<T>& v0, const Vector2<T>& v1)
+	{
+		return { v0.x / v1.x, v0.y / v1.y };
 	}
 
 	template<typename T>

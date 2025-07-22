@@ -131,14 +131,28 @@ namespace vkr::Render
 		m_StateUpdate = true;
 	}
 
-	void Context::BindRootConstantBuffers(Ref<Buffer>* buffers, size_t bufferCount, uint64_t* offsets)
+	void Context::BindRootConstantBuffers(Ref<Buffer>* buffers, size_t numBuffers, uint64_t* offsets)
 	{
-		NewState.m_RootCB = std::vector<Ref<Buffer>>(buffers, buffers+bufferCount);
-		NewState.m_RootCBOffsets.clear();
-		if (offsets)
+		for (uint32_t i = 0; i < numBuffers; ++i)
 		{
-			NewState.m_RootCBOffsets = std::vector<uint64_t>(offsets, offsets + bufferCount);
+			NewState.m_RootCB[i] = buffers[i];
+			if (offsets)
+			{
+				NewState.m_RootCBOffsets[i] = offsets[i];
+			}
+			else
+			{
+				NewState.m_RootCBOffsets[i] = 0;
+			}
 		}
+		m_StateUpdate = true;
+	}
+
+	void Context::BindRootConstantBuffer(uint32_t byteSize, const void* data, uint32_t slot)
+	{
+		TempBuffer buf = GetDevice()->GetTempBuffer(TEMP_BUFFER_USAGE_CONSTANTS, byteSize, byteSize, data);
+		NewState.m_RootCB[slot] = buf.m_Buffer;
+		NewState.m_RootCBOffsets[slot] = buf.m_Offset;
 		m_StateUpdate = true;
 	}
 
@@ -290,27 +304,35 @@ namespace vkr::Render
 				}
 			}
 
-			if (CurrentState.m_VertexBuffers != NewState.m_VertexBuffers || CurrentState.m_VertexBufferOffsets != NewState.m_VertexBufferOffsets)
+			if (CurrentState.m_VertexBuffers != NewState.m_VertexBuffers || CurrentState.m_VertexBufferOffsets != NewState.m_VertexBufferOffsets || CurrentState.m_VertexBufferStrides != NewState.m_VertexBufferStrides)
 			{
 				std::vector<D3D12_VERTEX_BUFFER_VIEW> bufferViews;
 				for (uint32_t i = 0; i < NewState.m_VertexBuffers.size(); ++i)
 				{
 					const Ref<Buffer>& buffer = NewState.m_VertexBuffers[i];
 					const uint64_t offset = NewState.m_VertexBufferOffsets.empty() ? 0 : NewState.m_VertexBufferOffsets[i];
+					const uint64_t size = NewState.m_VertexBufferSizes.empty() ? (buffer->GetDesc().m_ElementSize * buffer->GetDesc().m_ElementCount) : NewState.m_VertexBufferSizes[i];
+					const uint32_t stride = NewState.m_VertexBufferStrides.empty() ? buffer->GetDesc().m_ElementSize : NewState.m_VertexBufferStrides[i];
+
 					D3D12_VERTEX_BUFFER_VIEW view;
 					view.BufferLocation = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
-					view.SizeInBytes = buffer->GetDesc().m_ElementCount * buffer->GetDesc().m_ElementSize;
-					view.StrideInBytes = buffer->GetDesc().m_ElementSize;
+					view.SizeInBytes = size;
+					view.StrideInBytes = stride;
 					bufferViews.push_back(view);
 				}
 				m_CurrentD3DCommandList->IASetVertexBuffers(0, bufferViews.size(), bufferViews.data());
 			}
-			if (CurrentState.m_IndexBuffer != NewState.m_IndexBuffer || CurrentState.m_IndexBufferOffset != NewState.m_IndexBufferOffset)
+			if (CurrentState.m_IndexBuffer != NewState.m_IndexBuffer || CurrentState.m_IndexBufferOffset != NewState.m_IndexBufferOffset || CurrentState.m_IndexBufferFormat != NewState.m_IndexBufferFormat)
 			{
+				const Ref<Buffer>& buffer = NewState.m_IndexBuffer;
+				const uint64_t offset = NewState.m_IndexBufferOffset;
+				const uint64_t size = NewState.m_IndexBufferSize == 0 ? (buffer->GetDesc().m_ElementSize * buffer->GetDesc().m_ElementCount) : NewState.m_IndexBufferSize;
+				const Format format = NewState.m_IndexBufferFormat != FORMAT_UNKNOWN ? NewState.m_IndexBufferFormat : buffer->GetDesc().m_Format;
+
 				D3D12_INDEX_BUFFER_VIEW view;
-				view.BufferLocation = NewState.m_IndexBuffer->GetD3DResource()->GetGPUVirtualAddress() + NewState.m_IndexBufferOffset;
-				view.SizeInBytes = NewState.m_IndexBuffer->GetDesc().m_ElementSize * NewState.m_IndexBuffer->GetDesc().m_ElementCount;
-				view.Format = D3DConvertFormat(NewState.m_IndexBuffer->GetDesc().m_Format);
+				view.BufferLocation = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
+				view.SizeInBytes = size;
+				view.Format = D3DConvertFormat(format);
 				m_CurrentD3DCommandList->IASetIndexBuffer(&view);
 			}
 			if (CurrentState.m_Topology != NewState.m_Topology)
@@ -322,14 +344,12 @@ namespace vkr::Render
 			{
 				auto buffer = NewState.m_RootCB[i];
 				auto offset = NewState.m_RootCBOffsets[i];
-				if ((CurrentState.m_RootCB.size() <= i) || (CurrentState.m_RootCB[i] != buffer) || (CurrentState.m_RootCBOffsets[i] != offset))
+				if ((CurrentState.m_RootCB[i] != buffer) || (CurrentState.m_RootCBOffsets[i] != offset))
 				{
-					bool bIsCompute = NewState.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE;
-					D3D12_GPU_VIRTUAL_ADDRESS addr = buffer->GetD3DResource()->GetGPUVirtualAddress();
-					if (!NewState.m_RootCBOffsets.empty())
-						addr += NewState.m_RootCBOffsets[i];
+					D3D12_GPU_VIRTUAL_ADDRESS addr = buffer->GetD3DResource()->GetGPUVirtualAddress() + NewState.m_RootCBOffsets[i];
+
 					//Aditional buffer bound or different buffer bound at a previously bound slot
-					if (bIsCompute)
+					if (NewState.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE)
 						m_CurrentD3DCommandList->SetComputeRootConstantBufferView(i, addr);
 					else
 						m_CurrentD3DCommandList->SetGraphicsRootConstantBufferView(i, addr);
@@ -510,21 +530,33 @@ namespace vkr::Render
 		}
 	}
 
-	void Context::BindVertexBuffers(Ref<Buffer>* buffers, size_t numVertexBuffers, uint64_t* offsets)
+	void Context::BindVertexBuffers(Ref<Buffer>* buffers, size_t numVertexBuffers, const uint64_t* offsets, const uint32_t* sizes, const uint32_t* strides)
 	{
 		NewState.m_VertexBuffers = std::vector<Ref<Buffer>>(buffers, buffers + numVertexBuffers);
 		NewState.m_VertexBufferOffsets.clear();
+		NewState.m_VertexBufferSizes.clear();
+		NewState.m_VertexBufferStrides.clear();
 		if (offsets)
 		{
 			NewState.m_VertexBufferOffsets = std::vector<uint64_t>(offsets, offsets + numVertexBuffers);
 		}
+		if (sizes)
+		{
+			NewState.m_VertexBufferSizes = std::vector<uint32_t>(sizes, sizes + numVertexBuffers);
+		}
+		if (strides)
+		{
+			NewState.m_VertexBufferStrides = std::vector<uint32_t>(strides, strides + numVertexBuffers);
+		}
 		m_StateUpdate = true;
 	}
 
-	void Context::BindIndexBuffer(Ref<Buffer> indexBuffer, uint64_t offset)
+	void Context::BindIndexBuffer(Ref<Buffer> indexBuffer, const uint64_t offset, const uint32_t size, const Format format)
 	{
-		NewState.m_IndexBufferOffset = offset;
 		NewState.m_IndexBuffer = indexBuffer;
+		NewState.m_IndexBufferOffset = offset;
+		NewState.m_IndexBufferSize = size;
+		NewState.m_IndexBufferFormat = format;
 		m_StateUpdate = true;
 	}
 

@@ -36,11 +36,11 @@ namespace vkr
 				if (mouse.usButtonFlags & RI_MOUSE_WHEEL) 
 				{
 					// Positive = scroll up, negative = scroll down
-					SHORT wheelDelta = (SHORT)mouse.usButtonData;
-					m_CurrentState.m_WheelDelta += wheelDelta;
+					int16_t wheelDelta = static_cast<int16_t>(mouse.usButtonData);
+					m_CurrentState.m_WheelDelta += static_cast<float>(wheelDelta / INT16_MAX);
 				}
 
-				// 🎯 For gaming mice with more buttons:
+				// For gaming mice with more buttons:
 				if (mouse.ulRawButtons != 0)
 				{
 					// Bitmask of all buttons pressed — beyond 5
@@ -50,8 +50,8 @@ namespace vkr
 				// Raw movement (not screen coords):
 				LONG dx = mouse.lLastX;
 				LONG dy = mouse.lLastY;
-				m_CurrentState.m_MouseDeltaX += dx;
-				m_CurrentState.m_MouseDeltaY += dy;
+				m_CurrentState.m_MouseDelta.x += dx;
+				m_CurrentState.m_MouseDelta.y += dy;
 			}
 		}
 		break;
@@ -109,14 +109,21 @@ namespace vkr
 			}
 		}
 		break;
+		case WM_MOUSEMOVE:
+		{
+			uint32_t x = static_cast<uint32_t>(LOWORD(lParam));
+			uint32_t y = static_cast<uint32_t>(HIWORD(lParam));
+			m_CurrentState.m_MousePosition.x = x;
+			m_CurrentState.m_MousePosition.y = y;
+		}
+		break;
 		}
 	}
 
 	void InputManager::EndFrame()
 	{
 		//Reset deltas
-		m_CurrentState.m_MouseDeltaX = 0;
-		m_CurrentState.m_MouseDeltaY = 0;
+		m_CurrentState.m_MouseDelta = Vector2i(0);
 		m_CurrentState.m_WheelDelta = 0;
 	}
 

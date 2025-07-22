@@ -36,6 +36,11 @@ namespace vkr::Render
 		return stride;
 	}
 
+	void VertexLayout::InsertAttribute(VertexAttribute::Type type, Format format, uint32_t index, uint32_t bufferSlot)
+	{
+		m_Attributes.insert(VertexAttribute{ type, index, bufferSlot, format });
+	}
+
 	void GetDefaultRasterizerState(RasterizerState& outRasterizerState)
 	{
 		outRasterizerState.m_CullMode = FACE_CULL_MODE_BACK;

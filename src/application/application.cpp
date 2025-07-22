@@ -16,6 +16,10 @@
 
 #include "graphics/modelloader_gltf.h"
 
+// TEMP
+#include "editor/editor.h"
+// TEMP
+
 namespace vkr
 {
 
@@ -79,6 +83,12 @@ namespace vkr
 
 	ReturnCode Application::MainLoop()
 	{
+		// TEMP
+		Editor::Manager editor;
+		if (!editor.Init(m_InputManager.get(), m_Window))
+			return RETURN_ERROR;
+		// TEMP
+
 		MovingAverage<uint32_t, 64> m_FpsMovingAverage;
 		bool running = true;
 		while (running)
@@ -88,12 +98,22 @@ namespace vkr
 				running = false;
 			}
 
+			const Vector2u newWindowSize = m_Window->GetSize();
+			if (newWindowSize != m_WindowSize)
+			{
+				m_WindowSize = newWindowSize;
+				m_SwapChain->Resize(m_WindowSize);
+			}
+
+
 			// TODO: Apply changes coming from window messages
 			// TODO: Apply changes going to window
 
 			m_ElapsedTimer.Tick();
 			m_FpsMovingAverage.Add(static_cast<uint32_t>(std::roundf(1.0f / m_ElapsedTimer.DeltaTime())));
 			//VKR_LOG("FPS: {}", m_FpsMovingAverage.GetAverage());
+
+			editor.Update();
 
 			// App tick
 			Tick(m_ElapsedTimer.DeltaTime());
@@ -104,8 +124,15 @@ namespace vkr
 
 			{
 				Render::QueueGraphicsTask(std::bind(&Render::Device::BeginFrame, m_RenderDevice.get()));
-				Render::QueueGraphicsTask([this]() { m_View->SetOutputTarget(m_SwapChain->GetOutputRenderTarget()); });
+				Render::QueueGraphicsTask([this, &editor]() 
+					{ 
+						m_View->SetOutputTarget(m_SwapChain->GetOutputRenderTarget()); 
+						editor.SetOutputTarget(m_SwapChain->GetOutputRenderTarget());
+					});
 				m_ViewRenderer->RenderView(*m_View);
+
+				editor.Draw();
+
 				Render::QueueGraphicsTask(std::bind(&Render::SwapChain::Present, m_SwapChain.get()));
 				Render::QueueGraphicsTask(std::bind(&Render::Device::EndFrame, m_RenderDevice.get()));
 			}
