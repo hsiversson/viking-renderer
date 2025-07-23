@@ -85,7 +85,7 @@ namespace vkr::Render
 
 	void SwapChain::Present()
 	{
-		m_SwapChain->Present(0, 0);
+		m_SwapChain->Present(1, 0);
 		m_BackBuffers[m_CurrentBackBufferIndex].m_LastFrameEvent = m_CommandQueue->Signal();
 		m_CurrentBackBufferIndex = m_SwapChain4->GetCurrentBackBufferIndex();
 

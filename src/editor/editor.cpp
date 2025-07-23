@@ -56,6 +56,8 @@ namespace vkr::Editor
 		io.DisplaySize = ImVec2(windowSize.x, windowSize.y);
 		io.DeltaTime = ElapsedTimer::DeltaTime();
 
+		m_FpsMovingAverage.Add(static_cast<uint32_t>(std::roundf(1.0f / ElapsedTimer::DeltaTime())));
+
 		const Vector2f& windowDpi = m_Window->GetDpiScale();
 		io.DisplayFramebufferScale = ImVec2(windowDpi.x, windowDpi.y);
 
@@ -75,7 +77,7 @@ namespace vkr::Editor
 		ImGui::Begin("Debug Window");
 		ImGui::Text("Delta time: %.6f", ElapsedTimer::DeltaTime());
 		ImGui::Text("Elapsed time: %.3f", ElapsedTimer::ElapsedTime());
-		ImGui::Text("FPS: %.1f", 1.0f / ElapsedTimer::DeltaTime());
+		ImGui::Text("FPS: %i", m_FpsMovingAverage.GetAverage());
 		ImGui::End();
 	}
 

@@ -89,7 +89,6 @@ namespace vkr
 			return RETURN_ERROR;
 		// TEMP
 
-		MovingAverage<uint32_t, 64> m_FpsMovingAverage;
 		bool running = true;
 		while (running)
 		{
@@ -102,7 +101,6 @@ namespace vkr
 			// TODO: Apply changes going to window
 
 			m_ElapsedTimer.Tick();
-			m_FpsMovingAverage.Add(static_cast<uint32_t>(std::roundf(1.0f / m_ElapsedTimer.DeltaTime())));
 			//VKR_LOG("FPS: {}", m_FpsMovingAverage.GetAverage());
 
 			editor.Update();

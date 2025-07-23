@@ -34,6 +34,8 @@ namespace vkr::Editor
 		UniquePtr<Renderer> m_Renderer;
 		Ref<Render::Window> m_Window;
 		InputManager* m_InputManager;
+
+		MovingAverage<uint32_t, 64> m_FpsMovingAverage;
 	};
 }
 #endif //ENABLE_EDITOR
