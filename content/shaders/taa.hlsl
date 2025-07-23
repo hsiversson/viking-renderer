@@ -28,10 +28,24 @@ void ResolveCS(uint3 dispatchThreadID:SV_DispatchThreadID)
     
     const float3 sceneColor = SceneTexture[dispatchThreadID.xy].rgb;
     float3 historyColor = HistoryTexture.Sample(g_SamplerBilinearClamp, prevPixelPos).rgb;
+    //Neighborhood clamping. TODO: Maybe optimize precaching the tile of scenecolors for the threadgroup
+    float3 neighborhoodMin = 100000;
+    float3 neighborhoodMax = -100000;
+    for (int x = -1; x <= 1; ++x)
+    {
+        for (int y = -1; y <= 1; ++y)
+        {
+            float3 color = SceneTexture[dispatchThreadID.xy + uint2(x, y)].rgb;
+            neighborhoodMin = min(neighborhoodMin, color);
+            neighborhoodMax = max(neighborhoodMax, color);
+
+        }
+    }
+    float3 historyColorClamped = clamp(historyColor, neighborhoodMin, neighborhoodMax);
     
     const float modulationFactor = 0.9f;
     
-    float3 finalColor = lerp(sceneColor, historyColor, modulationFactor);
+    float3 finalColor = lerp(sceneColor, historyColorClamped, modulationFactor);
     
     ResolveTexture[dispatchThreadID.xy] = float4(finalColor, 1.0f);
 }
