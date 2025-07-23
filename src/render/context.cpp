@@ -62,7 +62,7 @@ namespace vkr::Render
 		m_CurrentD3DCommandList7 = nullptr;
 		m_CurrentD3DCommandList = nullptr;
 		m_CommandList = nullptr;
-		CurrentState = {};
+		m_StateCache.Clear();
 		g_CurrentContext = nullptr;
 	}
 
@@ -105,16 +105,16 @@ namespace vkr::Render
 		++m_NumRecordedCommands;
 	}
 
-	void Context::DispatchThreads(Ref<PipelineState> pipelineState, const Vector3u& threads)
+	void Context::DispatchThreads(PipelineState* pipelineState, const Vector3u& threads)
 	{
-		BindPSO(pipelineState);
+		BindPipelineState(pipelineState);
 		DispatchThreads(threads);
 	}
 
 	void Context::DispatchThreads(const Vector3u& threads)
 	{
-		assert(NewState.m_PipelineState);
-		const PipelineStateMetaData& metaData = NewState.m_PipelineState->GetMetaData();
+		assert(m_StateCache.m_PipelineState);
+		const PipelineStateMetaData& metaData = m_StateCache.m_PipelineState->GetMetaData();
 		assert(metaData.m_Type == PIPELINE_STATE_TYPE_COMPUTE);
 
 		Vector3u threadGroups;
@@ -124,36 +124,43 @@ namespace vkr::Render
 		Dispatch(threadGroups);
 	}
 
-	void Context::BindPSO(Ref<PipelineState> pipelineState)
+	void Context::BindPipelineState(PipelineState* pipelineState)
 	{
-		NewState.m_PipelineState = pipelineState;
-		NewState.m_RootSignature = pipelineState->GetRootSignature().get();
-		m_StateUpdate = true;
+		m_StateCache.m_PipelineState = pipelineState;
+		m_StateCache.m_PipelineStateDirty = true;
+
+		RootSignature* rootSignature = pipelineState->GetRootSignature().get();
+		if (m_StateCache.m_RootSignature != rootSignature)
+		{
+			// when root signature changes, perform a full cache flush?
+			m_StateCache.m_RootSignature = rootSignature;
+			m_StateCache.m_RootSignatureDirty = true;
+		}
 	}
 
-	void Context::BindRootConstantBuffers(Ref<Buffer>* buffers, size_t numBuffers, uint64_t* offsets)
+	void Context::BindRootConstantBuffers(Buffer** buffers, uint32_t numBuffers, uint64_t* offsets)
 	{
 		for (uint32_t i = 0; i < numBuffers; ++i)
 		{
-			NewState.m_RootCB[i] = buffers[i];
+			m_StateCache.m_RootConstantBuffers[i] = buffers[i];
 			if (offsets)
 			{
-				NewState.m_RootCBOffsets[i] = offsets[i];
+				m_StateCache.m_RootConstantBufferOffsets[i] = offsets[i];
 			}
 			else
 			{
-				NewState.m_RootCBOffsets[i] = 0;
+				m_StateCache.m_RootConstantBufferOffsets[i] = 0;
 			}
+			m_StateCache.m_RootConstantsDirty[i] = true;
 		}
-		m_StateUpdate = true;
 	}
 
 	void Context::BindRootConstantBuffer(uint32_t byteSize, const void* data, uint32_t slot)
 	{
 		TempBuffer buf = GetDevice()->GetTempBuffer(TEMP_BUFFER_USAGE_CONSTANTS, byteSize, byteSize, data);
-		NewState.m_RootCB[slot] = buf.m_Buffer;
-		NewState.m_RootCBOffsets[slot] = buf.m_Offset;
-		m_StateUpdate = true;
+		m_StateCache.m_RootConstantBuffers[slot] = buf.m_Buffer.get();
+		m_StateCache.m_RootConstantBufferOffsets[slot] = buf.m_Offset;
+		m_StateCache.m_RootConstantsDirty[slot] = true;
 	}
 
 	void Context::TextureBarrier(uint32_t numBarriers, const TextureBarrierDesc* barrierDescs)
@@ -279,112 +286,133 @@ namespace vkr::Render
 
 	void Context::UpdateState()
 	{
-		if (m_StateUpdate)
+		if (m_StateCache.m_PipelineStateDirty)
 		{
-			if (CurrentState.m_PipelineState != NewState.m_PipelineState)
+			m_CurrentD3DCommandList->SetPipelineState(m_StateCache.m_PipelineState->GetD3DPipelineState());
+			m_StateCache.m_PipelineStateDirty = false;
+		}
+
+		if (m_StateCache.m_RootSignatureDirty)
+		{
+			ID3D12DescriptorHeap* descriptorHeaps[2] =
 			{
-				m_CurrentD3DCommandList->SetPipelineState(NewState.m_PipelineState->GetD3DPipelineState());
+				GetDevice()->GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SHADER_RESOURCE)->GetD3DDescriptorHeap(),
+				GetDevice()->GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SAMPLER)->GetD3DDescriptorHeap()
+			};
+			m_CurrentD3DCommandList->SetDescriptorHeaps(2, descriptorHeaps);
+
+			if (m_StateCache.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE)
+			{
+				m_CurrentD3DCommandList->SetComputeRootSignature(m_StateCache.m_RootSignature->GetD3DRootSignature());
 			}
-			if (CurrentState.m_RootSignature != NewState.m_RootSignature)
+			else if (m_StateCache.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_DEFAULT)
 			{
-				ID3D12DescriptorHeap* descriptorHeaps[2] = 
-				{ 
-					GetDevice()->GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SHADER_RESOURCE)->GetD3DDescriptorHeap(),
-					GetDevice()->GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SAMPLER)->GetD3DDescriptorHeap()
-				};
-				m_CurrentD3DCommandList->SetDescriptorHeaps(2, descriptorHeaps);
-
-				if (NewState.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE)
-				{
-					m_CurrentD3DCommandList->SetComputeRootSignature(NewState.m_RootSignature->GetD3DRootSignature());
-				}
-				else if (NewState.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_DEFAULT)
-				{
-					m_CurrentD3DCommandList->SetGraphicsRootSignature(NewState.m_RootSignature->GetD3DRootSignature());
-				}
+				m_CurrentD3DCommandList->SetGraphicsRootSignature(m_StateCache.m_RootSignature->GetD3DRootSignature());
 			}
 
-			if (CurrentState.m_VertexBuffers != NewState.m_VertexBuffers || CurrentState.m_VertexBufferOffsets != NewState.m_VertexBufferOffsets || CurrentState.m_VertexBufferStrides != NewState.m_VertexBufferStrides)
-			{
-				std::vector<D3D12_VERTEX_BUFFER_VIEW> bufferViews;
-				for (uint32_t i = 0; i < NewState.m_VertexBuffers.size(); ++i)
-				{
-					const Ref<Buffer>& buffer = NewState.m_VertexBuffers[i];
-					const uint64_t offset = NewState.m_VertexBufferOffsets.empty() ? 0 : NewState.m_VertexBufferOffsets[i];
-					const uint64_t size = NewState.m_VertexBufferSizes.empty() ? (buffer->GetDesc().m_ElementSize * buffer->GetDesc().m_ElementCount) : NewState.m_VertexBufferSizes[i];
-					const uint32_t stride = NewState.m_VertexBufferStrides.empty() ? buffer->GetDesc().m_ElementSize : NewState.m_VertexBufferStrides[i];
+			m_StateCache.m_RootSignatureDirty = false;
+		}
 
-					D3D12_VERTEX_BUFFER_VIEW view;
-					view.BufferLocation = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
-					view.SizeInBytes = size;
-					view.StrideInBytes = stride;
-					bufferViews.push_back(view);
-				}
-				m_CurrentD3DCommandList->IASetVertexBuffers(0, bufferViews.size(), bufferViews.data());
-			}
-			if (CurrentState.m_IndexBuffer != NewState.m_IndexBuffer || CurrentState.m_IndexBufferOffset != NewState.m_IndexBufferOffset || CurrentState.m_IndexBufferFormat != NewState.m_IndexBufferFormat)
+		if (m_StateCache.m_VertexBuffersDirty)
+		{
+			std::vector<D3D12_VERTEX_BUFFER_VIEW> bufferViews;
+			for (uint32_t i = 0; i < m_StateCache.m_VertexBuffers.size(); ++i)
 			{
-				const Ref<Buffer>& buffer = NewState.m_IndexBuffer;
-				const uint64_t offset = NewState.m_IndexBufferOffset;
-				const uint64_t size = NewState.m_IndexBufferSize == 0 ? (buffer->GetDesc().m_ElementSize * buffer->GetDesc().m_ElementCount) : NewState.m_IndexBufferSize;
-				const Format format = NewState.m_IndexBufferFormat != FORMAT_UNKNOWN ? NewState.m_IndexBufferFormat : buffer->GetDesc().m_Format;
+				const Buffer* buffer = m_StateCache.m_VertexBuffers[i];
+				const uint64_t offset = m_StateCache.m_VertexBufferOffsets.empty() ? 0 : m_StateCache.m_VertexBufferOffsets[i];
+				const uint64_t size = m_StateCache.m_VertexBufferSizes.empty() ? (buffer->GetDesc().m_ElementSize * buffer->GetDesc().m_ElementCount) : m_StateCache.m_VertexBufferSizes[i];
+				const uint32_t stride = m_StateCache.m_VertexBufferStrides.empty() ? buffer->GetDesc().m_ElementSize : m_StateCache.m_VertexBufferStrides[i];
 
-				D3D12_INDEX_BUFFER_VIEW view;
+				D3D12_VERTEX_BUFFER_VIEW view;
 				view.BufferLocation = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
 				view.SizeInBytes = size;
-				view.Format = D3DConvertFormat(format);
-				m_CurrentD3DCommandList->IASetIndexBuffer(&view);
+				view.StrideInBytes = stride;
+				bufferViews.push_back(view);
 			}
-			if (CurrentState.m_Topology != NewState.m_Topology)
-			{
-				m_CurrentD3DCommandList->IASetPrimitiveTopology(D3DConvertPrimitiveTopology(NewState.m_Topology));
-			}
+			m_CurrentD3DCommandList->IASetVertexBuffers(0, bufferViews.size(), bufferViews.data());
+			m_StateCache.m_VertexBuffersDirty = false;
+		}
 
-			for (int i = 0; i < NewState.m_RootCB.size(); i++)
+		if (m_StateCache.m_IndexBufferDirty)
+		{
+			const Buffer* buffer = m_StateCache.m_IndexBuffer;
+			const uint64_t offset = m_StateCache.m_IndexBufferOffset;
+			const uint64_t size = m_StateCache.m_IndexBufferSize == 0 ? (buffer->GetDesc().m_ElementSize * buffer->GetDesc().m_ElementCount) : m_StateCache.m_IndexBufferSize;
+			const Format format = m_StateCache.m_IndexBufferFormat != FORMAT_UNKNOWN ? m_StateCache.m_IndexBufferFormat : buffer->GetDesc().m_Format;
+
+			D3D12_INDEX_BUFFER_VIEW view;
+			view.BufferLocation = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
+			view.SizeInBytes = size;
+			view.Format = D3DConvertFormat(format);
+			m_CurrentD3DCommandList->IASetIndexBuffer(&view);
+			m_StateCache.m_IndexBufferDirty = false;
+		}
+
+		if (m_StateCache.m_TopologyDirty)
+		{
+			m_CurrentD3DCommandList->IASetPrimitiveTopology(D3DConvertPrimitiveTopology(m_StateCache.m_Topology));
+			m_StateCache.m_TopologyDirty = false;
+		}
+
+		for (int i = 0; i < m_StateCache.m_RootConstantBuffers.size(); i++)
+		{
+			if (m_StateCache.m_RootConstantsDirty[i])
 			{
-				auto buffer = NewState.m_RootCB[i];
-				auto offset = NewState.m_RootCBOffsets[i];
-				if ((CurrentState.m_RootCB[i] != buffer) || (CurrentState.m_RootCBOffsets[i] != offset))
+				const Buffer* buffer = m_StateCache.m_RootConstantBuffers[i];
+				const uint64_t offset = m_StateCache.m_RootConstantBufferOffsets[i];
+				const D3D12_GPU_VIRTUAL_ADDRESS addr = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
+
+				//Aditional buffer bound or different buffer bound at a previously bound slot
+				if (m_StateCache.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE)
 				{
-					D3D12_GPU_VIRTUAL_ADDRESS addr = buffer->GetD3DResource()->GetGPUVirtualAddress() + NewState.m_RootCBOffsets[i];
+					m_CurrentD3DCommandList->SetComputeRootConstantBufferView(i, addr);
+				}
+				else
+				{
+					m_CurrentD3DCommandList->SetGraphicsRootConstantBufferView(i, addr);
+				}
 
-					//Aditional buffer bound or different buffer bound at a previously bound slot
-					if (NewState.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE)
-						m_CurrentD3DCommandList->SetComputeRootConstantBufferView(i, addr);
-					else
-						m_CurrentD3DCommandList->SetGraphicsRootConstantBufferView(i, addr);
+				m_StateCache.m_RootConstantsDirty[i] = false;
+			}
+		}
+
+		if (m_StateCache.m_RenderTargetsDirty)
+		{
+			std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvs;
+			rtvs.reserve(MAX_NUM_RENDER_TARGETS);
+			for (const RenderTargetView* rtv : m_StateCache.m_RenderTargets)
+			{
+				if (rtv)
+				{
+					rtvs.push_back(rtv->GetHandle());
 				}
 			}
 
-			if (m_RenderTargetUpdate)
-			{
-				//Assemble final list of render targets removing null ones
-				std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> FinalRT;
-				for (auto Descriptor : NewState.m_RenderTargets)
-				{
-					FinalRT.push_back(Descriptor->GetHandle());
-				}
-				
-				m_CurrentD3DCommandList->OMSetRenderTargets(FinalRT.size(),FinalRT.size() ? FinalRT.data() : nullptr, false, &NewState.m_DepthStencil->GetHandle());
-				m_RenderTargetUpdate = false;
-			}
-			
-			CurrentState = NewState;
-			m_StateUpdate = false;
+			const D3D12_CPU_DESCRIPTOR_HANDLE* rtvHandles = rtvs.size() ? rtvs.data() : nullptr;
+			const D3D12_CPU_DESCRIPTOR_HANDLE* dsvHandle = m_StateCache.m_DepthStencil ? &m_StateCache.m_DepthStencil->GetHandle() : nullptr;
+
+			m_CurrentD3DCommandList->OMSetRenderTargets(rtvs.size(), rtvHandles, false, dsvHandle);
+
+			m_StateCache.m_RenderTargetsDirty = false;
 		}
 	}
 
-	void Context::ClearRenderTargets(Ref<RenderTargetView>* rtvs, size_t numRtvs)
+	void Context::ClearRenderTargets(uint32_t numRenderTargets, RenderTargetView** renderTargetViews, const Vector4f* clearValues)
 	{
-		const float clearColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		for (uint32_t i = 0; i < numRtvs; ++i)
+		static constexpr float DefaultClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		for (uint32_t i = 0; i < numRenderTargets; ++i)
 		{
-			m_CurrentD3DCommandList->ClearRenderTargetView(rtvs[i]->GetHandle(), clearColor, 0, nullptr);
+			m_CurrentD3DCommandList->ClearRenderTargetView(renderTargetViews[i]->GetHandle(), clearValues ? &clearValues[i].x : DefaultClearColor, 0, nullptr);
 			++m_NumRecordedCommands;
 		}
 	}
 
-	void Context::ClearDepthStencil(Ref<DepthStencilView> dsv, float clearValue)
+	void Context::ClearRenderTarget(RenderTargetView* renderTargetView, const Vector4f& clearValue)
+	{
+		ClearRenderTargets(1, &renderTargetView, &clearValue);
+	}
+
+	void Context::ClearDepthStencil(DepthStencilView* dsv, float clearValue)
 	{
 		m_CurrentD3DCommandList->ClearDepthStencilView(dsv->GetHandle(), D3D12_CLEAR_FLAG_DEPTH, clearValue, 0, 0, nullptr);
 		++m_NumRecordedCommands;
@@ -504,60 +532,98 @@ namespace vkr::Render
 		return m_CommandList.get();
 	}
 
+	const Fence& Context::GetLastFence() const
+	{
+		return m_LastFlushEvent;
+	}
+
 	Context* Context::GetCurrentContext()
 	{
 		return g_CurrentContext;
 	}
 
-	void Context::BindRenderTargets(Ref<RenderTargetView>* rtviews, size_t viewCount)
+	void Context::DrawState::Clear()
 	{
-		std::vector<Ref<RenderTargetView>> rtdescriptors(rtviews, rtviews + viewCount);
-		if (NewState.m_RenderTargets != rtdescriptors)
-		{
-			NewState.m_RenderTargets = rtdescriptors;
-			m_StateUpdate = true;
-			m_RenderTargetUpdate = true;
-		}
+		m_Topology = PRIMITIVE_TOPOLOGY_UNDEFINED;
+
+		m_VertexBuffers.clear();
+		m_VertexBufferOffsets.clear();
+		m_VertexBufferSizes.clear();
+		m_VertexBufferStrides.clear();
+
+		m_IndexBuffer = nullptr;
+		m_IndexBufferOffset = 0;
+		m_IndexBufferSize = 0;
+		m_IndexBufferFormat = FORMAT_UNKNOWN;
+
+		m_RootSignature = nullptr;
+		m_PipelineState = nullptr;
+
+		m_RootConstantBuffers.fill(nullptr);
+		m_RootConstantBufferOffsets.fill(0);
+
+		m_RenderTargets.fill(nullptr);
+		m_DepthStencil = nullptr;
+
+		m_RootSignatureDirty = false;
+		m_PipelineStateDirty = false;
+		m_RootConstantsDirty.fill(false);
+		m_VertexBuffersDirty = false;
+		m_IndexBufferDirty = false;
+		m_TopologyDirty = false;
+		m_RenderTargetsDirty = false;
 	}
 
-	void Context::BindDepthStencil(Ref<DepthStencilView> dsview)
+	void Context::BindRenderTargets(uint32_t numRenderTargets, RenderTargetView** renderTargetViews)
 	{
-		if (NewState.m_DepthStencil != dsview)
+		for (uint32_t i = 0; i < numRenderTargets; ++i)
 		{
-			NewState.m_DepthStencil = dsview;
-			m_StateUpdate = true;
-			m_RenderTargetUpdate = true;
+			m_StateCache.m_RenderTargets[i] = renderTargetViews[i];
 		}
+		m_StateCache.m_RenderTargetsDirty = true;
 	}
 
-	void Context::BindVertexBuffers(Ref<Buffer>* buffers, size_t numVertexBuffers, const uint64_t* offsets, const uint32_t* sizes, const uint32_t* strides)
+	void Context::BindDepthStencil(DepthStencilView* depthStencilView)
 	{
-		NewState.m_VertexBuffers = std::vector<Ref<Buffer>>(buffers, buffers + numVertexBuffers);
-		NewState.m_VertexBufferOffsets.clear();
-		NewState.m_VertexBufferSizes.clear();
-		NewState.m_VertexBufferStrides.clear();
+		m_StateCache.m_DepthStencil = depthStencilView;
+		m_StateCache.m_RenderTargetsDirty = true;
+	}
+
+	void Context::BindVertexBuffers(uint32_t numVertexBuffers, Buffer** buffers, const uint64_t* offsets, const uint32_t* sizes, const uint32_t* strides)
+	{
+		m_StateCache.m_VertexBuffers = std::vector<Buffer*>(buffers, buffers + numVertexBuffers);
+		m_StateCache.m_VertexBufferOffsets.clear();
+		m_StateCache.m_VertexBufferSizes.clear();
+		m_StateCache.m_VertexBufferStrides.clear();
 		if (offsets)
 		{
-			NewState.m_VertexBufferOffsets = std::vector<uint64_t>(offsets, offsets + numVertexBuffers);
+			m_StateCache.m_VertexBufferOffsets = std::vector<uint64_t>(offsets, offsets + numVertexBuffers);
 		}
 		if (sizes)
 		{
-			NewState.m_VertexBufferSizes = std::vector<uint32_t>(sizes, sizes + numVertexBuffers);
+			m_StateCache.m_VertexBufferSizes = std::vector<uint32_t>(sizes, sizes + numVertexBuffers);
 		}
 		if (strides)
 		{
-			NewState.m_VertexBufferStrides = std::vector<uint32_t>(strides, strides + numVertexBuffers);
+			m_StateCache.m_VertexBufferStrides = std::vector<uint32_t>(strides, strides + numVertexBuffers);
 		}
-		m_StateUpdate = true;
+		m_StateCache.m_VertexBuffersDirty = true;
 	}
 
-	void Context::BindIndexBuffer(Ref<Buffer> indexBuffer, const uint64_t offset, const uint32_t size, const Format format)
+	void Context::BindVertexBuffer(Buffer* vertexBuffer, const uint64_t offset, const uint32_t size, const uint32_t stride)
 	{
-		NewState.m_IndexBuffer = indexBuffer;
-		NewState.m_IndexBufferOffset = offset;
-		NewState.m_IndexBufferSize = size;
-		NewState.m_IndexBufferFormat = format;
-		m_StateUpdate = true;
+		const uint32_t actualSize = size ? size : vertexBuffer->GetDesc().ByteSize();
+		const uint32_t actualStride = stride ? stride : vertexBuffer->GetDesc().m_ElementSize;
+		BindVertexBuffers(1, &vertexBuffer, &offset, &actualSize, &actualStride);
+	}
+
+	void Context::BindIndexBuffer(Buffer* indexBuffer, const uint64_t offset, const uint32_t size, const Format format)
+	{
+		m_StateCache.m_IndexBuffer = indexBuffer;
+		m_StateCache.m_IndexBufferOffset = offset;
+		m_StateCache.m_IndexBufferSize = size;
+		m_StateCache.m_IndexBufferFormat = format;
+		m_StateCache.m_IndexBufferDirty = true;
 	}
 
 	void Context::Draw(uint32_t vertexCount, uint32_t startVertex)
@@ -586,11 +652,8 @@ namespace vkr::Render
 
 	void Context::SetPrimitiveTopology(PrimitiveTopology topologyType)
 	{
-		if (NewState.m_Topology != topologyType)
-		{
-			NewState.m_Topology = topologyType;
-			m_StateUpdate = true;
-		}
+		m_StateCache.m_Topology = topologyType;
+		m_StateCache.m_TopologyDirty = true;
 	}
 
 	void Context::SetViewport(uint32_t offsetX, uint32_t offsetY, uint32_t width, uint32_t height, float depthMin /*= 0.0f*/, float depthMax /*= 1.0f*/)

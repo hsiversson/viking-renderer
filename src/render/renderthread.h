@@ -9,9 +9,17 @@
 namespace vkr::Render
 {
 	using RenderTaskFn = std::function<void()>;
+
+	enum RenderTaskFlags
+	{
+		RENDER_TASK_FLAG_NONE			= 0,
+		RENDER_TASK_FLAG_WAITABLE_ONLY	= (1<<0),
+	};
+
 	struct RenderTask
 	{
 		RenderTaskFn m_Task;
+		RenderTaskFlags m_Flags;
 		Ref<RenderTaskEvent> m_Event;
 	};
 
@@ -23,7 +31,7 @@ namespace vkr::Render
 		void Start();
 		void Stop();
 
-		Ref<RenderTaskEvent> QueueTask(RenderTaskFn task);
+		Ref<RenderTaskEvent> QueueTask(RenderTaskFn task, RenderTaskFlags flags = RENDER_TASK_FLAG_NONE);
 
 	private:
 		void ThreadFunc();

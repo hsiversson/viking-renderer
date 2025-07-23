@@ -37,16 +37,16 @@ namespace vkr::Render
 
 		PendingResourceDestruction pending = {};
 		pending.m_Resource = resource;
-		pending.m_Task = QueueGraphicsTask([]() {});
+		pending.m_Task = QueueGraphicsTask([]() {}, RENDER_TASK_FLAG_WAITABLE_ONLY);
 
-		std::unique_lock<std::mutex> lock(m_PendingDeletesMutex);
+		std::unique_lock<std::recursive_mutex> lock(m_PendingDeletesMutex);
 		m_PendingDeletes.push(pending);
 		m_HasWorkEvent.Signal();
 	}
 
 	void RenderResourceDestructionQueue::Flush()
 	{
-		std::unique_lock<std::mutex> lock(m_PendingDeletesMutex);
+		std::unique_lock<std::recursive_mutex> lock(m_PendingDeletesMutex);
 		PendingResourceDestruction pending;
 		while (!m_PendingDeletes.empty())
 		{
@@ -72,7 +72,10 @@ namespace vkr::Render
 			while (!m_PendingDeletes.empty())
 			{
 				{
-					std::unique_lock<std::mutex> lock(m_PendingDeletesMutex);
+					std::unique_lock<std::recursive_mutex> lock(m_PendingDeletesMutex);
+					if (m_PendingDeletes.empty())
+						break;
+
 					pending = m_PendingDeletes.front();
 					if (pending.m_Task && pending.m_Task->IsPending())
 					{

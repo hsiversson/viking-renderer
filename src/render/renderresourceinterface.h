@@ -32,7 +32,7 @@ namespace vkr::Render
 			Ref<RenderTaskEvent> m_Task;
 		};
 
-		std::mutex m_PendingDeletesMutex;
+		std::recursive_mutex m_PendingDeletesMutex;
 		std::queue<PendingResourceDestruction> m_PendingDeletes;
 		Event m_HasWorkEvent;
 

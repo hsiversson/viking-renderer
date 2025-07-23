@@ -131,16 +131,20 @@ namespace vkr::Render
 			m_BackBuffers[i].m_Texture.reset();
 			m_BackBuffers[i].m_View.reset();
 		}
+		if (Device* device = GetDevice())
+		{
+			device->FlushDeferredDestructionQueue();
+		}
 	}
 
-	Ref<Texture> SwapChain::GetOutputTexture() const
+	Texture* SwapChain::GetOutputTexture() const
 	{
-		return m_BackBuffers[m_CurrentBackBufferIndex].m_Texture;
+		return m_BackBuffers[m_CurrentBackBufferIndex].m_Texture.get();
 	}
 
-	Ref<RenderTargetView> SwapChain::GetOutputRenderTarget() const
+	RenderTargetView* SwapChain::GetOutputRenderTarget() const
 	{
-		return m_BackBuffers[m_CurrentBackBufferIndex].m_View;
+		return m_BackBuffers[m_CurrentBackBufferIndex].m_View.get();
 	}
 
 }

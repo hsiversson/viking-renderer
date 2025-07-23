@@ -128,27 +128,18 @@ namespace vkr::Graphics
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
 		
-		// Create an UAV from the backbuffer
-		Render::TextureViewDesc sceneViewDesc;
-		sceneViewDesc.m_Mip = 0;
-		sceneViewDesc.m_Writable = true;
-		m_SceneTextureUAVView = Render::GetDevice()->CreateTextureView(sceneViewDesc, view.GetSceneTexture()); //Is efficient 
-
 		//Transition to UAV the output
 		std::vector<Render::TextureBarrierDesc> barriers;
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = view.GetSceneTexture().get();
+			barrierDesc.m_Texture = view.GetSceneTexture();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
 			barriers.push_back(barrierDesc);
 		}
-
-		m_DepthSRVView = Render::GetDevice()->CreateTextureView(Render::TextureViewDesc(), view.GetDepthBufferTexture());
-		// Depth should be already transitioned to read state by now
 		
-		ctx->BindPSO(m_SkyPSO);
+		ctx->BindPipelineState(m_SkyPSO.get());
 
 		struct alignas(16) ConstantData
 		{
@@ -156,17 +147,17 @@ namespace vkr::Graphics
 			uint32_t DepthTextureDescriptor;
 		};
 		ConstantData data;
-		data.SceneTextureDescriptor = m_SceneTextureUAVView->GetIndex();
-		data.DepthTextureDescriptor = m_DepthSRVView->GetIndex();
+		data.SceneTextureDescriptor = view.GetSceneTextureView()->GetIndex();
+		data.DepthTextureDescriptor = view.GetDepthBufferTextureView()->GetIndex();
 
 		//Per batch buffer
-		auto perbatchbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData), sizeof(data), (void*)&data);
-		std::vector<Ref<vkr::Render::Buffer>> buffers;
+		auto perBatchBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData), sizeof(data), (void*)&data);
+		std::vector<Render::Buffer*> buffers;
 		std::vector<uint64_t> offsets;
-		buffers.push_back(renderData.m_PerSceneConstantBuffer.m_Buffer);
+		buffers.push_back(renderData.m_PerSceneConstantBuffer.m_Buffer.get());
 		offsets.push_back(renderData.m_PerSceneConstantBuffer.m_Offset);
-		buffers.push_back(perbatchbuffer.m_Buffer);
-		offsets.push_back(perbatchbuffer.m_Offset);
+		buffers.push_back(perBatchBuffer.m_Buffer.get());
+		offsets.push_back(perBatchBuffer.m_Offset);
 		ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
 
 		uint32_t GroupsX = ceil(view.GetRenderSize().x / 8);
@@ -180,15 +171,11 @@ namespace vkr::Graphics
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
 
-		Render::RenderTargetViewDesc sceneRTViewDesc;
-		sceneRTViewDesc.m_Mip = 0;
-		Ref<Render::RenderTargetView> sceneRTView = Render::GetDevice()->CreateRenderTargetView(sceneRTViewDesc, view.GetSceneTexture());
-
 		//Transition to RT the output
 		std::vector<Render::TextureBarrierDesc> barriers;
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = view.GetSceneTexture().get();
+			barrierDesc.m_Texture = view.GetSceneTexture();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_RENDER_TARGET;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_RENDER_TARGET;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
@@ -206,7 +193,7 @@ namespace vkr::Graphics
 		//We will only read from DS now that depths are written to
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = view.GetDepthBuffer()->GetTexture();
+			barrierDesc.m_Texture = view.GetDepthBufferTexture();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_DEPTH_READ;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_DEPTH_STENCIL_READ;
@@ -215,14 +202,14 @@ namespace vkr::Graphics
 		ctx->TextureBarrier(barriers.size(), barriers.data());
 
 
-		std::vector<vkr::Ref<vkr::Render::RenderTargetView>> rendertargets;
-		rendertargets.push_back(sceneRTView);
-		rendertargets.push_back(m_TAAVelocityRTView);
+		std::vector<Render::RenderTargetView*> renderTargets;
+		renderTargets.push_back(view.GetSceneTextureRenderTarget());
+		renderTargets.push_back(m_TAAVelocityRTView.get());
 
-		ctx->ClearRenderTargets(rendertargets.data(), rendertargets.size());
+		ctx->ClearRenderTargets(renderTargets.size(), renderTargets.data());
 		//ctx->ClearDepthStencil(view.GetDepthBuffer(), 0.0f);
 
-		ctx->BindRenderTargets(rendertargets.data(), rendertargets.size());
+		ctx->BindRenderTargets(renderTargets.size(), renderTargets.data());
 		ctx->BindDepthStencil(view.GetDepthBuffer());
 
 		const Render::TextureDesc& rtDesc = view.GetOutputTarget()->GetTexture()->m_TextureDesc;
@@ -231,12 +218,10 @@ namespace vkr::Graphics
 
 		for (auto& batch : renderData.m_ForwardPassData.m_InstanceBatches)
 		{
-			std::vector<vkr::Ref<vkr::Render::Buffer>> vertexbuffers;
-			vertexbuffers.push_back(batch.m_Mesh->GetVertexBuffer());
-			ctx->BindVertexBuffers(vertexbuffers.data(), vertexbuffers.size());
-			ctx->BindIndexBuffer(batch.m_Mesh->GetIndexBuffer());
+			ctx->BindVertexBuffer(batch.m_Mesh->GetVertexBuffer().get());
+			ctx->BindIndexBuffer(batch.m_Mesh->GetIndexBuffer().get());
 			ctx->SetPrimitiveTopology(batch.m_Mesh->GetTopology());
-			ctx->BindPSO(batch.m_PSO);
+			ctx->BindPipelineState(batch.m_PSO.get());
 
 			struct alignas(16) ConstantData
 			{
@@ -249,11 +234,11 @@ namespace vkr::Graphics
 
 			//Per batch buffer
 			auto perbatchbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData), sizeof(data), (void*)&data);
-			std::vector<Ref<vkr::Render::Buffer>> buffers;
+			std::vector<Render::Buffer*> buffers;
 			std::vector<uint64_t> offsets;
-			buffers.push_back(renderData.m_PerSceneConstantBuffer.m_Buffer);
+			buffers.push_back(renderData.m_PerSceneConstantBuffer.m_Buffer.get());
 			offsets.push_back(renderData.m_PerSceneConstantBuffer.m_Offset);
-			buffers.push_back(perbatchbuffer.m_Buffer);
+			buffers.push_back(perbatchbuffer.m_Buffer.get());
 			offsets.push_back(perbatchbuffer.m_Offset);
 			ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
 			ctx->DrawIndexedInstanced(batch.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount, batch.m_Count);
@@ -388,8 +373,8 @@ namespace vkr::Graphics
 
 		ctx->ClearDepthStencil(view.GetDepthBuffer(), 0.0f);
 
-		std::vector<vkr::Ref<vkr::Render::RenderTargetView>> rendertargets;
-		ctx->BindRenderTargets(rendertargets.data(), rendertargets.size());
+		std::vector<Render::RenderTargetView*> renderTargets;
+		ctx->BindRenderTargets(renderTargets.size(), renderTargets.data());
 		ctx->BindDepthStencil(view.GetDepthBuffer());
 
 		const Render::TextureDesc& rtDesc = view.GetDepthBuffer()->GetTexture()->m_TextureDesc;
@@ -398,12 +383,10 @@ namespace vkr::Graphics
 		
 		for (auto& batch : renderData.m_DepthPassData.m_InstanceBatches)
 		{
-			std::vector<vkr::Ref<vkr::Render::Buffer>> vertexbuffers;
-			vertexbuffers.push_back(batch.m_Mesh->GetVertexBuffer());
-			ctx->BindVertexBuffers(vertexbuffers.data(), vertexbuffers.size());
-			ctx->BindIndexBuffer(batch.m_Mesh->GetIndexBuffer());
+			ctx->BindVertexBuffer(batch.m_Mesh->GetVertexBuffer().get());
+			ctx->BindIndexBuffer(batch.m_Mesh->GetIndexBuffer().get());
 			ctx->SetPrimitiveTopology(batch.m_Mesh->GetTopology());
-			ctx->BindPSO(batch.m_PSO);
+			ctx->BindPipelineState(batch.m_PSO.get());
 
 			struct alignas(16) ConstantData
 			{
@@ -416,11 +399,11 @@ namespace vkr::Graphics
 
 			//Per batch buffer
 			auto perbatchbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData), sizeof(data), (void*)&data);
-			std::vector<Ref<vkr::Render::Buffer>> buffers;
+			std::vector<Render::Buffer*> buffers;
 			std::vector<uint64_t> offsets;
-			buffers.push_back(renderData.m_PerSceneConstantBuffer.m_Buffer);
+			buffers.push_back(renderData.m_PerSceneConstantBuffer.m_Buffer.get());
 			offsets.push_back(renderData.m_PerSceneConstantBuffer.m_Offset);
-			buffers.push_back(perbatchbuffer.m_Buffer);
+			buffers.push_back(perbatchbuffer.m_Buffer.get());
 			offsets.push_back(perbatchbuffer.m_Offset);
 			ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
 			ctx->DrawIndexedInstanced(batch.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount, batch.m_Count);
@@ -454,7 +437,7 @@ namespace vkr::Graphics
 		//Transition to SRV the scene texture
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = view.GetSceneTexture().get();
+			barrierDesc.m_Texture = view.GetSceneTexture();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_READ;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
@@ -470,13 +453,7 @@ namespace vkr::Graphics
 			barriers.push_back(barrierDesc);
 		}
 
-		ctx->BindPSO(m_TAAResolvePSO);
-
-		// Create an SRV from the backbuffer
-		Render::TextureViewDesc sceneViewDesc;
-		sceneViewDesc.m_Mip = 0;
-		sceneViewDesc.m_Writable = false;
-		m_SceneTextureSRVView = Render::GetDevice()->CreateTextureView(sceneViewDesc, view.GetSceneTexture()); //Is efficient 
+		ctx->BindPipelineState(m_TAAResolvePSO.get());
 
 		struct alignas(16) ConstantData
 		{
@@ -488,17 +465,17 @@ namespace vkr::Graphics
 		};
 		ConstantData data;
 		data.ResolveTextureDescriptorIndex = m_TAAResolveUAVView->GetIndex();
-		data.SceneTextureDescriptorIndex = m_SceneTextureSRVView->GetIndex();
+		data.SceneTextureDescriptorIndex = view.GetSceneTextureView()->GetIndex();
 		data.HistoryTextureDescriptorIndex = m_TAAHistorySRVView->GetIndex();
 		data.VelocityTextureDescriptorIndex = m_TAAVelocitySRVView->GetIndex();
 
 		//Per batch buffer
 		auto perbatchbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData), sizeof(data), (void*)&data);
-		std::vector<Ref<vkr::Render::Buffer>> buffers;
+		std::vector<Render::Buffer*> buffers;
 		std::vector<uint64_t> offsets;
-		buffers.push_back(renderData.m_PerSceneConstantBuffer.m_Buffer);
+		buffers.push_back(renderData.m_PerSceneConstantBuffer.m_Buffer.get());
 		offsets.push_back(renderData.m_PerSceneConstantBuffer.m_Offset);
-		buffers.push_back(perbatchbuffer.m_Buffer);
+		buffers.push_back(perbatchbuffer.m_Buffer.get());
 		offsets.push_back(perbatchbuffer.m_Offset);
 		ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
 

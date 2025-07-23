@@ -64,7 +64,7 @@ namespace vkr::Render
 		RenderThread* GetRenderThread(ContextType contextType) const;
 		DescriptorHeap* GetDescriptorHeap(DescriptorHeapType type) const;
 
-		void OnResourceDestroy(Resource* resource);
+		void FlushDeferredDestructionQueue();
 
 	private:
 		void InitRootSignatures();
@@ -106,9 +106,9 @@ namespace vkr::Render
 	};
 
 	inline Device* GetDevice() { return Device::g_Instance; }
-	Ref<RenderTaskEvent> QueueRenderTask(ContextType type, RenderTaskFn task);
-	Ref<RenderTaskEvent> QueueGraphicsTask(RenderTaskFn task);
-	Ref<RenderTaskEvent> QueueComputeTask(RenderTaskFn task);
-	Ref<RenderTaskEvent> QueueCopyTask(RenderTaskFn task);
+	Ref<RenderTaskEvent> QueueRenderTask(ContextType type, RenderTaskFn task, RenderTaskFlags flags = RENDER_TASK_FLAG_NONE);
+	Ref<RenderTaskEvent> QueueGraphicsTask(RenderTaskFn task, RenderTaskFlags flags = RENDER_TASK_FLAG_NONE);
+	Ref<RenderTaskEvent> QueueComputeTask(RenderTaskFn task, RenderTaskFlags flags = RENDER_TASK_FLAG_NONE);
+	Ref<RenderTaskEvent> QueueCopyTask(RenderTaskFn task, RenderTaskFlags flags = RENDER_TASK_FLAG_NONE);
 }
 

@@ -34,7 +34,7 @@ namespace vkr::Render
 
 		void SetName(const char* name);
 
-		ID3D12Resource* GetD3DResource() { return m_Resource.Get(); }
+		ID3D12Resource* GetD3DResource() const { return m_Resource.Get(); }
 
 		Ref<ResourceDescriptor> GetDescriptor(uint64_t hash);
 		template<typename DescType>	Ref<ResourceDescriptor> GetDescriptor(const DescType& desc)

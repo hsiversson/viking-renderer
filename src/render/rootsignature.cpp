@@ -94,6 +94,7 @@ namespace vkr::Render
 			return false;
 		}
 
+		m_Type = desc.m_PipelineUsage;
 		return true;
 	}
 }

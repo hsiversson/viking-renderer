@@ -91,7 +91,7 @@ namespace vkr::Render
 		// Compute
 		void Dispatch(const Vector3u& Groups);
 		void DispatchThreads(const Vector3u& threads);
-		void DispatchThreads(Ref<PipelineState> pipelineState, const Vector3u& threads);
+		void DispatchThreads(PipelineState* pipelineState, const Vector3u& threads);
 
 		//Draw
 		void Draw(uint32_t vertexCount, uint32_t startVertex = 0);
@@ -101,13 +101,14 @@ namespace vkr::Render
 		void DrawIndexedInstanced(uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex = 0, uint32_t startVertex = 0, uint32_t startInstance = 0);
 
 		//Render state
-		void BindPSO(Ref<PipelineState> pipelineState);
-		void BindRootConstantBuffers(Ref<Buffer>* buffers, size_t numBuffers, uint64_t* offsets = nullptr);
+		void BindPipelineState(PipelineState* pipelineState);
+		void BindRootConstantBuffers(Buffer** buffers, uint32_t numBuffers, uint64_t* offsets = nullptr);
 		void BindRootConstantBuffer(uint32_t byteSize, const void* data, uint32_t slot);
-		void BindVertexBuffers(Ref<Buffer>* vertexBuffers, size_t numVertexBuffers, const uint64_t* offsets = nullptr, const uint32_t* sizes = nullptr, const uint32_t* strides = nullptr);
-		void BindIndexBuffer(Ref<Buffer> indexbuffer, const uint64_t offset = 0, const uint32_t size = 0, const Format format = FORMAT_UNKNOWN);
-		void BindRenderTargets(Ref<RenderTargetView>* rtviews, size_t viewCount);
-		void BindDepthStencil(Ref<DepthStencilView> dsview);
+		void BindVertexBuffers(uint32_t numVertexBuffers, Buffer** vertexBuffers, const uint64_t* offsets = nullptr, const uint32_t* sizes = nullptr, const uint32_t* strides = nullptr);
+		void BindVertexBuffer(Buffer* vertexBuffers, const uint64_t offsets = 0, const uint32_t size = 0, const uint32_t stride = 0);
+		void BindIndexBuffer(Buffer* indexbuffer, const uint64_t offset = 0, const uint32_t size = 0, const Format format = FORMAT_UNKNOWN);
+		void BindRenderTargets(uint32_t numRenderTargets, RenderTargetView** renderTargetViews);
+		void BindDepthStencil(DepthStencilView* depthStencilView);
 		void SetPrimitiveTopology(PrimitiveTopology topologyType);
 		void SetViewport(uint32_t offsetX, uint32_t offsetY, uint32_t width, uint32_t height, float depthMin = 0.0f, float depthMax = 1.0f);
 		void SetScissorRect(uint32_t left, uint32_t top, uint32_t right, uint32_t bottom);
@@ -121,8 +122,9 @@ namespace vkr::Render
 		void GlobalBarrier(const GlobalBarrierDesc& barrierDesc);
 
 		// Clear
-		void ClearRenderTargets(Ref<RenderTargetView>* rtvs, size_t numRtvs);
-		void ClearDepthStencil(Ref<DepthStencilView> dsv, float clearValue);
+		void ClearRenderTargets(uint32_t numRenderTargets, RenderTargetView** renderTargetViews, const Vector4f* clearValues = nullptr);
+		void ClearRenderTarget(RenderTargetView* renderTargetView, const Vector4f& clearValue = Vector4f(0.0f));
+		void ClearDepthStencil(DepthStencilView* dsv, float clearValue);
 
 		// Raytracing acceleration structure
 		Ref<Buffer> BuildRaytracingAccelerationStructure(const RaytracingAccelerationStructureBuildDesc& desc);
@@ -139,26 +141,43 @@ namespace vkr::Render
 		ContextType GetType() const;
 		CommandList* GetCommandList() const;
 
+		const Fence& GetLastFence() const;
+
 		static Context* GetCurrentContext();
 
 	private:
 		struct DrawState
 		{
+			void Clear();
+
 			PrimitiveTopology m_Topology = PRIMITIVE_TOPOLOGY_UNDEFINED;
-			std::vector<Ref<Buffer>> m_VertexBuffers;
+
+			std::vector<Buffer*> m_VertexBuffers;
 			std::vector<uint64_t> m_VertexBufferOffsets;
 			std::vector<uint32_t> m_VertexBufferSizes;
 			std::vector<uint32_t> m_VertexBufferStrides;
-			Ref<Buffer> m_IndexBuffer;
-			uint64_t m_IndexBufferOffset;
-			uint32_t m_IndexBufferSize;
-			Format m_IndexBufferFormat;
+
+			Buffer* m_IndexBuffer;
+			uint64_t m_IndexBufferOffset = 0;
+			uint32_t m_IndexBufferSize = 0;
+			Format m_IndexBufferFormat = FORMAT_UNKNOWN;
+
 			RootSignature* m_RootSignature = nullptr;
-			Ref<PipelineState> m_PipelineState = nullptr;
-			std::array<Ref<Buffer>, 2> m_RootCB;
-			std::array<uint64_t, 2> m_RootCBOffsets;
-			std::vector<Ref<RenderTargetView>> m_RenderTargets;
-			Ref<DepthStencilView> m_DepthStencil;
+			PipelineState* m_PipelineState = nullptr;
+			
+			std::array<Buffer*, 2> m_RootConstantBuffers;
+			std::array<uint64_t, 2> m_RootConstantBufferOffsets;
+			std::array<bool, 2> m_RootConstantsDirty;
+
+			std::array<RenderTargetView*, MAX_NUM_RENDER_TARGETS> m_RenderTargets;
+			DepthStencilView* m_DepthStencil = nullptr;
+
+			uint64_t m_TopologyDirty : 1;
+			uint64_t m_VertexBuffersDirty : 1;
+			uint64_t m_IndexBufferDirty : 1;
+			uint64_t m_RootSignatureDirty : 1;
+			uint64_t m_PipelineStateDirty : 1;
+			uint64_t m_RenderTargetsDirty : 1;
 		};
 
 		void UpdateState();
@@ -174,10 +193,7 @@ namespace vkr::Render
 		std::vector<Ref<CommandList>> m_CommandListsToSubmit;
 		Fence m_LastFlushEvent;
 
-		DrawState CurrentState;
-		DrawState NewState;
-		bool m_StateUpdate = false;
-		bool m_RenderTargetUpdate = false;
+		DrawState m_StateCache;
 
 		const ContextType m_Type;
 		static thread_local Context* g_CurrentContext;

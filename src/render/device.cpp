@@ -387,13 +387,9 @@ namespace vkr::Render
 		return m_DescriptorHeaps[type].get();
 	}
 
-	void Device::OnResourceDestroy(Resource* resource)
+	void Device::FlushDeferredDestructionQueue()
 	{
-		if (resource)
-		{
-			ID3D12Resource* d3dResource = resource->GetD3DResource();
-
-		}
+		m_RenderResourceDestructionQueue->Flush();
 	}
 
 	void Device::InitRootSignatures()
@@ -440,11 +436,11 @@ namespace vkr::Render
 		m_DescriptorHeaps[DESCRIPTOR_HEAP_TYPE_DEPTH_STENCIL] = MakeUnique<DescriptorHeap>(DESCRIPTOR_HEAP_TYPE_DEPTH_STENCIL, 16);
 	}
 
-	Ref<RenderTaskEvent> QueueRenderTask(ContextType type, RenderTaskFn task)
+	Ref<RenderTaskEvent> QueueRenderTask(ContextType type, RenderTaskFn task, RenderTaskFlags flags)
 	{
 		if (Device* device = GetDevice())
 		{
-			return device->GetRenderThread(type)->QueueTask(task);
+			return device->GetRenderThread(type)->QueueTask(task, flags);
 		}
 		else
 		{
@@ -452,19 +448,19 @@ namespace vkr::Render
 		}
 	}
 
-	Ref<RenderTaskEvent> QueueGraphicsTask(RenderTaskFn task)
+	Ref<RenderTaskEvent> QueueGraphicsTask(RenderTaskFn task, RenderTaskFlags flags)
 	{
-		return QueueRenderTask(CONTEXT_TYPE_GRAPHICS, task);
+		return QueueRenderTask(CONTEXT_TYPE_GRAPHICS, task, flags);
 	}
 
-	Ref<RenderTaskEvent> QueueComputeTask(RenderTaskFn task)
+	Ref<RenderTaskEvent> QueueComputeTask(RenderTaskFn task, RenderTaskFlags flags)
 	{
-		return QueueRenderTask(CONTEXT_TYPE_COMPUTE, task);
+		return QueueRenderTask(CONTEXT_TYPE_COMPUTE, task, flags);
 	}
 
-	Ref<RenderTaskEvent> QueueCopyTask(RenderTaskFn task)
+	Ref<RenderTaskEvent> QueueCopyTask(RenderTaskFn task, RenderTaskFlags flags)
 	{
-		return QueueRenderTask(CONTEXT_TYPE_COPY, task);
+		return QueueRenderTask(CONTEXT_TYPE_COPY, task, flags);
 	}
 
 }

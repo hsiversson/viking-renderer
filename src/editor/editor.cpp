@@ -85,7 +85,7 @@ namespace vkr::Editor
 		m_Renderer->Render();
 	}
 
-	void Manager::SetOutputTarget(const Ref<Render::RenderTargetView>& target)
+	void Manager::SetOutputTarget(Render::RenderTargetView* target)
 	{
 		m_Renderer->SetOutputTarget(target);
 	}

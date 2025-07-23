@@ -98,14 +98,6 @@ namespace vkr
 				running = false;
 			}
 
-			const Vector2u newWindowSize = m_Window->GetSize();
-			if (newWindowSize != m_WindowSize)
-			{
-				m_WindowSize = newWindowSize;
-				m_SwapChain->Resize(m_WindowSize);
-			}
-
-
 			// TODO: Apply changes coming from window messages
 			// TODO: Apply changes going to window
 

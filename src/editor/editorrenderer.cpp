@@ -157,7 +157,7 @@ namespace vkr::Editor
 		prepareData.m_Event = Render::QueueGraphicsTask([this, renderDataIndex]() { RenderTask(renderDataIndex); });
 	}
 
-	void Renderer::SetOutputTarget(const Ref<Render::RenderTargetView>& target)
+	void Renderer::SetOutputTarget(Render::RenderTargetView* target)
 	{
 		m_RenderTarget = target;
 	}
@@ -180,7 +180,8 @@ namespace vkr::Editor
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
 			ctx->TextureBarrier(barrierDesc);
 		}
-		ctx->BindRenderTargets(&m_RenderTarget, 1);
+		ctx->BindRenderTargets(1, &m_RenderTarget);
+		ctx->SetPrimitiveTopology(Render::PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		for (uint32_t i = 0; i < renderData.m_DrawLists.size(); ++i)
 		{
 			ImDrawList* drawList = renderData.m_DrawLists[i];
@@ -191,9 +192,9 @@ namespace vkr::Editor
 			Render::TempBuffer vertexBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, vtxBufferByteSize, vtxBufferByteSize, drawList->VtxBuffer.begin());
 			Render::TempBuffer indexBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, idxBufferByteSize, idxBufferByteSize, drawList->IdxBuffer.begin());
 
-			ctx->BindVertexBuffers(&vertexBuffer.m_Buffer, 1, &vertexBuffer.m_Offset, &vtxBufferByteSize, &vtxByteSize);
-			ctx->BindIndexBuffer(indexBuffer.m_Buffer, indexBuffer.m_Offset, idxBufferByteSize, Render::FORMAT_R16_UINT);
-			ctx->BindPSO(m_SdrShader);
+			ctx->BindVertexBuffer(vertexBuffer.m_Buffer.get(), vertexBuffer.m_Offset, vtxBufferByteSize, vtxByteSize);
+			ctx->BindIndexBuffer(indexBuffer.m_Buffer.get(), indexBuffer.m_Offset, idxBufferByteSize, Render::FORMAT_R16_UINT);
+			ctx->BindPipelineState(m_SdrShader.get());
 
 			const Vector2f clipScale = renderData.m_ViewportScale;
 			const Vector2f clipOffset = renderData.m_ViewportOffset;

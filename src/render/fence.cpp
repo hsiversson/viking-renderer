@@ -38,7 +38,13 @@ namespace vkr::Render
 
 	bool FenceResource::IsPending(uint64_t value) const
 	{
-		return value > m_Fence->GetCompletedValue();
+		const uint64_t completedValue = m_Fence->GetCompletedValue();
+		if (completedValue == UINT64_MAX)
+		{
+			// device removed
+			assert(false && "device was removed");
+		}
+		return value > completedValue;
 	}
 
 	ID3D12Fence* FenceResource::GetFence() const

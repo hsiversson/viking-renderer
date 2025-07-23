@@ -7,42 +7,63 @@ namespace vkr
 	{
 		T x, y;
 
+		constexpr Vector2() = default;
+		constexpr ~Vector2() = default;
+
 		template<typename U>
-		explicit operator Vector2<U>() const
+		constexpr Vector2(U scalar)
+			: x(static_cast<T>(scalar))
+			, y(static_cast<T>(scalar))
 		{
-			return Vector2<U>(
-				static_cast<U>(x),
-				static_cast<U>(y)
-			);
 		}
 
-		bool operator==(const Vector2& other) const { return x == other.x && y == other.y; }
-		bool operator!=(const Vector2& other) const { return !(*this == other); }
+		template<typename U>
+		constexpr Vector2(U x0, U y0)
+			: x(static_cast<T>(x0))
+			, y(static_cast<T>(y0))
+		{
+		}
+
+		template<typename U>
+		explicit constexpr Vector2(const Vector2<U>& other)
+			: x(static_cast<T>(other.x))
+			, y(static_cast<T>(other.y))
+		{
+		}
+
+		template<typename U>
+		explicit constexpr operator Vector2<U>() const
+		{
+			return Vector2<U>(static_cast<U>(x), static_cast<U>(y));
+		}
+
+		constexpr bool operator==(const Vector2& other) const { return x == other.x && y == other.y; }
+		constexpr bool operator!=(const Vector2& other) const { return !(*this == other); }
 	};
 	using Vector2f = Vector2<float>;
 	using Vector2i = Vector2<int32_t>;
 	using Vector2u = Vector2<uint32_t>;
 
 	template<typename T>
-	Vector2<T> operator-(const Vector2<T>& v, float scalar)
+	constexpr Vector2<T> operator-(const Vector2<T>& v, float scalar)
 	{
 		return { v.x - scalar, v.y - scalar };
 	}
 
 	template<typename T>
-	Vector2<T> operator*(const Vector2<T>& v, float scalar)
+	constexpr Vector2<T> operator*(const Vector2<T>& v, float scalar)
 	{
 		return { v.x * scalar, v.y * scalar };
 	}
 
 	template<typename T>
-	Vector2<T> operator*(const Vector2<T>& v0, const Vector2<T>& v1)
+	constexpr Vector2<T> operator*(const Vector2<T>& v0, const Vector2<T>& v1)
 	{
 		return { v0.x * v1.x, v0.y * v1.y };
 	}
 
 	template<typename T>
-	Vector2<T> operator/(const Vector2<T>& v0, const Vector2<T>& v1)
+	constexpr Vector2<T> operator/(const Vector2<T>& v0, const Vector2<T>& v1)
 	{
 		return { v0.x / v1.x, v0.y / v1.y };
 	}

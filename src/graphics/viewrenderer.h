@@ -51,10 +51,6 @@ namespace vkr::Graphics
 		Ref<Render::Shader> m_SkyComputeShader;
 		Ref<Render::PipelineState> m_SkyPSO;
 
-		Ref<Render::TextureView> m_SceneTextureUAVView;
-		Ref<Render::TextureView> m_SceneTextureSRVView;
-		Ref<Render::TextureView> m_DepthSRVView;
-
 		//TAA
 		int m_CurrentJitterIndex = 0;
 		Ref<Render::Texture> m_TAAResolveBuffer;

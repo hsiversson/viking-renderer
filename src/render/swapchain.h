@@ -21,8 +21,8 @@ namespace vkr::Render
 		void SetHdrEnabled(bool hdr);
 		bool IsHdrEnabled() const;
 
-		Ref<Texture> GetOutputTexture()  const;
-		Ref<RenderTargetView> GetOutputRenderTarget() const;
+		Texture* GetOutputTexture()  const;
+		RenderTargetView* GetOutputRenderTarget() const;
 
 		void Present();
 

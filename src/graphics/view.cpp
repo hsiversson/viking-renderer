@@ -104,6 +104,8 @@ namespace vkr::Graphics
 		depthStencilDesc.m_Format = Render::FORMAT_D32_FLOAT;
 		m_DepthBuffer = Render::GetDevice()->CreateTexture(depthStencilDesc);
 
+		m_DepthTextureView = Render::GetDevice()->CreateTextureView({}, m_DepthBuffer);
+
 		Render::DepthStencilViewDesc dsvDesc;
 		dsvDesc.m_Mip = 0;
 		m_DepthBufferView = Render::GetDevice()->CreateDepthStencilView(dsvDesc, m_DepthBuffer);
@@ -119,7 +121,9 @@ namespace vkr::Graphics
 		sceneTextureDesc.m_Size = { m_MaxRenderSize.x, m_MaxRenderSize.y, 0 };
 		sceneTextureDesc.m_Writable = true;
 		m_SceneTexture = Render::GetDevice()->CreateTexture(sceneTextureDesc);
-
+		m_SceneTextureView = Render::GetDevice()->CreateTextureView({}, m_SceneTexture);
+		m_SceneTextureViewRW = Render::GetDevice()->CreateTextureView({0, true}, m_SceneTexture);
+		m_SceneTextureRenderTarget = Render::GetDevice()->CreateRenderTargetView({}, m_SceneTexture);
 		return true;
 	}
 

@@ -23,8 +23,9 @@ namespace vkr::Render
 
 		bool Init(const RootSignatureDesc& desc);
 		ID3D12RootSignature* GetD3DRootSignature() { return m_RootSignature.Get(); }
-
+		PipelineStateType GetType() const { return m_Type; }
 	private:
 		ComPtr<ID3D12RootSignature> m_RootSignature;
+		PipelineStateType m_Type;
 	};
 }

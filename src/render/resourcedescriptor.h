@@ -31,7 +31,7 @@ namespace vkr::Render
 		~ResourceDescriptor();
 
 		uint32_t GetIndex() const { return m_DescriptorIndex; }
-		D3D12_CPU_DESCRIPTOR_HANDLE& GetHandle() { return m_D3DHandle; }
+		const D3D12_CPU_DESCRIPTOR_HANDLE& GetHandle() const { return m_D3DHandle; }
 
 	protected:
 		bool AllocateDescriptor();

@@ -32,13 +32,14 @@ namespace vkr::Render
 		}
 	}
 
-	Ref<RenderTaskEvent> RenderThread::QueueTask(RenderTaskFn task)
+	Ref<RenderTaskEvent> RenderThread::QueueTask(RenderTaskFn task, RenderTaskFlags flags)
 	{
 		if (!m_IsRunning)
 			return nullptr;
 
 		RenderTask renderTask;
 		renderTask.m_Task = task;
+		renderTask.m_Flags = flags;
 		renderTask.m_Event = MakeRef<RenderTaskEvent>();
 
 		{
@@ -59,7 +60,7 @@ namespace vkr::Render
 			m_HasWorkEvent.Reset();
 
 			RenderTask task;
-			while (m_IsRunning && !m_PendingTasks.empty())
+			while (!m_PendingTasks.empty())
 			{
 				{
 					std::unique_lock<std::mutex> lock(m_PendingTasksMutex);
@@ -67,10 +68,17 @@ namespace vkr::Render
 					m_PendingTasks.pop();
 				}
 
-				ctx->Begin();
-				task.m_Task();
-				ctx->End();
-				task.m_Event->m_Fence = ctx->Flush();
+				if (task.m_Flags & RENDER_TASK_FLAG_WAITABLE_ONLY)
+				{
+					task.m_Event->m_Fence = ctx->GetLastFence();
+				}
+				else
+				{
+					ctx->Begin();
+					task.m_Task();
+					ctx->End();
+					task.m_Event->m_Fence = ctx->Flush();
+				}
 				task.m_Event->m_Event.Signal();
 			}
 		}

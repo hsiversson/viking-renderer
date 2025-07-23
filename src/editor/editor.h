@@ -28,7 +28,7 @@ namespace vkr::Editor
 
 		void Draw();
 
-		void SetOutputTarget(const Ref<Render::RenderTargetView>& target);
+		void SetOutputTarget(Render::RenderTargetView* target);
 
 	private:
 		UniquePtr<Renderer> m_Renderer;
