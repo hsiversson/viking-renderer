@@ -138,6 +138,7 @@ namespace vkr::Graphics
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
 			barriers.push_back(barrierDesc);
 		}
+		ctx->TextureBarrier(barriers.size(), barriers.data());
 		
 		ctx->BindPipelineState(m_SkyPSO.get());
 
