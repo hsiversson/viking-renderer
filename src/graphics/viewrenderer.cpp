@@ -452,6 +452,7 @@ namespace vkr::Graphics
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
 			barriers.push_back(barrierDesc);
 		}
+		ctx->TextureBarrier(barriers.size(), barriers.data());
 
 		ctx->BindPipelineState(m_TAAResolvePSO.get());
 
@@ -483,13 +484,14 @@ namespace vkr::Graphics
 
 		//Update history buffer 
 		//Transition resolve texture to copy source
+		barriers.clear();
 		{
 			Render::TextureBarrierDesc barrierDesc;
 			barrierDesc.m_Texture = m_TAAResolveBuffer.get();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_COPY_SOURCE;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COPY_SOURCE;
-			ctx->TextureBarrier(barrierDesc);
+			barriers.push_back(barrierDesc);
 		}
 		//Transition history texture to copy dest
 		{
@@ -498,8 +500,9 @@ namespace vkr::Graphics
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_COPY_TARGET;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COPY_TARGET;
-			ctx->TextureBarrier(barrierDesc);
+			barriers.push_back(barrierDesc);
 		}
+		ctx->TextureBarrier(barriers.size(), barriers.data());
 
 		//Perform copy operation
 		ctx->CopyTexture(m_TAAHistoryBuffer.get(), m_TAAResolveBuffer.get());
