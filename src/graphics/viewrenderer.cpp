@@ -312,7 +312,8 @@ namespace vkr::Graphics
 
 		Mat44 ProjectionNoJitter = const_cast<Camera&>(view.GetCamera()).GetProjection();
 		//Select a new jitter offset for TAA for this frame
-		int jitterIdx = (m_CurrentJitterIndex++) % 16;
+		int jitterIdx = m_CurrentJitterIndex++;
+		m_CurrentJitterIndex = m_CurrentJitterIndex % 16;
 		perSceneConstantData.CurrentJitter = (JitterHaltonSequence[jitterIdx] - 0.5f) / Vector2f(view.GetRenderSize()) * 2.0f;
 		Mat44 Projection = ProjectionNoJitter;
 		Projection[8] = perSceneConstantData.CurrentJitter.x;
