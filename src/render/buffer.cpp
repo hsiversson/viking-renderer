@@ -75,15 +75,13 @@ namespace vkr::Render
 		}
 		else
 		{
-			Device* device = GetDevice();
-			Ref<Context> copyCtx = GetDevice()->GetContext(CONTEXT_TYPE_COPY);
 			TempBuffer staging = GetDevice()->GetTempBuffer(TEMP_BUFFER_USAGE_STAGING, byteSize, byteSize, data);
+			
+			Ref<RenderTaskEvent> event = QueueCopyTask([this, offset, byteSize, staging]() {
+				Context::GetCurrentContext()->CopyBuffer(this, offset, staging.m_Buffer.get(), staging.m_Offset, byteSize);
+				});
 
-			copyCtx->Begin();
-			copyCtx->CopyBuffer(this, offset, staging.m_Buffer.get(), staging.m_Offset, byteSize);
-			copyCtx->End();
-			SetGpuPending(copyCtx->Flush());
-			SyncGpu();
+			event->Wait();
 		}
 		//else if (isRenderThread)
 		//{

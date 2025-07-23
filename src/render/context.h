@@ -84,6 +84,8 @@ namespace vkr::Render
 		void End();
 		Fence Flush();
 
+		void ClearStateCache();
+
 		// Markers
 		void BeginMarker(const char* label, uint32_t color);
 		void EndMarker();
@@ -202,7 +204,6 @@ namespace vkr::Render
 		DrawState m_StateCache;
 
 		const ContextType m_Type;
-		static thread_local Context* g_CurrentContext;
 	};
 
 	class ContextMarkerScope

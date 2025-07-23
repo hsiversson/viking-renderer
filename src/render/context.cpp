@@ -13,7 +13,7 @@
 
 namespace vkr::Render
 {
-	thread_local Context* Context::g_CurrentContext = nullptr;
+	extern thread_local Context* g_CurrentContext = nullptr;
 
 	Context::Context(ContextType type, const Ref<CommandQueue>& commandQueue)
 		: m_CommandQueue(commandQueue)
@@ -36,6 +36,15 @@ namespace vkr::Render
 		m_CommandList->Open();
 		g_CurrentContext = this;
 		m_NumRecordedCommands = 0;
+
+		m_StateCache.m_TopologyDirty = true;
+		m_StateCache.m_VertexBuffersDirty = true;
+		m_StateCache.m_IndexBufferDirty = true;
+		m_StateCache.m_RootSignatureDirty = true;
+		m_StateCache.m_PipelineStateDirty = true;
+		m_StateCache.m_RenderTargetsDirty = true;
+		m_StateCache.m_LocalConstantsDirty.fill(true);
+		m_StateCache.m_GlobalConstantsDirty.fill(true);
 	}
 
 	void Context::End()
@@ -62,7 +71,6 @@ namespace vkr::Render
 		m_CurrentD3DCommandList7 = nullptr;
 		m_CurrentD3DCommandList = nullptr;
 		m_CommandList = nullptr;
-		m_StateCache.Clear();
 		g_CurrentContext = nullptr;
 	}
 
@@ -86,6 +94,11 @@ namespace vkr::Render
 			m_CommandListsToSubmit.clear();
 		}
 		return m_LastFlushEvent;
+	}
+
+	void Context::ClearStateCache()
+	{
+		m_StateCache.Clear();
 	}
 
 	void Context::BeginMarker(const char* label, uint32_t color)
@@ -293,28 +306,37 @@ namespace vkr::Render
 	{
 		if (m_StateCache.m_PipelineStateDirty)
 		{
-			m_CurrentD3DCommandList->SetPipelineState(m_StateCache.m_PipelineState->GetD3DPipelineState());
+			if (m_StateCache.m_PipelineState)
+			{
+				m_CurrentD3DCommandList->SetPipelineState(m_StateCache.m_PipelineState->GetD3DPipelineState());
+			}
+			else
+			{
+				m_CurrentD3DCommandList->SetPipelineState(nullptr);
+			}
 			m_StateCache.m_PipelineStateDirty = false;
 		}
 
 		if (m_StateCache.m_RootSignatureDirty)
 		{
-			ID3D12DescriptorHeap* descriptorHeaps[2] =
+			if (m_StateCache.m_RootSignature)
 			{
-				GetDevice()->GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SHADER_RESOURCE)->GetD3DDescriptorHeap(),
-				GetDevice()->GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SAMPLER)->GetD3DDescriptorHeap()
-			};
-			m_CurrentD3DCommandList->SetDescriptorHeaps(2, descriptorHeaps);
+				ID3D12DescriptorHeap* descriptorHeaps[2] =
+				{
+					GetDevice()->GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SHADER_RESOURCE)->GetD3DDescriptorHeap(),
+					GetDevice()->GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SAMPLER)->GetD3DDescriptorHeap()
+				};
+				m_CurrentD3DCommandList->SetDescriptorHeaps(2, descriptorHeaps);
 
-			if (m_StateCache.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE)
-			{
-				m_CurrentD3DCommandList->SetComputeRootSignature(m_StateCache.m_RootSignature->GetD3DRootSignature());
+				if (m_StateCache.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE)
+				{
+					m_CurrentD3DCommandList->SetComputeRootSignature(m_StateCache.m_RootSignature->GetD3DRootSignature());
+				}
+				else if (m_StateCache.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_DEFAULT)
+				{
+					m_CurrentD3DCommandList->SetGraphicsRootSignature(m_StateCache.m_RootSignature->GetD3DRootSignature());
+				}
 			}
-			else if (m_StateCache.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_DEFAULT)
-			{
-				m_CurrentD3DCommandList->SetGraphicsRootSignature(m_StateCache.m_RootSignature->GetD3DRootSignature());
-			}
-
 			m_StateCache.m_RootSignatureDirty = false;
 		}
 
@@ -324,32 +346,49 @@ namespace vkr::Render
 			for (uint32_t i = 0; i < m_StateCache.m_VertexBuffers.size(); ++i)
 			{
 				const Buffer* buffer = m_StateCache.m_VertexBuffers[i];
-				const uint64_t offset = m_StateCache.m_VertexBufferOffsets.empty() ? 0 : m_StateCache.m_VertexBufferOffsets[i];
-				const uint64_t size = m_StateCache.m_VertexBufferSizes.empty() ? (buffer->GetDesc().m_ElementSize * buffer->GetDesc().m_ElementCount) : m_StateCache.m_VertexBufferSizes[i];
-				const uint32_t stride = m_StateCache.m_VertexBufferStrides.empty() ? buffer->GetDesc().m_ElementSize : m_StateCache.m_VertexBufferStrides[i];
+				if (buffer)
+				{
+					const uint64_t offset = m_StateCache.m_VertexBufferOffsets.empty() ? 0 : m_StateCache.m_VertexBufferOffsets[i];
+					const uint64_t size = m_StateCache.m_VertexBufferSizes.empty() ? (buffer->GetDesc().m_ElementSize * buffer->GetDesc().m_ElementCount) : m_StateCache.m_VertexBufferSizes[i];
+					const uint32_t stride = m_StateCache.m_VertexBufferStrides.empty() ? buffer->GetDesc().m_ElementSize : m_StateCache.m_VertexBufferStrides[i];
 
-				D3D12_VERTEX_BUFFER_VIEW view;
-				view.BufferLocation = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
-				view.SizeInBytes = size;
-				view.StrideInBytes = stride;
-				bufferViews.push_back(view);
+					D3D12_VERTEX_BUFFER_VIEW view;
+					view.BufferLocation = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
+					view.SizeInBytes = size;
+					view.StrideInBytes = stride;
+					bufferViews.push_back(view);
+				}
 			}
-			m_CurrentD3DCommandList->IASetVertexBuffers(0, bufferViews.size(), bufferViews.data());
+			if (!bufferViews.empty())
+			{
+				m_CurrentD3DCommandList->IASetVertexBuffers(0, bufferViews.size(), bufferViews.data());
+			}
+			else
+			{
+				m_CurrentD3DCommandList->IASetVertexBuffers(0, 0, nullptr);
+			}
 			m_StateCache.m_VertexBuffersDirty = false;
 		}
 
 		if (m_StateCache.m_IndexBufferDirty)
 		{
 			const Buffer* buffer = m_StateCache.m_IndexBuffer;
-			const uint64_t offset = m_StateCache.m_IndexBufferOffset;
-			const uint64_t size = m_StateCache.m_IndexBufferSize == 0 ? (buffer->GetDesc().m_ElementSize * buffer->GetDesc().m_ElementCount) : m_StateCache.m_IndexBufferSize;
-			const Format format = m_StateCache.m_IndexBufferFormat != FORMAT_UNKNOWN ? m_StateCache.m_IndexBufferFormat : buffer->GetDesc().m_Format;
+			if (buffer)
+			{
+				const uint64_t offset = m_StateCache.m_IndexBufferOffset;
+				const uint64_t size = m_StateCache.m_IndexBufferSize == 0 ? (buffer->GetDesc().m_ElementSize * buffer->GetDesc().m_ElementCount) : m_StateCache.m_IndexBufferSize;
+				const Format format = m_StateCache.m_IndexBufferFormat != FORMAT_UNKNOWN ? m_StateCache.m_IndexBufferFormat : buffer->GetDesc().m_Format;
 
-			D3D12_INDEX_BUFFER_VIEW view;
-			view.BufferLocation = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
-			view.SizeInBytes = size;
-			view.Format = D3DConvertFormat(format);
-			m_CurrentD3DCommandList->IASetIndexBuffer(&view);
+				D3D12_INDEX_BUFFER_VIEW view;
+				view.BufferLocation = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
+				view.SizeInBytes = size;
+				view.Format = D3DConvertFormat(format);
+				m_CurrentD3DCommandList->IASetIndexBuffer(&view);
+			}
+			else
+			{
+				m_CurrentD3DCommandList->IASetIndexBuffer(nullptr);
+			}
 			m_StateCache.m_IndexBufferDirty = false;
 		}
 
@@ -366,15 +405,18 @@ namespace vkr::Render
 			if (m_StateCache.m_LocalConstantsDirty[i])
 			{
 				const Buffer* buffer = m_StateCache.m_LocalConstantBuffers[i];
-				const uint64_t offset = m_StateCache.m_LocalConstantBufferOffsets[i];
-				const D3D12_GPU_VIRTUAL_ADDRESS addr = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
-				if (m_StateCache.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE)
+				if (buffer)
 				{
-					m_CurrentD3DCommandList->SetComputeRootConstantBufferView(localConstantsParamStartIndex + i, addr);
-				}
-				else
-				{
-					m_CurrentD3DCommandList->SetGraphicsRootConstantBufferView(localConstantsParamStartIndex + i, addr);
+					const uint64_t offset = m_StateCache.m_LocalConstantBufferOffsets[i];
+					const D3D12_GPU_VIRTUAL_ADDRESS addr = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
+					if (m_StateCache.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE)
+					{
+						m_CurrentD3DCommandList->SetComputeRootConstantBufferView(localConstantsParamStartIndex + i, addr);
+					}
+					else
+					{
+						m_CurrentD3DCommandList->SetGraphicsRootConstantBufferView(localConstantsParamStartIndex + i, addr);
+					}
 				}
 
 				m_StateCache.m_LocalConstantsDirty[i] = false;

@@ -140,7 +140,6 @@ namespace vkr::Graphics
 		}
 		
 		ctx->BindPipelineState(m_SkyPSO.get());
-		ctx->BindGlobalConstantBuffer(renderData.m_PerSceneConstantBuffer.m_Buffer.get(), renderData.m_PerSceneConstantBuffer.m_Offset, Render::GLOBAL_CONSTANT_BUFFER_SCENE);
 
 		struct alignas(16) ConstantData
 		{
@@ -214,7 +213,6 @@ namespace vkr::Graphics
 			ctx->BindIndexBuffer(batch.m_Mesh->GetIndexBuffer().get());
 			ctx->SetPrimitiveTopology(batch.m_Mesh->GetTopology());
 			ctx->BindPipelineState(batch.m_PSO.get());
-			ctx->BindGlobalConstantBuffer(renderData.m_PerSceneConstantBuffer.m_Buffer.get(), renderData.m_PerSceneConstantBuffer.m_Offset, Render::GLOBAL_CONSTANT_BUFFER_SCENE);
 
 			struct alignas(16) ConstantData
 			{
@@ -318,6 +316,9 @@ namespace vkr::Graphics
 
 		renderData.m_PerSceneConstantBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(PerSceneConstantData), sizeof(PerSceneConstantData), &perSceneConstantData);
 
+		Render::Context* ctx = Render::Context::GetCurrentContext();
+		ctx->ClearStateCache();
+		ctx->BindGlobalConstantBuffer(renderData.m_PerSceneConstantBuffer.m_Buffer.get(), renderData.m_PerSceneConstantBuffer.m_Offset, Render::GLOBAL_CONSTANT_BUFFER_SCENE);
 	}
 
 	void ViewRenderer::UpdateRtScene(View& view)
@@ -372,7 +373,6 @@ namespace vkr::Graphics
 			ctx->BindIndexBuffer(batch.m_Mesh->GetIndexBuffer().get());
 			ctx->SetPrimitiveTopology(batch.m_Mesh->GetTopology());
 			ctx->BindPipelineState(batch.m_PSO.get());
-			ctx->BindGlobalConstantBuffer(renderData.m_PerSceneConstantBuffer.m_Buffer.get(), renderData.m_PerSceneConstantBuffer.m_Offset, Render::GLOBAL_CONSTANT_BUFFER_SCENE);
 
 			struct alignas(16) ConstantData
 			{
@@ -433,7 +433,6 @@ namespace vkr::Graphics
 		ctx->TextureBarrier(barriers.size(), barriers.data());
 
 		ctx->BindPipelineState(m_TAAResolvePSO.get());
-		ctx->BindGlobalConstantBuffer(renderData.m_PerSceneConstantBuffer.m_Buffer.get(), renderData.m_PerSceneConstantBuffer.m_Offset, Render::GLOBAL_CONSTANT_BUFFER_SCENE);
 
 		struct alignas(16) ConstantData
 		{

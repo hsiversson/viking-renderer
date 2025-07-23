@@ -171,6 +171,7 @@ namespace vkr::Editor
 		}
 
 		Render::Context* ctx = Render::Context::GetCurrentContext();
+		ctx->ClearStateCache();
 
 		{
 			Render::TextureBarrierDesc barrierDesc;
