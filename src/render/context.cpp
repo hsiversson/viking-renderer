@@ -359,13 +359,13 @@ namespace vkr::Render
 			if (m_RenderTargetUpdate)
 			{
 				//Assemble final list of render targets removing null ones
-				std::vector<D3D12_CPU_DESCRIPTOR_HANDLE*> FinalRT;
+				std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> FinalRT;
 				for (auto Descriptor : NewState.m_RenderTargets)
 				{
-					FinalRT.push_back(&Descriptor->GetHandle());
+					FinalRT.push_back(Descriptor->GetHandle());
 				}
 				
-				m_CurrentD3DCommandList->OMSetRenderTargets(FinalRT.size(),FinalRT.size() ? *FinalRT.data() : nullptr, false, &NewState.m_DepthStencil->GetHandle());
+				m_CurrentD3DCommandList->OMSetRenderTargets(FinalRT.size(),FinalRT.size() ? FinalRT.data() : nullptr, false, &NewState.m_DepthStencil->GetHandle());
 				m_RenderTargetUpdate = false;
 			}
 			

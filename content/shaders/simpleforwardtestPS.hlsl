@@ -14,19 +14,45 @@ SamplerState g_SamplerBilinearClamp : register(s1);
 struct PSInput
 {
     float4 position : SV_POSITION;
+    float4 currPosition : CURR_CLIP;
+    float4 prevPosition : PREV_CLIP;
     float3 worldPosition : WORLD_POSITION;
     float3 normal : NORMAL;
     float4 tangent : TANGENT;
     float2 uv : UV;
     uint instanceID : INSTANCE_ID;
 };
+
+struct PSOutput
+{
+    float4 Color : SV_Target0;
+    float2 Velocity : SV_Target1;
+};
+
 struct InstanceData
 {
 	float4x4 LocalToWorld;
+    float4x4 PrevLocalToWorld;
     uint MaterialID;
 };
 
-float4 MainPS(PSInput input) : SV_TARGET
+float2 CalcVelocity(float4 newPos, float4 oldPos)
+{
+    float2 prevPos = oldPos.xy / oldPos.w;
+    float2 currPos = newPos.xy / newPos.w;
+    
+    currPos -= SceneConstants.CurrentJitter;
+    prevPos -= SceneConstants.PrevJitter;
+    
+    currPos = currPos * float2(0.5f, -0.5f) + 0.5f;
+    prevPos = prevPos * float2(0.5f, -0.5f) + 0.5f;
+    
+    float2 velocity = currPos - prevPos;
+    
+    return velocity;
+}
+
+PSOutput MainPS(PSInput input)
 {
     InstanceData data = GetInstanceData<InstanceData>(BatchInstanceDataOffsetStart, input.instanceID);
     
@@ -102,5 +128,9 @@ float4 MainPS(PSInput input) : SV_TARGET
         lightingResult += ambient + Lo;
     }
     
-    return float4(lightingResult, 1.0f);
+    PSOutput output;
+    output.Color = float4(lightingResult, 1.0f);
+    output.Velocity = CalcVelocity(input.currPosition, input.prevPosition);
+
+    return output;
 }

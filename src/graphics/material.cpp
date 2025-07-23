@@ -209,11 +209,14 @@ namespace vkr::Graphics
 				"struct InstanceData\n"
 				"{\n"
 				"	float4x4 ModelToWorld;\n"
+				"	float4x4 PrevModelToWorld;\n"
 				"	uint MaterialID;\n"
 				"};\n"
 				"struct VSOutput\n"
 				"{\n"
 				"	float4 clipPosition : SV_POSITION;\n"
+				"	float4 currClipPosition : CURR_CLIP;\n"
+				"	float4 prevClipPosition : PREV_CLIP;\n"
 				"	float3 worldPosition : WORLD_POSITION;\n"
 				"	float3 normal : NORMAL;\n"
 				"	float4 tangent : TANGENT;"
@@ -226,6 +229,9 @@ namespace vkr::Graphics
 				"	InstanceData data = GetInstanceData<InstanceData>(BatchInstanceDataOffsetStart, instanceID);"
 				"	output.worldPosition = mul(data.ModelToWorld, float4(input.position0, 1.0f)).xyz;\n"
 				"	output.clipPosition = mul(SceneConstants.ViewProjection, float4(output.worldPosition, 1.0f));\n"
+				"	output.currClipPosition = output.clipPosition;\n"
+				"	float3 prevWorldPosition = mul(data.PrevModelToWorld, float4(input.position0, 1.0f)).xyz;\n"
+				"	output.prevClipPosition = mul(SceneConstants.PrevViewProjection, float4(prevWorldPosition, 1.0f));\n"
 				"	output.normal = input.normal0;\n"
 				"	output.tangent = input.tangent0;\n"
 				"	output.uv = input.uv0;\n"
@@ -244,6 +250,7 @@ namespace vkr::Graphics
 			psoDesc.Default.m_RasterizerState.m_CullMode = m_TwoSided ? Render::FACE_CULL_MODE_NONE : Render::FACE_CULL_MODE_BACK;
 			psoDesc.Default.m_RasterizerState.m_FrontIsCounterClockwise = m_FrontCounterClockwise;
 			psoDesc.Default.m_RenderTargetState.m_Formats[0] = Render::Format::FORMAT_RGB10A2_UNORM;
+			psoDesc.Default.m_RenderTargetState.m_Formats[1] = Render::Format::FORMAT_RG16_FLOAT;
 
 			if (depthOnly)
 			{
@@ -275,6 +282,7 @@ namespace vkr::Graphics
 			{
 				psoDesc.Default.m_BlendState.RTBlends[0].m_Enabled = false;
 			}
+			psoDesc.Default.m_BlendState.RTBlends[1].m_Enabled = false;
 
 			psoMap[vertexLayout] = device->CreatePipelineState(psoDesc);
 		}

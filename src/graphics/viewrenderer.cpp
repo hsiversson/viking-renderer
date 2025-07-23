@@ -58,17 +58,32 @@ namespace vkr::Graphics
 		m_TAAHistoryBuffer = device->CreateTexture(view.GetSceneTexture()->m_TextureDesc);
 		m_TAAResolveBuffer = device->CreateTexture(view.GetSceneTexture()->m_TextureDesc);
 
+		Render::TextureDesc TAAVelocityBufferDesc;
+		TAAVelocityBufferDesc.m_AllowDepthStencil = false;
+		TAAVelocityBufferDesc.m_AllowRenderTarget = true;
+		TAAVelocityBufferDesc.m_ArraySize = 1;
+		TAAVelocityBufferDesc.m_Dimension = Render::ResourceDimension::Texture2D;
+		TAAVelocityBufferDesc.m_Format = Render::FORMAT_RG16_FLOAT;
+		TAAVelocityBufferDesc.m_MipLevels = 1;
+		TAAVelocityBufferDesc.m_Size = view.GetSceneTexture()->m_TextureDesc.m_Size;
+		TAAVelocityBufferDesc.m_Writable = true;
+		m_TAAVelocityBuffer = device->CreateTexture(TAAVelocityBufferDesc);
+
 		Render::TextureViewDesc SRVViewDesc;
 		SRVViewDesc.m_Mip = 0;
 		SRVViewDesc.m_Writable = false;
 		Render::TextureViewDesc UAVViewDesc;
 		SRVViewDesc.m_Mip = 0;
 		SRVViewDesc.m_Writable = true;
+		Render::RenderTargetViewDesc RTViewDesc;
+		RTViewDesc.m_Mip = 0;
 		m_TAAHistorySRVView = device->CreateTextureView(SRVViewDesc, m_TAAHistoryBuffer);
 		m_TAAHistoryUAVView = device->CreateTextureView(UAVViewDesc, m_TAAHistoryBuffer);
 		m_TAAResolveSRVView = device->CreateTextureView(SRVViewDesc, m_TAAResolveBuffer);
 		m_TAAResolveUAVView = device->CreateTextureView(UAVViewDesc, m_TAAResolveBuffer);
-
+		m_TAAVelocityRTView = device->CreateRenderTargetView(RTViewDesc, m_TAAVelocityBuffer);
+		m_TAAVelocitySRVView = device->CreateTextureView(SRVViewDesc, m_TAAVelocityBuffer);
+		
 		m_TAAResolveComputeShader = device->CreateShader("../../../content/shaders/taa.hlsl", L"ResolveCS", vkr::Render::SHADER_STAGE_COMPUTE);
 		Render::PipelineStateDesc taaPSODesc = {};
 		taaPSODesc.m_Type = Render::PIPELINE_STATE_TYPE_COMPUTE;
@@ -179,6 +194,15 @@ namespace vkr::Graphics
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
 			barriers.push_back(barrierDesc);
 		}
+		//Transition to RT the velocity buffer
+		{
+			Render::TextureBarrierDesc barrierDesc;
+			barrierDesc.m_Texture = m_TAAVelocityBuffer.get();
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_RENDER_TARGET;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_RENDER_TARGET;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
+			barriers.push_back(barrierDesc);
+		}
 		//We will only read from DS now that depths are written to
 		{
 			Render::TextureBarrierDesc barrierDesc;
@@ -193,6 +217,7 @@ namespace vkr::Graphics
 
 		std::vector<vkr::Ref<vkr::Render::RenderTargetView>> rendertargets;
 		rendertargets.push_back(sceneRTView);
+		rendertargets.push_back(m_TAAVelocityRTView);
 
 		ctx->ClearRenderTargets(rendertargets.data(), rendertargets.size());
 		//ctx->ClearDepthStencil(view.GetDepthBuffer(), 0.0f);
@@ -217,7 +242,6 @@ namespace vkr::Graphics
 			{
 				uint32_t m_BatchStart;
 				uint32_t RaytracingSceneDescriptor;
-
 			};
 			ConstantData data;
 			data.m_BatchStart = batch.m_StartOffset;
@@ -272,7 +296,9 @@ namespace vkr::Graphics
 			Mat44 InvProjection;
 			Mat44 ViewProjection;
 			Mat44 InvViewProjection;
-			Mat44 ViewProjectionNoJitter;
+			Mat44 PrevViewProjection;
+			Vector2f CurrentJitter;
+			Vector2f PrevJitter;
 			uint32_t InstanceDataBufferDescriptorIndex; // Descriptor index to the global buffer where all instance data for the scene is stored
 			uint32_t InstanceDataOffsetBufferDescriptorIndex;
 			uint32_t MaterialDataBufferDescriptorIndex;
@@ -282,15 +308,19 @@ namespace vkr::Graphics
 			DirectionalLight DirectionalLights[2];
 		};
 
+		PerSceneConstantData perSceneConstantData = {};
+
 		Mat44 ProjectionNoJitter = const_cast<Camera&>(view.GetCamera()).GetProjection();
 		//Select a new jitter offset for TAA for this frame
 		int jitterIdx = (m_CurrentJitterIndex++) % 16;
-		Vector2f jitter = (JitterHaltonSequence[jitterIdx] - 0.5f) / Vector2f(view.GetRenderSize()) * 2.0f;
+		perSceneConstantData.CurrentJitter = (JitterHaltonSequence[jitterIdx] - 0.5f) / Vector2f(view.GetRenderSize()) * 2.0f;
 		Mat44 Projection = ProjectionNoJitter;
-		Projection[8] = jitter.x;
-		Projection[9] = jitter.y;
+		Projection[8] = perSceneConstantData.CurrentJitter.x;
+		Projection[9] = perSceneConstantData.CurrentJitter.y;
+		perSceneConstantData.PrevJitter = m_PrevJitter;
+		m_PrevJitter = perSceneConstantData.CurrentJitter;
 
-		PerSceneConstantData perSceneConstantData = {};
+		
 		Mat43 CamWorld = const_cast<Camera&>(view.GetCamera()).GetWorldTransform();
 		perSceneConstantData.CameraWorldPosition = Vector3f(CamWorld[9], CamWorld[10], CamWorld[11]);
 		perSceneConstantData.View = const_cast<Camera&>(view.GetCamera()).GetView();
@@ -299,7 +329,8 @@ namespace vkr::Graphics
 		perSceneConstantData.InvProjection = Inverse(perSceneConstantData.Projection);
 		perSceneConstantData.ViewProjection = perSceneConstantData.View * perSceneConstantData.Projection;
 		perSceneConstantData.InvViewProjection = Inverse(perSceneConstantData.ViewProjection);
-		perSceneConstantData.ViewProjectionNoJitter = perSceneConstantData.View * ProjectionNoJitter;
+		perSceneConstantData.PrevViewProjection = m_PrevViewProjection;
+		m_PrevViewProjection = perSceneConstantData.ViewProjection;
 		perSceneConstantData.InstanceDataBufferDescriptorIndex = renderData.m_InstanceDataBufferView->GetIndex();
 		perSceneConstantData.InstanceDataOffsetBufferDescriptorIndex = renderData.m_InstanceDataOffsetBufferView->GetIndex();
 		perSceneConstantData.MaterialDataBufferDescriptorIndex = renderData.m_MaterialDataBuffer.GetBufferView()->GetIndex();
@@ -428,6 +459,15 @@ namespace vkr::Graphics
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
 			barriers.push_back(barrierDesc);
 		}
+		//Transition to SRV the velocity texture
+		{
+			Render::TextureBarrierDesc barrierDesc;
+			barrierDesc.m_Texture = m_TAAVelocityBuffer.get();
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_READ;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
+			barriers.push_back(barrierDesc);
+		}
 
 		ctx->BindPSO(m_TAAResolvePSO);
 
@@ -442,12 +482,14 @@ namespace vkr::Graphics
 			uint32_t ResolveTextureDescriptorIndex;
 			uint32_t SceneTextureDescriptorIndex;
 			uint32_t HistoryTextureDescriptorIndex;
+			uint32_t VelocityTextureDescriptorIndex;
 			uint32_t pad0;
 		};
 		ConstantData data;
 		data.ResolveTextureDescriptorIndex = m_TAAResolveUAVView->GetIndex();
 		data.SceneTextureDescriptorIndex = m_SceneTextureSRVView->GetIndex();
 		data.HistoryTextureDescriptorIndex = m_TAAHistorySRVView->GetIndex();
+		data.VelocityTextureDescriptorIndex = m_TAAVelocitySRVView->GetIndex();
 
 		//Per batch buffer
 		auto perbatchbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData), sizeof(data), (void*)&data);

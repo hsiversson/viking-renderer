@@ -19,6 +19,7 @@ namespace vkr::Graphics
 	struct InstanceData
 	{
 		Mat44 m_Transform;
+		Mat44 m_PrevTransform;
 		uint32_t m_MaterialID;
 	};
 

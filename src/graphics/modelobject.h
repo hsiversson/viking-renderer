@@ -18,7 +18,7 @@ namespace vkr::Graphics
 		void CollectRenderObjects(ViewRenderData& renderData) override;
 
 	private:
-		void CollectModelPart(ViewRenderData& renderData, const Model::Part& part, const Mat44& parentWorldTransform);
+		void CollectModelPart(ViewRenderData& renderData, const Model::Part& part, const Mat44& parentWorldTransform, const Mat44& prevParentWorldTransform);
 
 		Ref<Model> m_Model;
 	};

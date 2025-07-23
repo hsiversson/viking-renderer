@@ -7,6 +7,7 @@ namespace vkr::Render
 	class Device;
 	class Shader;
 	class PipelineState;
+	class RenderTargetView;
 	class Texture;
 	class TextureView;
 }
@@ -58,11 +59,16 @@ namespace vkr::Graphics
 		int m_CurrentJitterIndex = 0;
 		Ref<Render::Texture> m_TAAResolveBuffer;
 		Ref<Render::Texture> m_TAAHistoryBuffer;
+		Ref<Render::Texture> m_TAAVelocityBuffer;
 		Ref<Render::TextureView> m_TAAHistorySRVView;
 		Ref<Render::TextureView> m_TAAHistoryUAVView;
 		Ref<Render::TextureView> m_TAAResolveSRVView;
 		Ref<Render::TextureView> m_TAAResolveUAVView;
+		Ref<Render::RenderTargetView> m_TAAVelocityRTView;
+		Ref<Render::TextureView> m_TAAVelocitySRVView;
 		Ref<Render::Shader> m_TAAResolveComputeShader;
 		Ref<Render::PipelineState> m_TAAResolvePSO;
+		Mat44 m_PrevViewProjection = Mat44::Identity();
+		Vector2f m_PrevJitter = Vector2f(0, 0);
 	};
 }

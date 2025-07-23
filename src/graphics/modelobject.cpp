@@ -22,15 +22,18 @@ namespace vkr::Graphics
 
 		for (const auto& part : m_Model->GetParts())
 		{
-			CollectModelPart(renderData, part, GetWorldTransform());
+			CollectModelPart(renderData, part, m_World, m_PrevWorld);
 		}
+
+		m_PrevWorld = m_World;
 	}
 
-	void ModelObject::CollectModelPart(ViewRenderData& renderData, const Model::Part& part, const Mat44& parentWorldTransform)
+	void ModelObject::CollectModelPart(ViewRenderData& renderData, const Model::Part& part, const Mat44& parentWorldTransform, const Mat44& prevParentWorldTransform)
 	{
 		Graphics::RenderObject obj;
 		InstanceData data;
 		data.m_Transform = part.m_LocalTransform * parentWorldTransform;
+		data.m_PrevTransform = part.m_LocalTransform * prevParentWorldTransform;
 		data.m_MaterialID = part.m_Material->GatherMaterialData(renderData.m_MaterialDataBuffer); //TODO
 		uint8_t* genericdata = (uint8_t*) &data;
 		//Serialize instance data into byte buffer
@@ -53,7 +56,7 @@ namespace vkr::Graphics
 
 		for (uint32_t i = 0; i < part.m_ChildParts.size(); ++i)
 		{
-			CollectModelPart(renderData, part.m_ChildParts[i], data.m_Transform);
+			CollectModelPart(renderData, part.m_ChildParts[i], data.m_Transform, data.m_PrevTransform);
 		}
 	}
 

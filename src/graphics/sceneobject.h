@@ -17,7 +17,7 @@ namespace vkr::Graphics
 
 		//Temporal render mechanism
 		virtual void CollectRenderObjects(ViewRenderData& renderdata) {}
-	private:
+	protected:
 		void ComputeTransform();
 
 		WeakPtr<SceneObject> m_Parent;
@@ -26,6 +26,7 @@ namespace vkr::Graphics
 		// like TransformSceneObject in case we want to have objects on the scene that have no spatial representation or meaning
 		Mat43 m_Local = Mat43::Identity();
 		Mat43 m_World = Mat43::Identity();
+		Mat43 m_PrevWorld = Mat43::Identity();
 		bool m_TransformDirty = false; //Lazy evaluation of final transform
 	};
 }
