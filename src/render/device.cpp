@@ -396,11 +396,16 @@ namespace vkr::Render
 	{
 		for (int i = 0; i < PipelineStateType::PIPELINE_STATE_TYPE_COUNT; i++)
 		{
-			auto Signature = MakeRef<RootSignature>();
-			// Constant buffer 0 , space 1: frame wide constants
-			// Constant buffer 1 , space 0: per draw call constants
-			Signature->Init({ PipelineStateType(i), {{0,1},{0,0}} });
-			m_RootSignatures[i] = Signature;
+			RootSignatureDesc desc = {};
+			desc.m_PipelineUsage = PipelineStateType(i);
+			desc.m_NumLocalConstantBuffers = 4;
+
+			m_RootSignatures[i] = MakeRef<RootSignature>();
+			if (!m_RootSignatures[i]->Init(desc))
+			{
+				assert(false && "failed to init root signature.");
+				return;
+			}
 		}
 	}
 

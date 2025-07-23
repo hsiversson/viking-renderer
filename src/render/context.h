@@ -102,8 +102,10 @@ namespace vkr::Render
 
 		//Render state
 		void BindPipelineState(PipelineState* pipelineState);
-		void BindRootConstantBuffers(Buffer** buffers, uint32_t numBuffers, uint64_t* offsets = nullptr);
-		void BindRootConstantBuffer(uint32_t byteSize, const void* data, uint32_t slot);
+		void BindLocalConstantBuffer(Buffer* buffer, uint64_t offset, uint32_t slot);
+		void BindLocalConstantBuffer(uint32_t byteSize, const void* data, uint32_t slot);
+		void BindGlobalConstantBuffer(Buffer* buffer, uint64_t offset, GlobalConstantBufferSlot slot);
+		void BindGlobalConstantBuffer(uint32_t byteSize, const void* data, GlobalConstantBufferSlot slot);
 		void BindVertexBuffers(uint32_t numVertexBuffers, Buffer** vertexBuffers, const uint64_t* offsets = nullptr, const uint32_t* sizes = nullptr, const uint32_t* strides = nullptr);
 		void BindVertexBuffer(Buffer* vertexBuffers, const uint64_t offsets = 0, const uint32_t size = 0, const uint32_t stride = 0);
 		void BindIndexBuffer(Buffer* indexbuffer, const uint64_t offset = 0, const uint32_t size = 0, const Format format = FORMAT_UNKNOWN);
@@ -165,9 +167,13 @@ namespace vkr::Render
 			RootSignature* m_RootSignature = nullptr;
 			PipelineState* m_PipelineState = nullptr;
 			
-			std::array<Buffer*, 2> m_RootConstantBuffers;
-			std::array<uint64_t, 2> m_RootConstantBufferOffsets;
-			std::array<bool, 2> m_RootConstantsDirty;
+			std::array<Buffer*, MAX_NUM_LOCAL_CONSTANT_BUFFERS> m_LocalConstantBuffers;
+			std::array<uint64_t, MAX_NUM_LOCAL_CONSTANT_BUFFERS> m_LocalConstantBufferOffsets;
+			std::array<bool, MAX_NUM_LOCAL_CONSTANT_BUFFERS> m_LocalConstantsDirty;
+
+			std::array<Buffer*, GLOBAL_CONSTANT_BUFFER_COUNT> m_GlobalConstantBuffers;
+			std::array<uint64_t, GLOBAL_CONSTANT_BUFFER_COUNT> m_GlobalConstantBufferOffsets;
+			std::array<bool, GLOBAL_CONSTANT_BUFFER_COUNT> m_GlobalConstantsDirty;
 
 			std::array<RenderTargetView*, MAX_NUM_RENDER_TARGETS> m_RenderTargets;
 			DepthStencilView* m_DepthStencil = nullptr;

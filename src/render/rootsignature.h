@@ -3,16 +3,10 @@
 
 namespace vkr::Render
 {
-	struct ConstantBufferDescription
-	{
-		uint32_t m_Slot = 0;
-		uint32_t m_Space = 0;
-	};
-
 	struct RootSignatureDesc
 	{
-		PipelineStateType m_PipelineUsage;
-		std::vector<ConstantBufferDescription> m_ConstantBuffers;
+		PipelineStateType m_PipelineUsage = PIPELINE_STATE_TYPE_UNKNOWN;
+		uint32_t m_NumLocalConstantBuffers = 0;
 	};
 
 	class RootSignature
@@ -23,9 +17,15 @@ namespace vkr::Render
 
 		bool Init(const RootSignatureDesc& desc);
 		ID3D12RootSignature* GetD3DRootSignature() { return m_RootSignature.Get(); }
-		PipelineStateType GetType() const { return m_Type; }
+
+		uint32_t GetLocalConstantBufferParameterStart() const;
+		uint32_t GetNumLocalConstantBuffers() const;
+
+		uint32_t GetGlobalConstantBufferParameterStart() const;
+
+		PipelineStateType GetType() const { return m_Desc.m_PipelineUsage; }
 	private:
 		ComPtr<ID3D12RootSignature> m_RootSignature;
-		PipelineStateType m_Type;
+		RootSignatureDesc m_Desc;
 	};
 }

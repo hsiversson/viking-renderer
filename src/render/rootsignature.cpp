@@ -6,6 +6,7 @@
 namespace vkr::Render
 {
 	RootSignature::RootSignature()
+		: m_Desc{}
 	{
 
 	}
@@ -17,17 +18,34 @@ namespace vkr::Render
 
 	bool RootSignature::Init(const RootSignatureDesc& desc)
 	{
-		D3D12_ROOT_PARAMETER* RootParams = new D3D12_ROOT_PARAMETER[desc.m_ConstantBuffers.size()];
-		for (int i = 0; i < desc.m_ConstantBuffers.size(); i++)
+		assert(desc.m_NumLocalConstantBuffers <= MAX_NUM_LOCAL_CONSTANT_BUFFERS && "Cannot have more than 4 local constant buffers");
+
+		std::vector<D3D12_ROOT_PARAMETER> rootParams;
+		rootParams.reserve(desc.m_NumLocalConstantBuffers + GLOBAL_CONSTANT_BUFFER_COUNT);
+
+		for (uint32_t i = 0; i < desc.m_NumLocalConstantBuffers; i++)
 		{
-			RootParams[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-			RootParams[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-			RootParams[i].Descriptor.ShaderRegister = desc.m_ConstantBuffers[i].m_Slot;
-			RootParams[i].Descriptor.RegisterSpace = desc.m_ConstantBuffers[i].m_Space;
+			D3D12_ROOT_PARAMETER param = {};
+			param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+			param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+			param.Descriptor.ShaderRegister = i;
+			param.Descriptor.RegisterSpace = 0;
+			rootParams.push_back(param);
 		}
-		D3D12_ROOT_SIGNATURE_DESC Desc;
-		Desc.NumParameters = desc.m_ConstantBuffers.size();
-		Desc.pParameters = RootParams;
+
+		for (uint32_t i = 0; i < GLOBAL_CONSTANT_BUFFER_COUNT; ++i)
+		{
+			D3D12_ROOT_PARAMETER param = {};
+			param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+			param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+			param.Descriptor.ShaderRegister = i;
+			param.Descriptor.RegisterSpace = 1;
+			rootParams.push_back(param);
+		}
+
+		D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
+		rootSignatureDesc.NumParameters = rootParams.size();
+		rootSignatureDesc.pParameters = rootParams.data();
 
 		D3D12_STATIC_SAMPLER_DESC staticSamplerDescs[2];
 		staticSamplerDescs[0] = {};
@@ -50,38 +68,37 @@ namespace vkr::Render
 		staticSamplerDescs[1].RegisterSpace = 0;
 		staticSamplerDescs[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-		Desc.NumStaticSamplers = 2;
-		Desc.pStaticSamplers = staticSamplerDescs;
+		rootSignatureDesc.NumStaticSamplers = 2;
+		rootSignatureDesc.pStaticSamplers = staticSamplerDescs;
 
-		Desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
-		Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
-		Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
+		rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+		rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
+		rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
 
 		switch (desc.m_PipelineUsage)
 		{
 		case PIPELINE_STATE_TYPE_DEFAULT:
-			Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-			Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS;
-			Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS;
-			Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
-			Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
-			Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
+			rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+			rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS;
+			rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS;
+			rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+			rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
+			rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
 			break;
 		case PIPELINE_STATE_TYPE_COMPUTE:
-			Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS;
-			Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS;
-			Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
-			Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
-			Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
-			Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS;
-			Desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+			rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS;
+			rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS;
+			rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+			rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
+			rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
+			rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS;
+			rootSignatureDesc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
 			break;
 		}
 
 		ComPtr<ID3DBlob> SerializedRootSignature;
 		ComPtr<ID3DBlob> ErrorBlob;
-		HRESULT hr = D3D12SerializeRootSignature(&Desc, D3D_ROOT_SIGNATURE_VERSION_1, &SerializedRootSignature, &ErrorBlob);
-		delete[]RootParams;
+		HRESULT hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &SerializedRootSignature, &ErrorBlob);
 		if (FAILED(hr))
 		{
 			OutputDebugStringA((char*)ErrorBlob->GetBufferPointer());
@@ -94,7 +111,22 @@ namespace vkr::Render
 			return false;
 		}
 
-		m_Type = desc.m_PipelineUsage;
+		m_Desc = desc;
 		return true;
+	}
+
+	uint32_t RootSignature::GetLocalConstantBufferParameterStart() const
+	{
+		return 0;
+	}
+
+	uint32_t RootSignature::GetNumLocalConstantBuffers() const
+	{
+		return m_Desc.m_NumLocalConstantBuffers;
+	}
+
+	uint32_t RootSignature::GetGlobalConstantBufferParameterStart() const
+	{
+		return m_Desc.m_NumLocalConstantBuffers;
 	}
 }

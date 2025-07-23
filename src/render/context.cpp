@@ -138,29 +138,34 @@ namespace vkr::Render
 		}
 	}
 
-	void Context::BindRootConstantBuffers(Buffer** buffers, uint32_t numBuffers, uint64_t* offsets)
+	void Context::BindLocalConstantBuffer(Buffer* buffer, uint64_t offset, uint32_t slot)
 	{
-		for (uint32_t i = 0; i < numBuffers; ++i)
-		{
-			m_StateCache.m_RootConstantBuffers[i] = buffers[i];
-			if (offsets)
-			{
-				m_StateCache.m_RootConstantBufferOffsets[i] = offsets[i];
-			}
-			else
-			{
-				m_StateCache.m_RootConstantBufferOffsets[i] = 0;
-			}
-			m_StateCache.m_RootConstantsDirty[i] = true;
-		}
+		m_StateCache.m_LocalConstantBuffers[slot] = buffer;
+		m_StateCache.m_LocalConstantBufferOffsets[slot] = offset;
+		m_StateCache.m_LocalConstantsDirty[slot] = true;
 	}
 
-	void Context::BindRootConstantBuffer(uint32_t byteSize, const void* data, uint32_t slot)
+	void Context::BindLocalConstantBuffer(uint32_t byteSize, const void* data, uint32_t slot)
 	{
 		TempBuffer buf = GetDevice()->GetTempBuffer(TEMP_BUFFER_USAGE_CONSTANTS, byteSize, byteSize, data);
-		m_StateCache.m_RootConstantBuffers[slot] = buf.m_Buffer.get();
-		m_StateCache.m_RootConstantBufferOffsets[slot] = buf.m_Offset;
-		m_StateCache.m_RootConstantsDirty[slot] = true;
+		m_StateCache.m_LocalConstantBuffers[slot] = buf.m_Buffer.get();
+		m_StateCache.m_LocalConstantBufferOffsets[slot] = buf.m_Offset;
+		m_StateCache.m_LocalConstantsDirty[slot] = true;
+	}
+
+	void Context::BindGlobalConstantBuffer(Buffer* buffer, uint64_t offset, GlobalConstantBufferSlot slot)
+	{
+		m_StateCache.m_GlobalConstantBuffers[slot] = buffer;
+		m_StateCache.m_GlobalConstantBufferOffsets[slot] = offset;
+		m_StateCache.m_GlobalConstantsDirty[slot] = true;
+	}
+
+	void Context::BindGlobalConstantBuffer(uint32_t byteSize, const void* data, GlobalConstantBufferSlot slot)
+	{
+		TempBuffer buf = GetDevice()->GetTempBuffer(TEMP_BUFFER_USAGE_CONSTANTS, byteSize, byteSize, data);
+		m_StateCache.m_GlobalConstantBuffers[slot] = buf.m_Buffer.get();
+		m_StateCache.m_GlobalConstantBufferOffsets[slot] = buf.m_Offset;
+		m_StateCache.m_GlobalConstantsDirty[slot] = true;
 	}
 
 	void Context::TextureBarrier(uint32_t numBarriers, const TextureBarrierDesc* barrierDescs)
@@ -354,25 +359,49 @@ namespace vkr::Render
 			m_StateCache.m_TopologyDirty = false;
 		}
 
-		for (int i = 0; i < m_StateCache.m_RootConstantBuffers.size(); i++)
+		const uint32_t localConstantsParamStartIndex = m_StateCache.m_RootSignature->GetLocalConstantBufferParameterStart();
+		const uint32_t numLocalConstantsToLookFor = m_StateCache.m_RootSignature->GetNumLocalConstantBuffers();
+		for (int i = 0; i < numLocalConstantsToLookFor; i++)
 		{
-			if (m_StateCache.m_RootConstantsDirty[i])
+			if (m_StateCache.m_LocalConstantsDirty[i])
 			{
-				const Buffer* buffer = m_StateCache.m_RootConstantBuffers[i];
-				const uint64_t offset = m_StateCache.m_RootConstantBufferOffsets[i];
+				const Buffer* buffer = m_StateCache.m_LocalConstantBuffers[i];
+				const uint64_t offset = m_StateCache.m_LocalConstantBufferOffsets[i];
 				const D3D12_GPU_VIRTUAL_ADDRESS addr = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
+				if (m_StateCache.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE)
+				{
+					m_CurrentD3DCommandList->SetComputeRootConstantBufferView(localConstantsParamStartIndex + i, addr);
+				}
+				else
+				{
+					m_CurrentD3DCommandList->SetGraphicsRootConstantBufferView(localConstantsParamStartIndex + i, addr);
+				}
+
+				m_StateCache.m_LocalConstantsDirty[i] = false;
+			}
+		}
+		
+		const uint32_t globalConstantsParamStartIndex = m_StateCache.m_RootSignature->GetGlobalConstantBufferParameterStart();
+		for (int i = 0; i < m_StateCache.m_GlobalConstantBuffers.size(); i++)
+		{
+			if (m_StateCache.m_GlobalConstantsDirty[i])
+			{
+				const Buffer* buffer = m_StateCache.m_GlobalConstantBuffers[i];
+				const uint64_t offset = m_StateCache.m_GlobalConstantBufferOffsets[i];
+				const D3D12_GPU_VIRTUAL_ADDRESS addr = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
+
 
 				//Aditional buffer bound or different buffer bound at a previously bound slot
 				if (m_StateCache.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE)
 				{
-					m_CurrentD3DCommandList->SetComputeRootConstantBufferView(i, addr);
+					m_CurrentD3DCommandList->SetComputeRootConstantBufferView(globalConstantsParamStartIndex + i, addr);
 				}
 				else
 				{
-					m_CurrentD3DCommandList->SetGraphicsRootConstantBufferView(i, addr);
+					m_CurrentD3DCommandList->SetGraphicsRootConstantBufferView(globalConstantsParamStartIndex + i, addr);
 				}
 
-				m_StateCache.m_RootConstantsDirty[i] = false;
+				m_StateCache.m_GlobalConstantsDirty[i] = false;
 			}
 		}
 
@@ -559,15 +588,15 @@ namespace vkr::Render
 		m_RootSignature = nullptr;
 		m_PipelineState = nullptr;
 
-		m_RootConstantBuffers.fill(nullptr);
-		m_RootConstantBufferOffsets.fill(0);
+		m_LocalConstantBuffers.fill(nullptr);
+		m_LocalConstantBufferOffsets.fill(0);
 
 		m_RenderTargets.fill(nullptr);
 		m_DepthStencil = nullptr;
 
 		m_RootSignatureDirty = false;
 		m_PipelineStateDirty = false;
-		m_RootConstantsDirty.fill(false);
+		m_LocalConstantsDirty.fill(false);
 		m_VertexBuffersDirty = false;
 		m_IndexBufferDirty = false;
 		m_TopologyDirty = false;

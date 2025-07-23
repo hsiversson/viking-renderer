@@ -219,4 +219,15 @@ namespace vkr::Render
 
 		RESOURCE_STATE_LAYOUT_COUNT
 	};
+
+	enum GlobalConstantBufferSlot : uint8_t
+	{
+		GLOBAL_CONSTANT_BUFFER_SCENE = 0,
+		// GLOBAL_CONSTANT_BUFFER_ENVIRONMENT = 1,
+		// GLOBAL_CONSTANT_BUFFER_cool_shit = 2,??
+
+		GLOBAL_CONSTANT_BUFFER_COUNT
+	};
+
+	static constexpr uint32_t MAX_NUM_LOCAL_CONSTANT_BUFFERS = 4;
 }

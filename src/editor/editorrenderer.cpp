@@ -224,7 +224,7 @@ namespace vkr::Editor
 				constants.VertexOffset.x = -1.0f - clipOffset.x * constants.VertexScale.x;
 				constants.VertexOffset.y = 1.0f - clipOffset.y * constants.VertexScale.y;
 				constants.TextureDescriptorIndex = cmd.TextureId;
-				ctx->BindRootConstantBuffer(sizeof(constants), &constants, 1);
+				ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
 
 				ctx->DrawIndexed(cmd.ElemCount, cmd.IdxOffset, cmd.VtxOffset);
 			}

@@ -140,6 +140,7 @@ namespace vkr::Graphics
 		}
 		
 		ctx->BindPipelineState(m_SkyPSO.get());
+		ctx->BindGlobalConstantBuffer(renderData.m_PerSceneConstantBuffer.m_Buffer.get(), renderData.m_PerSceneConstantBuffer.m_Offset, Render::GLOBAL_CONSTANT_BUFFER_SCENE);
 
 		struct alignas(16) ConstantData
 		{
@@ -149,16 +150,7 @@ namespace vkr::Graphics
 		ConstantData data;
 		data.SceneTextureDescriptor = view.GetSceneTextureView()->GetIndex();
 		data.DepthTextureDescriptor = view.GetDepthBufferTextureView()->GetIndex();
-
-		//Per batch buffer
-		auto perBatchBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData), sizeof(data), (void*)&data);
-		std::vector<Render::Buffer*> buffers;
-		std::vector<uint64_t> offsets;
-		buffers.push_back(renderData.m_PerSceneConstantBuffer.m_Buffer.get());
-		offsets.push_back(renderData.m_PerSceneConstantBuffer.m_Offset);
-		buffers.push_back(perBatchBuffer.m_Buffer.get());
-		offsets.push_back(perBatchBuffer.m_Offset);
-		ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
+		ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
 		uint32_t GroupsX = ceil(view.GetRenderSize().x / 8);
 		uint32_t GroupsY = ceil(view.GetRenderSize().y / 8);
@@ -222,6 +214,7 @@ namespace vkr::Graphics
 			ctx->BindIndexBuffer(batch.m_Mesh->GetIndexBuffer().get());
 			ctx->SetPrimitiveTopology(batch.m_Mesh->GetTopology());
 			ctx->BindPipelineState(batch.m_PSO.get());
+			ctx->BindGlobalConstantBuffer(renderData.m_PerSceneConstantBuffer.m_Buffer.get(), renderData.m_PerSceneConstantBuffer.m_Offset, Render::GLOBAL_CONSTANT_BUFFER_SCENE);
 
 			struct alignas(16) ConstantData
 			{
@@ -231,16 +224,8 @@ namespace vkr::Graphics
 			ConstantData data;
 			data.m_BatchStart = batch.m_StartOffset;
 			data.RaytracingSceneDescriptor = renderData.m_RaytracingTLAS->GetIndex();
+			ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
-			//Per batch buffer
-			auto perbatchbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData), sizeof(data), (void*)&data);
-			std::vector<Render::Buffer*> buffers;
-			std::vector<uint64_t> offsets;
-			buffers.push_back(renderData.m_PerSceneConstantBuffer.m_Buffer.get());
-			offsets.push_back(renderData.m_PerSceneConstantBuffer.m_Offset);
-			buffers.push_back(perbatchbuffer.m_Buffer.get());
-			offsets.push_back(perbatchbuffer.m_Offset);
-			ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
 			ctx->DrawIndexedInstanced(batch.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount, batch.m_Count);
 		}
 	}
@@ -387,6 +372,7 @@ namespace vkr::Graphics
 			ctx->BindIndexBuffer(batch.m_Mesh->GetIndexBuffer().get());
 			ctx->SetPrimitiveTopology(batch.m_Mesh->GetTopology());
 			ctx->BindPipelineState(batch.m_PSO.get());
+			ctx->BindGlobalConstantBuffer(renderData.m_PerSceneConstantBuffer.m_Buffer.get(), renderData.m_PerSceneConstantBuffer.m_Offset, Render::GLOBAL_CONSTANT_BUFFER_SCENE);
 
 			struct alignas(16) ConstantData
 			{
@@ -396,16 +382,8 @@ namespace vkr::Graphics
 			ConstantData data;
 			data.m_BatchStart = batch.m_StartOffset;
 			data.RaytracingSceneDescriptor = renderData.m_RaytracingTLAS->GetIndex();
+			ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
-			//Per batch buffer
-			auto perbatchbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData), sizeof(data), (void*)&data);
-			std::vector<Render::Buffer*> buffers;
-			std::vector<uint64_t> offsets;
-			buffers.push_back(renderData.m_PerSceneConstantBuffer.m_Buffer.get());
-			offsets.push_back(renderData.m_PerSceneConstantBuffer.m_Offset);
-			buffers.push_back(perbatchbuffer.m_Buffer.get());
-			offsets.push_back(perbatchbuffer.m_Offset);
-			ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
 			ctx->DrawIndexedInstanced(batch.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount, batch.m_Count);
 		}
 	}
@@ -455,6 +433,7 @@ namespace vkr::Graphics
 		ctx->TextureBarrier(barriers.size(), barriers.data());
 
 		ctx->BindPipelineState(m_TAAResolvePSO.get());
+		ctx->BindGlobalConstantBuffer(renderData.m_PerSceneConstantBuffer.m_Buffer.get(), renderData.m_PerSceneConstantBuffer.m_Offset, Render::GLOBAL_CONSTANT_BUFFER_SCENE);
 
 		struct alignas(16) ConstantData
 		{
@@ -469,16 +448,7 @@ namespace vkr::Graphics
 		data.SceneTextureDescriptorIndex = view.GetSceneTextureView()->GetIndex();
 		data.HistoryTextureDescriptorIndex = m_TAAHistorySRVView->GetIndex();
 		data.VelocityTextureDescriptorIndex = m_TAAVelocitySRVView->GetIndex();
-
-		//Per batch buffer
-		auto perbatchbuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(ConstantData), sizeof(data), (void*)&data);
-		std::vector<Render::Buffer*> buffers;
-		std::vector<uint64_t> offsets;
-		buffers.push_back(renderData.m_PerSceneConstantBuffer.m_Buffer.get());
-		offsets.push_back(renderData.m_PerSceneConstantBuffer.m_Offset);
-		buffers.push_back(perbatchbuffer.m_Buffer.get());
-		offsets.push_back(perbatchbuffer.m_Offset);
-		ctx->BindRootConstantBuffers(buffers.data(), buffers.size(), offsets.data());
+		ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
 		ctx->DispatchThreads(Vector3u(view.GetRenderSize().x, view.GetRenderSize().y, 1));
 
