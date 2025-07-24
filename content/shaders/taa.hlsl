@@ -54,7 +54,7 @@ void ResolveCS(uint3 dispatchThreadID:SV_DispatchThreadID, uint3 groupID : SV_Gr
     
         float3 historyColor = HistoryTexture.Sample(g_SamplerBilinearClamp, prevPixelPos).rgb;
     
-    //Neighborhood clamping.
+        //Neighborhood clamping.
         float3 neighborhoodMin = 100000;
         float3 neighborhoodMax = -100000;
         for (int x = -1; x <= 1; ++x)
