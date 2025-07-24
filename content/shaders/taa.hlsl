@@ -71,7 +71,7 @@ void ResolveCS(uint3 dispatchThreadID:SV_DispatchThreadID, uint3 groupID : SV_Gr
         }
     }
     const float3 historyColorClamped = clamp(historyColor, neighborhoodMin, neighborhoodMax);
-    
+    //We could have branched based on this bool but as with dynamic branching well be executing anyway all the previous instructions then its actually better just change the blend factor
     bool prevInsideScreen = all(prevPixelPos == saturate(prevPixelPos));
     const float modulationFactor = prevInsideScreen ? 0.9f : 0.0;
     finalColor = lerp(sceneColor, historyColorClamped, modulationFactor);
