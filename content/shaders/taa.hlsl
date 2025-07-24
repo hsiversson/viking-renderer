@@ -43,33 +43,42 @@ void ResolveCS(uint3 dispatchThreadID:SV_DispatchThreadID, uint3 groupID : SV_Gr
     const float2 uv = (dispatchThreadID.xy + 0.5) / float2(width,height);
     
     const float2 velocity = VelocityTexture.Sample(g_SamplerPointClamp, uv);
-    float2 prevPixelPos = uv - velocity;
+    float2 prevPixelPos = uv + velocity;
+    bool isValidReprojection = all(prevPixelPos >= 0.0) && all(prevPixelPos <= 1.0);
     
     const float3 sceneColor = SceneTexture[dispatchThreadID.xy].rgb;
-    float3 historyColor = HistoryTexture.Sample(g_SamplerBilinearClamp, prevPixelPos).rgb;
+    
+    float3 finalColor;
+    if (isValidReprojection)
+    {
+    
+        float3 historyColor = HistoryTexture.Sample(g_SamplerBilinearClamp, prevPixelPos).rgb;
     
     //Neighborhood clamping.
-    float3 neighborhoodMin = 100000;
-    float3 neighborhoodMax = -100000;
-    for (int x = -1; x <= 1; ++x)
-    {
-        for (int y = -1; y <= 1; ++y)
+        float3 neighborhoodMin = 100000;
+        float3 neighborhoodMax = -100000;
+        for (int x = -1; x <= 1; ++x)
         {
-            const int2 offset = int2(x, y);
-            const uint2 tileIndex = groupThreadID.xy + TILE_BORDER + offset;
-            const uint cacheIdx = tileIndex.y * TILE_SIZE + tileIndex.x;
+            for (int y = -1; y <= 1; ++y)
+            {
+                const int2 offset = int2(x, y);
+                const uint2 tileIndex = groupThreadID.xy + TILE_BORDER + offset;
+                const uint cacheIdx = tileIndex.y * TILE_SIZE + tileIndex.x;
 
-            float3 color = GroupColorCache[cacheIdx];
-            neighborhoodMin = min(neighborhoodMin, color);
-            neighborhoodMax = max(neighborhoodMax, color);
+                float3 color = GroupColorCache[cacheIdx];
+                neighborhoodMin = min(neighborhoodMin, color);
+                neighborhoodMax = max(neighborhoodMax, color);
 
+            }
         }
+        float3 historyColorClamped = clamp(historyColor, neighborhoodMin, neighborhoodMax);
+        const float modulationFactor = 0.9f;
+        finalColor = lerp(sceneColor, historyColorClamped, modulationFactor);
     }
-    float3 historyColorClamped = clamp(historyColor, neighborhoodMin, neighborhoodMax);
-    
-    const float modulationFactor = 0.9f;
-    
-    float3 finalColor = lerp(sceneColor, historyColorClamped, modulationFactor);
+    else
+    {
+        finalColor = sceneColor;
+    }
     
     ResolveTexture[dispatchThreadID.xy] = float4(finalColor, 1.0f);
 }
