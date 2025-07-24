@@ -36,7 +36,7 @@ namespace vkr::Render
 		std::queue<PendingResourceDestruction> m_PendingDeletes;
 		Event m_HasWorkEvent;
 
-		std::thread m_Thread;
+		Thread m_Thread;
 		bool m_IsRunning;
 
 		static RenderResourceDestructionQueue* g_Instance;

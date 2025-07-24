@@ -14,6 +14,7 @@
 namespace vkr::Render
 {
 	extern thread_local Context* g_CurrentContext = nullptr;
+	extern thread_local Context* g_PrevContext = nullptr;
 
 	Context::Context(ContextType type, const Ref<CommandQueue>& commandQueue)
 		: m_CommandQueue(commandQueue)
@@ -34,6 +35,8 @@ namespace vkr::Render
 		m_CurrentD3DCommandList = m_CommandList->GetD3DCommandList();
 		m_CurrentD3DCommandList->QueryInterface(IID_PPV_ARGS(&m_CurrentD3DCommandList7));
 		m_CommandList->Open();
+
+		g_PrevContext = g_CurrentContext ? g_CurrentContext : nullptr;
 		g_CurrentContext = this;
 		m_NumRecordedCommands = 0;
 
@@ -71,7 +74,7 @@ namespace vkr::Render
 		m_CurrentD3DCommandList7 = nullptr;
 		m_CurrentD3DCommandList = nullptr;
 		m_CommandList = nullptr;
-		g_CurrentContext = nullptr;
+		g_CurrentContext = g_PrevContext;
 	}
 
 	Fence Context::Flush()
@@ -613,7 +616,7 @@ namespace vkr::Render
 		return g_CurrentContext;
 	}
 
-	void Context::DrawState::Clear()
+	void Context::RenderStateCache::Clear()
 	{
 		m_Topology = PRIMITIVE_TOPOLOGY_UNDEFINED;
 

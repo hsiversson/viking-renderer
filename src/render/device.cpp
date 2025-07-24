@@ -429,7 +429,6 @@ namespace vkr::Render
 		}
 
 		m_RaytracingBuildQueue = MakeRef<CommandQueue>(CONTEXT_TYPE_COMPUTE);
-		m_RaytracingBuildPool = MakeRef<CommandListPool>(CONTEXT_TYPE_COMPUTE);
 		m_RaytracingBuildContext = MakeRef<Context>(CONTEXT_TYPE_COMPUTE, m_RaytracingBuildQueue);
 	}
 

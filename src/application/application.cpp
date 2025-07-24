@@ -37,6 +37,8 @@ namespace vkr
 
 	ReturnCode Application::Launch(const ApplicationInitDesc& desc)
 	{
+		Thread::RegisterMainThread();
+
 		ReturnCode result = Init(desc);
 		if (result != RETURN_OK)
 			return result;

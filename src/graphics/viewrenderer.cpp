@@ -97,8 +97,7 @@ namespace vkr::Graphics
 	{
 		View* viewPtr = &view; 
 		viewPtr->BeginRender();
-		Render::QueueGraphicsTask([this, viewPtr]() mutable { UpdateSceneData(*viewPtr); });
-		Render::QueueGraphicsTask([this, viewPtr]() mutable { UpdateRtScene(*viewPtr); });
+		Render::QueueGraphicsTask([this, viewPtr]() mutable { PreRenderUpdates(*viewPtr); });
 		Render::QueueGraphicsTask([this, viewPtr]() mutable { DepthPrepass(*viewPtr); });
 		Render::QueueGraphicsTask([this, viewPtr]() mutable { ForwardPass(*viewPtr); });
 		Render::QueueGraphicsTask([this, viewPtr]() mutable { RenderSky(*viewPtr); });
@@ -229,11 +228,17 @@ namespace vkr::Graphics
 		}
 	}
 
-	void ViewRenderer::UpdateSceneData(View& view)
+	void ViewRenderer::PreRenderUpdates(View& view)
 	{
 		ViewRenderData& renderData = view.GetMutableRenderData();
 
 		renderData.m_MaterialDataBuffer.PrepareBuffer();
+
+		Ref<Render::Buffer> rtTLAS = Render::GetDevice()->CreateTLAS(renderData.m_RaytracingInstances.size(), renderData.m_RaytracingInstances.data());
+
+		Render::BufferViewDesc rtTLASDesc = {};
+		rtTLASDesc.m_Usage = Render::BUFFER_VIEW_USAGE_RAYTRACING_ACCELERATION_STRUCTURE;
+		renderData.m_RaytracingTLAS = Render::GetDevice()->CreateBufferView(rtTLASDesc, rtTLAS);
 
 		//Fill in the instance data (later we can just keep this as a normal buffer instead of temp that we need to rebuild per frame)
 		auto instanceDataBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, renderData.m_InstanceData.size(), renderData.m_InstanceData.size(), renderData.m_InstanceData.data());
@@ -320,17 +325,6 @@ namespace vkr::Graphics
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 		ctx->ClearStateCache();
 		ctx->BindGlobalConstantBuffer(renderData.m_PerSceneConstantBuffer.m_Buffer.get(), renderData.m_PerSceneConstantBuffer.m_Offset, Render::GLOBAL_CONSTANT_BUFFER_SCENE);
-	}
-
-	void ViewRenderer::UpdateRtScene(View& view)
-	{
-		ViewRenderData& renderData = view.GetMutableRenderData();
-
-		Ref<Render::Buffer> rtTLAS = Render::GetDevice()->CreateTLAS(renderData.m_RaytracingInstances.size(), renderData.m_RaytracingInstances.data());
-
-		Render::BufferViewDesc rtTLASDesc = {};
-		rtTLASDesc.m_Usage = Render::BUFFER_VIEW_USAGE_RAYTRACING_ACCELERATION_STRUCTURE;
-		renderData.m_RaytracingTLAS = Render::GetDevice()->CreateBufferView(rtTLASDesc, rtTLAS);
 	}
 
 	void ViewRenderer::UpdateParticles(View& view)

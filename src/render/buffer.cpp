@@ -70,8 +70,11 @@ namespace vkr::Render
 		{
 			memcpy(m_DataPtr + offset, data, byteSize);
 		}
-		else if (false /*IsRenderThread*/)
+		else if (Thread::IsRenderThread())
 		{
+			Context* ctx = Context::GetCurrentContext();
+			TempBuffer staging = GetDevice()->GetTempBuffer(TEMP_BUFFER_USAGE_STAGING, byteSize, byteSize, data);
+			Context::GetCurrentContext()->CopyBuffer(this, offset, staging.m_Buffer.get(), staging.m_Offset, byteSize);
 		}
 		else
 		{
@@ -81,19 +84,8 @@ namespace vkr::Render
 				Context::GetCurrentContext()->CopyBuffer(this, offset, staging.m_Buffer.get(), staging.m_Offset, byteSize);
 				});
 
-			event->Wait();
+			event->Wait(); // TODO: do we really need to wait here?
 		}
-		//else if (isRenderThread)
-		//{
-		//	// Create staging buffer
-		//	// map staging buffer and memcpy data
-		//	// run copy operation on a Context and execute (potentially wait as well)
-		//	// discard staging buffer
-		//}
-		//else
-		//{
-		//	// Launch copy task on render thread, wait for event?
-		//}
 	}
 
 	TempBufferAllocator::TempBufferAllocator(TempBufferUsage usage, uint64_t bufferSizeBytes, uint64_t alignment)

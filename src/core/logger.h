@@ -1,10 +1,7 @@
 #pragma once
 
 #if ENABLE_LOGGING
-#include <thread>
-#include <mutex>
-#include <queue>
-#include <format>
+#include "thread.h"
 #include "core/event.h"
 
 namespace vkr
@@ -43,7 +40,7 @@ namespace vkr
 		void LoggingFunc();
 
 		std::mutex m_Mutex;
-		std::thread m_Thread;
+		Thread m_Thread;
 		std::queue<PendingMessage> m_PendingMessages;
 		Event m_HasWorkEvent;
 

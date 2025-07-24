@@ -19,5 +19,7 @@
 #include <thread>
 #include <fstream>
 #include <sstream>
+#include <functional>
+#include <format>
 
 #include "core/common.h"

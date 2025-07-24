@@ -7,6 +7,18 @@ namespace vkr::Render
 		: m_IsRunning(false)
 		, m_ContextType(type)
 	{
+		switch (m_ContextType)
+		{
+		case CONTEXT_TYPE_GRAPHICS:
+			m_Thread.SetName("Graphics Render Thread");
+			break;
+		case CONTEXT_TYPE_COMPUTE:
+			m_Thread.SetName("Compute Render Thread");
+			break;
+		case CONTEXT_TYPE_COPY:
+			m_Thread.SetName("Copy Render Thread");
+			break;
+		}
 	}
 
 	RenderThread::~RenderThread()
@@ -18,7 +30,7 @@ namespace vkr::Render
 		if (!m_IsRunning)
 		{
 			m_IsRunning = true;
-			m_Thread = std::thread(&RenderThread::ThreadFunc, this);
+			m_Thread.Start(&RenderThread::ThreadFunc, this);
 		}
 	}
 
@@ -28,7 +40,7 @@ namespace vkr::Render
 		{
 			m_IsRunning = false;
 			m_HasWorkEvent.Signal();
-			m_Thread.join();
+			m_Thread.Wait();
 		}
 	}
 
@@ -53,6 +65,7 @@ namespace vkr::Render
 
 	void RenderThread::ThreadFunc()
 	{
+		Thread::RegisterRenderThread();
 		Ref<Context> ctx = GetDevice()->GetContext(m_ContextType);
 		while (m_IsRunning)
 		{

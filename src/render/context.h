@@ -150,7 +150,7 @@ namespace vkr::Render
 		static Context* GetCurrentContext();
 
 	private:
-		struct DrawState
+		struct RenderStateCache
 		{
 			void Clear();
 
@@ -201,7 +201,7 @@ namespace vkr::Render
 		std::vector<Ref<CommandList>> m_CommandListsToSubmit;
 		Fence m_LastFlushEvent;
 
-		DrawState m_StateCache;
+		RenderStateCache m_StateCache;
 
 		const ContextType m_Type;
 	};

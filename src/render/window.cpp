@@ -12,7 +12,7 @@ namespace vkr::Render
 	{
 		SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
-		RECT rc = { 0, 0, size.x, size.y };
+		RECT rc = { 0, 0, (LONG)size.x, (LONG)size.y };
 		AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 		Vector2u actualSize = { rc.right - rc.left, rc.bottom - rc.top };
 

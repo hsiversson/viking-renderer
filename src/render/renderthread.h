@@ -1,8 +1,5 @@
 #pragma once
-#include <functional>
-#include <thread>
-#include <mutex>
-#include <queue>
+#include "core/thread.h"
 #include "context.h"
 #include "rendertaskevent.h"
 
@@ -40,7 +37,7 @@ namespace vkr::Render
 		std::queue<RenderTask> m_PendingTasks;
 		Event m_HasWorkEvent;
 
-		std::thread m_Thread;
+		Thread m_Thread;
 		bool m_IsRunning;
 
 		const ContextType m_ContextType;

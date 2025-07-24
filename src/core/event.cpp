@@ -29,7 +29,7 @@ namespace vkr
 		{
 			if (m_Signalled.load(std::memory_order_acquire))
 				return true;
-			std::this_thread::yield();
+			Thread::Yield();
 		}
 
 		std::unique_lock<std::mutex> lock(m_Mutex);

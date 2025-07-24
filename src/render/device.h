@@ -85,7 +85,6 @@ namespace vkr::Render
 
 		Ref<Context> m_RaytracingBuildContext;
 		Ref<CommandQueue> m_RaytracingBuildQueue;
-		Ref<CommandListPool> m_RaytracingBuildPool;
 
 		UniquePtr<ShaderCompiler> m_ShaderCompiler;
 		Ref<RootSignature> m_RootSignatures[PIPELINE_STATE_TYPE_COUNT];

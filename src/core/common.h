@@ -24,3 +24,4 @@ namespace vkr
 #include "random.h"
 #include "utils/str.h"
 #include "logger.h"
+#include "thread.h"

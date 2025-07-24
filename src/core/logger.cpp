@@ -40,14 +40,15 @@ namespace vkr
 	Logger::Logger()
 	{
 		m_IsActive = true;
-		m_Thread = std::thread(&Logger::LoggingFunc, this);
+		m_Thread.SetName("Logger Thread");
+		m_Thread.Start(&Logger::LoggingFunc, this);
 	}
 
 	Logger::~Logger()
 	{
 		m_IsActive = false; 
 		m_HasWorkEvent.Signal();
-		m_Thread.join();
+		m_Thread.Wait();
 	}
 
 	void Logger::LoggingFunc()

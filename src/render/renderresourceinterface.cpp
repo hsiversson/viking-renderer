@@ -15,13 +15,14 @@ namespace vkr::Render
 	{
 		g_Instance = nullptr;
 		Stop();
-		m_Thread.join();
+		m_Thread.Wait();
 	}
 
 	void RenderResourceDestructionQueue::Start()
 	{
 		m_IsRunning = true;
-		m_Thread = std::thread(&RenderResourceDestructionQueue::ThreadFunc, this);
+		m_Thread.SetName("Render Resource Destruction Queue");
+		m_Thread.Start(&RenderResourceDestructionQueue::ThreadFunc, this);
 	}
 
 	void RenderResourceDestructionQueue::Stop()
