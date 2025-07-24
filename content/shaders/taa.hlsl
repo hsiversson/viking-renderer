@@ -44,46 +44,38 @@ void ResolveCS(uint3 dispatchThreadID:SV_DispatchThreadID, uint3 groupID : SV_Gr
     
     const float2 velocity = VelocityTexture.Sample(g_SamplerPointClamp, uv);
     float2 prevPixelPos = uv + velocity;
-    bool isValidReprojection = all(prevPixelPos >= 0.0) && all(prevPixelPos <= 1.0);
     
+    float3 sceneColor;
     float3 finalColor;
-    if (isValidReprojection)
-    {
-        float3 sceneColor;
-        const float3 historyColor = HistoryTexture.Sample(g_SamplerBilinearClamp, prevPixelPos).rgb;
+    const float3 historyColor = HistoryTexture.Sample(g_SamplerBilinearClamp, prevPixelPos).rgb;
     
-        //Neighborhood clamping.
-        float3 neighborhoodMin = 100000;
-        float3 neighborhoodMax = -100000;
-        for (int x = -1; x <= 1; ++x)
-        {
-            for (int y = -1; y <= 1; ++y)
-            {
-                const int2 offset = int2(x, y);
-                const uint2 tileIndex = groupThreadID.xy + TILE_BORDER + offset;
-                const uint cacheIdx = tileIndex.y * TILE_SIZE + tileIndex.x;
-
-                float3 color = GroupColorCache[cacheIdx];
-                if(x==0 && y == 0)
-                {
-                    sceneColor = color;
-                }
-                neighborhoodMin = min(neighborhoodMin, color);
-                neighborhoodMax = max(neighborhoodMax, color);
-
-            }
-        }
-        const float3 historyColorClamped = clamp(historyColor, neighborhoodMin, neighborhoodMax);
-        const float modulationFactor = 0.9f;
-        finalColor = lerp(sceneColor, historyColorClamped, modulationFactor);
-    }
-    else
+    //Neighborhood clamping.
+    float3 neighborhoodMin = 100000;
+    float3 neighborhoodMax = -100000;
+    for (int x = -1; x <= 1; ++x)
     {
-        const uint2 colorTileIndex = groupThreadID.xy + TILE_BORDER;
-        const uint colorCacheIdx = colorTileIndex.y * TILE_SIZE + colorTileIndex.x;
-        const float3 sceneColor = GroupColorCache[colorCacheIdx];
-        finalColor = sceneColor;
+        for (int y = -1; y <= 1; ++y)
+        {
+            const int2 offset = int2(x, y);
+            const uint2 tileIndex = groupThreadID.xy + TILE_BORDER + offset;
+            const uint cacheIdx = tileIndex.y * TILE_SIZE + tileIndex.x;
+
+            float3 color = GroupColorCache[cacheIdx];
+            if(x==0 && y == 0)
+            {
+                sceneColor = color;
+            }
+            neighborhoodMin = min(neighborhoodMin, color);
+            neighborhoodMax = max(neighborhoodMax, color);
+
+        }
     }
+    const float3 historyColorClamped = clamp(historyColor, neighborhoodMin, neighborhoodMax);
+    
+    bool prevInsideScreen = all(prevPixelPos == saturate(prevPixelPos));
+    const float modulationFactor = prevInsideScreen ? 0.9f : 0.0;
+    finalColor = lerp(sceneColor, historyColorClamped, modulationFactor);
+    
     
     ResolveTexture[dispatchThreadID.xy] = float4(finalColor, 1.0f);
 }
