@@ -33,6 +33,7 @@ namespace vkr
 	{
 		m_Scene->DestroyView(m_View);
 		Logger::Destroy();
+		Render::Window::UnregisterWindowClass();
 	}
 
 	ReturnCode Application::Launch(const ApplicationInitDesc& desc)
@@ -54,7 +55,22 @@ namespace vkr
 	{
 		CommandLine::Parse(__argc, __argv);
 
-		m_Window = MakeRef<Render::Window>(desc.m_WindowTitle.c_str(), desc.m_Resolution, desc.m_ShowCmd);
+		Render::Window::RegisterWindowClass(nullptr);
+
+		Render::CreateWindowDesc windowDesc = {};
+		windowDesc.m_Size = desc.m_Resolution;
+		windowDesc.m_Position = Vector2u(100, 100);
+		windowDesc.m_ShowCmd = desc.m_ShowCmd;
+		windowDesc.m_WindowName = desc.m_WindowTitle.c_str();
+		windowDesc.m_IsResizable = true;
+		windowDesc.m_IsDecorated = true;
+		windowDesc.m_IsMaximized = false;
+
+		m_Window = MakeRef<Render::Window>();
+		if (!m_Window->Init(windowDesc))
+		{
+			return RETURN_ERROR;
+		}
 
 		m_InputManager = MakeUnique<InputManager>();
 

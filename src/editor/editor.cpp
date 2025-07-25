@@ -63,12 +63,12 @@ namespace vkr::Editor
 
 		if (m_InputManager)
 		{
-			const Vector2f mousePos = m_InputManager->GetMousePosition();
+			const Vector2u mousePos = m_InputManager->GetMousePosition();
 			io.MousePos.x = mousePos.x;
 			io.MousePos.y = mousePos.y;
-			io.MouseDown[0] = m_InputManager->IsPressed(MouseLeft);
-			io.MouseDown[1] = m_InputManager->IsPressed(MouseRight);
-			io.MouseDown[2] = m_InputManager->IsPressed(MouseMiddle);
+			io.MouseDown[0] = m_InputManager->IsMouseKeyPressed(INPUT_MOUSE_KEY_LEFT);
+			io.MouseDown[1] = m_InputManager->IsMouseKeyPressed(INPUT_MOUSE_KEY_RIGHT);
+			io.MouseDown[2] = m_InputManager->IsMouseKeyPressed(INPUT_MOUSE_KEY_MIDDLE);
 			io.MouseWheel = m_InputManager->GetMouseScrollDelta();
 		}
 

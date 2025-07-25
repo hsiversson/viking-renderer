@@ -15,9 +15,9 @@ void CameraController::Init(Ref<Graphics::Camera> camera, InputManager* inputMan
 
 void CameraController::Tick(float deltaTime)
 {
-	if (m_InputManager->IsPressed(MouseRight))
+	if (m_InputManager->IsMouseKeyPressed(vkr::INPUT_MOUSE_KEY_RIGHT))
 	{
-		Vector2f rotdelta = m_InputManager->GetMouseDelta();
+		Vector2f rotdelta = (Vector2f)m_InputManager->GetMouseDelta();
 		m_YawDeg += rotdelta.x * m_MouseSensitivity;
 		m_YawDeg = std::fmod(m_YawDeg, 360.0f);
 		if (m_YawDeg < 0.0f)
@@ -41,12 +41,12 @@ void CameraController::Tick(float deltaTime)
 
 	Vector3f movement = {0,0,0};
 
-	if (m_InputManager->IsPressed(vkr::KeyW)) movement = movement + camForward;
-	if (m_InputManager->IsPressed(vkr::KeyS)) movement = movement - camForward;
-	if (m_InputManager->IsPressed(vkr::KeyA)) movement = movement - camRight;
-	if (m_InputManager->IsPressed(vkr::KeyD)) movement = movement + camRight;
-	if (m_InputManager->IsPressed(vkr::KeyQ)) movement = movement + camUp;
-	if (m_InputManager->IsPressed(vkr::KeyE)) movement = movement - camUp;
+	if (m_InputManager->IsKeyPressed(vkr::INPUT_KEY_W)) movement = movement + camForward;
+	if (m_InputManager->IsKeyPressed(vkr::INPUT_KEY_S)) movement = movement - camForward;
+	if (m_InputManager->IsKeyPressed(vkr::INPUT_KEY_A)) movement = movement - camRight;
+	if (m_InputManager->IsKeyPressed(vkr::INPUT_KEY_D)) movement = movement + camRight;
+	if (m_InputManager->IsKeyPressed(vkr::INPUT_KEY_Q)) movement = movement + camUp;
+	if (m_InputManager->IsKeyPressed(vkr::INPUT_KEY_E)) movement = movement - camUp;
 
 	if (Length(movement) > 0.0f)
 		movement = Normalized(movement);
@@ -55,6 +55,7 @@ void CameraController::Tick(float deltaTime)
 	Vector3f oldTranslation = Vector3f(oldTransform[9], oldTransform[10], oldTransform[11]);
 
 	movement = oldTranslation + movement * m_MoveSpeed * deltaTime;
+
 
 	Mat43 localTransform = {
 		camRight.x,camRight.y,camRight.z,

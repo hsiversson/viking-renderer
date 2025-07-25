@@ -7,30 +7,151 @@
 
 namespace vkr
 {
-	enum InputFlag : uint16_t 
+	enum InputMouseKey : uint8_t 
 	{
-		//Mouse
-		MouseLeft = 0,
-		MouseRight,
-		MouseMiddle,
-		MouseX1,
-		MouseX2,
+		INPUT_MOUSE_KEY_LEFT = 0,
+		INPUT_MOUSE_KEY_RIGHT,
+		INPUT_MOUSE_KEY_MIDDLE,
+		//INPUT_MOUSE_KEY_X1,
+		//INPUT_MOUSE_KEY_X2,
 
-		//Keyboard
-		KeyW,
-		KeyA,
-		KeyS,
-		KeyD,
-		KeyQ,
-		KeyE
+		INPUT_MOUSE_KEY_COUNT,
+		INPUT_MOUSE_KEY_ANY = INPUT_MOUSE_KEY_COUNT
 	};
 
-	struct InputState
+	struct InputMouseData
 	{
-		std::bitset<512> m_InputFlags;
+		std::bitset<INPUT_MOUSE_KEY_COUNT> m_KeyStates;
 		Vector2u m_MousePosition;
 		Vector2i m_MouseDelta;
 		float m_WheelDelta;
+	};
+
+	enum InputKey : uint16_t 
+	{
+		INPUT_KEY_0,
+		INPUT_KEY_1,
+		INPUT_KEY_2,
+		INPUT_KEY_3,
+		INPUT_KEY_4,
+		INPUT_KEY_5,
+		INPUT_KEY_6,
+		INPUT_KEY_7,
+		INPUT_KEY_8,
+		INPUT_KEY_9,
+
+		INPUT_KEY_A,
+		INPUT_KEY_B,
+		INPUT_KEY_C,
+		INPUT_KEY_D,
+		INPUT_KEY_E,
+		INPUT_KEY_F,
+		INPUT_KEY_G,
+		INPUT_KEY_H,
+		INPUT_KEY_I,
+		INPUT_KEY_J,
+		INPUT_KEY_K,
+		INPUT_KEY_L,
+		INPUT_KEY_M,
+		INPUT_KEY_N,
+		INPUT_KEY_O,
+		INPUT_KEY_P,
+		INPUT_KEY_Q,
+		INPUT_KEY_R,
+		INPUT_KEY_S,
+		INPUT_KEY_T,
+		INPUT_KEY_U,
+		INPUT_KEY_V,
+		INPUT_KEY_W,
+		INPUT_KEY_X,
+		INPUT_KEY_Y,
+		INPUT_KEY_Z,
+
+		INPUT_KEY_F1,
+		INPUT_KEY_F2,
+		INPUT_KEY_F3,
+		INPUT_KEY_F4,
+		INPUT_KEY_F5,
+		INPUT_KEY_F6,
+		INPUT_KEY_F7,
+		INPUT_KEY_F8,
+		INPUT_KEY_F9,
+		INPUT_KEY_F10,
+		INPUT_KEY_F11,
+		INPUT_KEY_F12,
+		INPUT_KEY_F13,
+		INPUT_KEY_F14,
+		INPUT_KEY_F15,
+		INPUT_KEY_F16,
+		INPUT_KEY_F17,
+		INPUT_KEY_F18,
+		INPUT_KEY_F19,
+		INPUT_KEY_F20,
+		INPUT_KEY_F21,
+		INPUT_KEY_F22,
+		INPUT_KEY_F23,
+		INPUT_KEY_F24,
+
+		INPUT_KEY_LEFT_ARROW,
+		INPUT_KEY_UP_ARROW,
+		INPUT_KEY_RIGHT_ARROW,
+		INPUT_KEY_DOWN_ARROW,
+
+		INPUT_KEY_INSERT,
+		INPUT_KEY_DELETE,
+		INPUT_KEY_HOME,
+		INPUT_KEY_END,
+		INPUT_KEY_PAGE_UP,
+		INPUT_KEY_PAGE_DOWN,
+
+		INPUT_KEY_ESCAPE,
+		INPUT_KEY_TAB,
+		INPUT_KEY_CAPS_LOCK,
+		INPUT_KEY_LEFT_SHIFT,
+		INPUT_KEY_LEFT_CONTROL,
+		INPUT_KEY_LEFT_ALT,
+
+		INPUT_KEY_SPACE,
+		INPUT_KEY_PRINT_SCREEN,
+		INPUT_KEY_SCROLL_LOCK,
+		INPUT_KEY_PAUSE_BREAK,
+
+		INPUT_KEY_BACKSPACE,
+		INPUT_KEY_ENTER,
+		INPUT_KEY_RIGHT_SHIFT,
+		INPUT_KEY_RIGHT_CONTROL,
+		INPUT_KEY_RIGHT_ALT,
+
+		INPUT_KEY_SHIFT,
+		INPUT_KEY_CONTROL,
+
+		INPUT_KEY_NUM_PAD_0,
+		INPUT_KEY_NUM_PAD_1,
+		INPUT_KEY_NUM_PAD_2,
+		INPUT_KEY_NUM_PAD_3,
+		INPUT_KEY_NUM_PAD_4,
+		INPUT_KEY_NUM_PAD_5,
+		INPUT_KEY_NUM_PAD_6,
+		INPUT_KEY_NUM_PAD_7,
+		INPUT_KEY_NUM_PAD_8,
+		INPUT_KEY_NUM_PAD_9,
+		INPUT_KEY_NUM_PAD_MULTIPLY,
+		INPUT_KEY_NUM_PAD_ADD,
+		INPUT_KEY_NUM_PAD_SEPARATOR,
+		INPUT_KEY_NUM_PAD_SUBTRACT,
+		INPUT_KEY_NUM_PAD_DECIMAL,
+		INPUT_KEY_NUM_PAD_DIVIDE,
+		INPUT_KEY_NUM_LOCK,
+		INPUT_KEY_TILDE,
+		INPUT_KEY_PARAGRAPH,
+		INPUT_KEY_COUNT,
+		INPUT_KEY_ANY = INPUT_KEY_COUNT
+	};
+	static_assert(INPUT_KEY_COUNT < 256);
+
+	struct InputKeyboardData
+	{
+		std::bitset<256> m_KeyStates;
 	};
 
 	class InputManager : public Render::IMessageHandler
@@ -38,15 +159,17 @@ namespace vkr
 	public:
 		void ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam) override;
 		void EndFrame();
-		bool IsPressed(InputFlag Flag);
-		Vector2f GetMousePosition() const { return { (float)m_CurrentState.m_MousePosition.x, (float)m_CurrentState.m_MousePosition.y }; }
-		Vector2f GetMouseDelta() const { return { (float)m_CurrentState.m_MouseDelta.x, (float)m_CurrentState.m_MouseDelta.y }; }
-		float GetMouseScrollDelta() const { return m_CurrentState.m_WheelDelta; }
+
+		bool IsKeyPressed(InputKey key) const;
+		bool IsMouseKeyPressed(InputMouseKey mouseKey) const;
+
+		const Vector2u& GetMousePosition() const;
+		const Vector2i& GetMouseDelta() const;
+		float GetMouseScrollDelta() const;
 
 	private:
-		void ChangeInputState(InputFlag Flag, bool Pressed);
-
-		InputState m_CurrentState;
+		InputKeyboardData m_CurrentKeyboardState;
+		InputMouseData m_CurrentMouseState;
 	};
 
 }

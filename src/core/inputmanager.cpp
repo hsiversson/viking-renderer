@@ -21,23 +21,24 @@ namespace vkr
 			{
 				const RAWMOUSE& mouse = raw->data.mouse;
 
-				if (mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN) { ChangeInputState(MouseLeft, true); }
-				if (mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP) { ChangeInputState(MouseLeft, false); }
-				if (mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN) { ChangeInputState(MouseRight, true); }
-				if (mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP) { ChangeInputState(MouseRight, false); }
-				if (mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN) { ChangeInputState(MouseRight, true); }
-				if (mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP) { ChangeInputState(MouseRight, false); }
-				if (mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN) { ChangeInputState(MouseMiddle, true); }
-				if (mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP) { ChangeInputState(MouseMiddle, false); }
-				if (mouse.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN) { ChangeInputState(MouseX1, true); }
-				if (mouse.usButtonFlags & RI_MOUSE_BUTTON_4_UP) { ChangeInputState(MouseX1, false); }
-				if (mouse.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN) { ChangeInputState(MouseX2, true); }
-				if (mouse.usButtonFlags & RI_MOUSE_BUTTON_5_UP) { ChangeInputState(MouseX2, false); }
+				if (mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN) { m_CurrentMouseState.m_KeyStates[INPUT_MOUSE_KEY_LEFT] = true; }
+				if (mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP) { m_CurrentMouseState.m_KeyStates[INPUT_MOUSE_KEY_LEFT] = false; }
+
+				if (mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN) { m_CurrentMouseState.m_KeyStates[INPUT_MOUSE_KEY_RIGHT] = true; }
+				if (mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP) { m_CurrentMouseState.m_KeyStates[INPUT_MOUSE_KEY_RIGHT] = false; }
+
+				if (mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN) { m_CurrentMouseState.m_KeyStates[INPUT_MOUSE_KEY_MIDDLE] = true; }
+				if (mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP) { m_CurrentMouseState.m_KeyStates[INPUT_MOUSE_KEY_MIDDLE] = false; }
+
+				//if (mouse.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN) { ChangeInputState(MouseX1, true); }
+				//if (mouse.usButtonFlags & RI_MOUSE_BUTTON_4_UP) { ChangeInputState(MouseX1, false); }
+				//if (mouse.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN) { ChangeInputState(MouseX2, true); }
+				//if (mouse.usButtonFlags & RI_MOUSE_BUTTON_5_UP) { ChangeInputState(MouseX2, false); }
 				if (mouse.usButtonFlags & RI_MOUSE_WHEEL) 
 				{
 					// Positive = scroll up, negative = scroll down
 					int16_t wheelDelta = static_cast<int16_t>(mouse.usButtonData);
-					m_CurrentState.m_WheelDelta += static_cast<float>(wheelDelta / INT16_MAX);
+					m_CurrentMouseState.m_WheelDelta += static_cast<float>(wheelDelta / INT16_MAX);
 				}
 
 				// For gaming mice with more buttons:
@@ -50,8 +51,8 @@ namespace vkr
 				// Raw movement (not screen coords):
 				LONG dx = mouse.lLastX;
 				LONG dy = mouse.lLastY;
-				m_CurrentState.m_MouseDelta.x += dx;
-				m_CurrentState.m_MouseDelta.y += dy;
+				m_CurrentMouseState.m_MouseDelta.x += dx;
+				m_CurrentMouseState.m_MouseDelta.y += dy;
 			}
 		}
 		break;
@@ -62,22 +63,22 @@ namespace vkr
 			switch (vk)
 			{
 			case 'W':
-				ChangeInputState(KeyW, true);
+				m_CurrentKeyboardState.m_KeyStates[INPUT_KEY_W] = true;
 				break;
 			case 'A':
-				ChangeInputState(KeyA, true);
+				m_CurrentKeyboardState.m_KeyStates[INPUT_KEY_A] = true;
 				break;
 			case 'S':
-				ChangeInputState(KeyS, true);
+				m_CurrentKeyboardState.m_KeyStates[INPUT_KEY_S] = true;
 				break;
 			case 'D':
-				ChangeInputState(KeyD, true);
+				m_CurrentKeyboardState.m_KeyStates[INPUT_KEY_D] = true;
 				break;
 			case 'Q':
-				ChangeInputState(KeyQ, true);
+				m_CurrentKeyboardState.m_KeyStates[INPUT_KEY_Q] = true;
 				break;
 			case 'E':
-				ChangeInputState(KeyE, true);
+				m_CurrentKeyboardState.m_KeyStates[INPUT_KEY_E] = true;
 				break;
 			}
 		}
@@ -89,22 +90,22 @@ namespace vkr
 			switch (vk)
 			{
 			case 'W':
-				ChangeInputState(KeyW, false);
+				m_CurrentKeyboardState.m_KeyStates[INPUT_KEY_W] = false;
 				break;
 			case 'A':
-				ChangeInputState(KeyA, false);
+				m_CurrentKeyboardState.m_KeyStates[INPUT_KEY_A] = false;
 				break;
 			case 'S':
-				ChangeInputState(KeyS, false);
+				m_CurrentKeyboardState.m_KeyStates[INPUT_KEY_S] = false;
 				break;
 			case 'D':
-				ChangeInputState(KeyD, false);
+				m_CurrentKeyboardState.m_KeyStates[INPUT_KEY_D] = false;
 				break;
 			case 'Q':
-				ChangeInputState(KeyQ, false);
+				m_CurrentKeyboardState.m_KeyStates[INPUT_KEY_Q] = false;
 				break;
 			case 'E':
-				ChangeInputState(KeyE, false);
+				m_CurrentKeyboardState.m_KeyStates[INPUT_KEY_E] = false;
 				break;
 			}
 		}
@@ -113,8 +114,8 @@ namespace vkr
 		{
 			uint32_t x = static_cast<uint32_t>(LOWORD(lParam));
 			uint32_t y = static_cast<uint32_t>(HIWORD(lParam));
-			m_CurrentState.m_MousePosition.x = x;
-			m_CurrentState.m_MousePosition.y = y;
+			m_CurrentMouseState.m_MousePosition.x = x;
+			m_CurrentMouseState.m_MousePosition.y = y;
 		}
 		break;
 		}
@@ -123,21 +124,32 @@ namespace vkr
 	void InputManager::EndFrame()
 	{
 		//Reset deltas
-		m_CurrentState.m_MouseDelta = Vector2i(0);
-		m_CurrentState.m_WheelDelta = 0;
+		m_CurrentMouseState.m_MouseDelta = Vector2i(0);
+		m_CurrentMouseState.m_WheelDelta = 0;
 	}
 
-	bool InputManager::IsPressed(InputFlag Flag)
+	bool InputManager::IsKeyPressed(InputKey key) const
 	{
-		return m_CurrentState.m_InputFlags.test(Flag);
+		return m_CurrentKeyboardState.m_KeyStates.test(key);
 	}
 
-	void InputManager::ChangeInputState(InputFlag Flag, bool Pressed)
+	bool InputManager::IsMouseKeyPressed(InputMouseKey mouseKey) const
 	{
-		if (Pressed)
-			m_CurrentState.m_InputFlags.set(Flag);
-		else
-			m_CurrentState.m_InputFlags.reset(Flag);
+		return m_CurrentMouseState.m_KeyStates.test(mouseKey);
 	}
 
+	const Vector2u& InputManager::GetMousePosition() const
+	{
+		return m_CurrentMouseState.m_MousePosition;
+	}
+
+	const Vector2i& InputManager::GetMouseDelta() const
+	{
+		return m_CurrentMouseState.m_MouseDelta;
+	}
+
+	float InputManager::GetMouseScrollDelta() const
+	{
+		return m_CurrentMouseState.m_WheelDelta;
+	}
 }
