@@ -83,6 +83,7 @@ namespace vkr
 		m_SwapChain = m_RenderDevice->CreateSwapChain(m_Window->GetNativeHandle(), desc.m_Resolution);
 		if (!m_SwapChain)
 			return RETURN_INVALID_ARG;
+		m_Window->SetAssociatedSwapChain(m_SwapChain.get());
 
 		m_Scene = MakeUnique<Graphics::Scene>();
 
@@ -95,18 +96,19 @@ namespace vkr
 
 		m_WindowSize = desc.m_Resolution;
 
+		if (desc.m_Mode == ApplicationMode::Editor)
+		{
+			m_EditorManager = MakeUnique<Editor::Manager>();
+			if (!m_EditorManager->Init(m_InputManager.get(), m_Window))
+				return RETURN_ERROR;
+		}
+
 		AppInit();
 		return RETURN_OK;
 	}
 
 	ReturnCode Application::MainLoop()
 	{
-		// TEMP
-		Editor::Manager editor;
-		if (!editor.Init(m_InputManager.get(), m_Window))
-			return RETURN_ERROR;
-		// TEMP
-
 		bool running = true;
 		while (running)
 		{
@@ -121,7 +123,8 @@ namespace vkr
 			m_ElapsedTimer.Tick();
 			//VKR_LOG("FPS: {}", m_FpsMovingAverage.GetAverage());
 
-			editor.Update();
+			if (m_EditorManager)
+				m_EditorManager->Update();
 
 			// App tick
 			Tick(m_ElapsedTimer.DeltaTime());
@@ -132,14 +135,17 @@ namespace vkr
 
 			{
 				Render::QueueGraphicsTask(std::bind(&Render::Device::BeginFrame, m_RenderDevice.get()));
-				Render::QueueGraphicsTask([this, &editor]() 
+				Render::QueueGraphicsTask([this]() 
 					{ 
 						m_View->SetOutputTarget(m_SwapChain->GetOutputRenderTarget()); 
-						editor.SetOutputTarget(m_SwapChain->GetOutputRenderTarget());
+
+						if (m_EditorManager)
+							m_EditorManager->SetOutputTarget(m_SwapChain->GetOutputRenderTarget());
 					});
 				m_ViewRenderer->RenderView(*m_View);
 
-				editor.Draw();
+				if (m_EditorManager)
+					m_EditorManager->Draw();
 
 				Render::QueueGraphicsTask(std::bind(&Render::SwapChain::Present, m_SwapChain.get()));
 				Render::QueueGraphicsTask(std::bind(&Render::Device::EndFrame, m_RenderDevice.get()));

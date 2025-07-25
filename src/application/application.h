@@ -20,6 +20,11 @@ namespace vkr
 		class Scene;
 	}
 
+	namespace Editor
+	{
+		class Manager;
+	}
+
 	enum class ApplicationMode
 	{
 		Runtime,
@@ -63,6 +68,10 @@ namespace vkr
 		Ref<Render::SwapChain> m_SwapChain;
 		UniquePtr<Render::Device> m_RenderDevice;
 		Ref<Render::Window> m_Window;
+
+//#if !BUILD_CONFIG_SHIPPING
+		UniquePtr<Editor::Manager> m_EditorManager;
+//#endif
 
 		Vector2u m_WindowSize;
 
