@@ -27,19 +27,22 @@ void ResolveCS(uint3 dispatchThreadID:SV_DispatchThreadID, uint3 groupID : SV_Gr
     Texture2D<float4> HistoryTexture = ResourceDescriptorHeap[HistoryTextureDescriptorIndex];
     Texture2D<float2> VelocityTexture = ResourceDescriptorHeap[VelocityTextureDescriptorIndex];
     
+    uint width, height;
+    HistoryTexture.GetDimensions(width, height);
+    
     //Fill in the cache, this will accelerate later the access to neighborhoods
     uint2 startTexel = groupID.xy * GROUP_SIZE - TILE_BORDER;
     for (uint t = groupIdx; t < TILE_CACHE_SIZE; t += GROUP_SIZE * GROUP_SIZE)
     {
-        const uint2 samplePixel = startTexel + uint2(t % TILE_SIZE, t / TILE_SIZE);
+        int2 samplePixel = startTexel + uint2(t % TILE_SIZE, t / TILE_SIZE);
+        samplePixel = clamp(samplePixel, int2(0, 0), int2(width, height));
         float3 color = SceneTexture[samplePixel].rgb;
         GroupColorCache[t] = color;
     }
     
     GroupMemoryBarrierWithGroupSync();
     
-    uint width, height;
-    HistoryTexture.GetDimensions(width, height);
+    
     const float2 uv = (dispatchThreadID.xy + 0.5) / float2(width,height);
     
     const float2 velocity = VelocityTexture.Sample(g_SamplerPointClamp, uv);
