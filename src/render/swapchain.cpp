@@ -121,11 +121,14 @@ namespace vkr::Render
 			rtvDesc.m_Mip = 0;
 			m_BackBuffers[i].m_View = GetDevice()->CreateRenderTargetView(rtvDesc, m_BackBuffers[i].m_Texture);
 		}
+		m_CurrentBackBufferIndex = m_SwapChain4->GetCurrentBackBufferIndex();
 	}
 
 	void SwapChain::ReleaseResources()
 	{
-		for (int i = 0; i < NumBackBuffers; i++)
+		QueueGraphicsTask([]() {})->Wait();
+
+		for (uint32_t i = 0; i < NumBackBuffers; ++i)
 		{
 			m_BackBuffers[i].m_LastFrameEvent.Wait();
 			m_BackBuffers[i].m_Texture.reset();

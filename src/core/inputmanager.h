@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/types.h"
-#include "render/window.h"
+#include "application/window.h"
 
 #include <bitset>
 
@@ -154,7 +154,7 @@ namespace vkr
 		std::bitset<256> m_KeyStates;
 	};
 
-	class InputManager : public Render::IMessageHandler
+	class InputManager : public IMessageHandler
 	{
 	public:
 		void ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam) override;

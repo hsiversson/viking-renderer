@@ -1,10 +1,10 @@
 #include "window.h"
 
-namespace vkr::Render
+namespace vkr
 {
 	static constexpr const char* g_WindowClassName = "VKR_WND_CLASS";
 
-	LRESULT CALLBACK WndProc(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+	LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 	static uint32_t ConvertToWindowStyle(const CreateWindowDesc& createDesc, bool isMaximized)
 	{
@@ -22,6 +22,7 @@ namespace vkr::Render
 	Window::Window()
 		: m_NativeHandle(nullptr)
 		, m_AssociatedSwapChain(nullptr)
+		, m_ChangeFlags(WINDOW_CHANGE_FLAG_NONE)
 	{
 	}
 
@@ -74,6 +75,9 @@ namespace vkr::Render
 
 		switch (Msg)
 		{
+		case WM_WINDOWPOSCHANGED:
+			HandlePositionChanged();
+			return 0;
 		case WM_DESTROY:
 			PostQuitMessage(0);
 			return 0;
@@ -144,13 +148,25 @@ namespace vkr::Render
 		return m_AssociatedSwapChain;
 	}
 
+	const Vector2u Window::GetPosition() const
+	{
+		return m_Position;
+	}
+
 	const Vector2u Window::GetSize() const
 	{
-		RECT clientRect;
-		GetClientRect((HWND)m_NativeHandle, &clientRect);
-		int width = clientRect.right - clientRect.left;
-		int height = clientRect.bottom - clientRect.top;
-		return Vector2u(width, height);
+		return m_Size;
+	}
+
+	uint32_t Window::GetChangeFlags() const
+	{
+		return m_ChangeFlags;
+	}
+
+	void Window::ResetChangeFlags()
+	{
+		assert(Thread::IsMainThread());
+		m_ChangeFlags = WINDOW_CHANGE_FLAG_NONE;
 	}
 
 	const Vector2f Window::GetDpiScale() const
@@ -202,24 +218,55 @@ namespace vkr::Render
 		}
 	}
 
-	LRESULT CALLBACK WndProc(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+	void Window::HandlePositionChanged()
 	{
-		if (Msg == WM_NCCREATE) 
+		HWND nativeHandle = (HWND)m_NativeHandle;
+		if (::IsIconic(nativeHandle) /*&& IsMinimized()*/)
+			Minimize();
+
+		WINDOWPLACEMENT placement = {};
+		placement.length = sizeof(WINDOWPLACEMENT);
+		::GetWindowPlacement(nativeHandle, &placement);
+
+		if ((placement.showCmd == SW_SHOWNORMAL) || (placement.showCmd == SW_SHOWMAXIMIZED))
+		{
+			RECT borders = {};
+			DWORD windowStyle = static_cast<DWORD>(::GetWindowLong(nativeHandle, GWL_STYLE));
+			::AdjustWindowRect(&borders, windowStyle, FALSE);
+
+			RECT rect = {};
+			::GetWindowRect(nativeHandle, &rect);
+			rect.left -= borders.left;
+			rect.right -= borders.right;
+			rect.top -= borders.top;
+			rect.bottom -= borders.bottom;
+
+			m_Position = Vector2u(rect.left, rect.top);
+			m_ChangeFlags |= WINDOW_CHANGE_FLAG_POSITION;
+
+			m_Size = Vector2u(rect.right - rect.left, rect.bottom - rect.top);
+			m_ChangeFlags |= WINDOW_CHANGE_FLAG_SIZE;
+		}
+	}
+
+	LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+	{
+		if (msg == WM_NCCREATE) 
 		{
 			// This is the first message received — set the user data
 			CREATESTRUCT* pCreate = reinterpret_cast<CREATESTRUCT*>(lParam);
 			Window* pWindow = reinterpret_cast<Window*>(pCreate->lpCreateParams);
 			SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pWindow));
-			return DefWindowProc(hwnd, Msg, wParam, lParam);
+			return DefWindowProc(hwnd, msg, wParam, lParam);
 		}
 
 		Window* app = (Window*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
 		if (app)
 		{
-			return app->ProcessMessage(hwnd, Msg, wParam, lParam);
+			return app->ProcessMessage(hwnd, msg, wParam, lParam);
 		}
 
-		return DefWindowProc(hwnd, Msg, wParam, lParam);
+		return DefWindowProc(hwnd, msg, wParam, lParam);
 		
 	}
 }

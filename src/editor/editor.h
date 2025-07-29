@@ -5,11 +5,11 @@
 namespace vkr
 {
 	class InputManager;
+	class Window;
 }
 
 namespace vkr::Render
 {
-	class Window;
 	class RenderTargetView;
 }
 
@@ -22,7 +22,7 @@ namespace vkr::Editor
 		Manager();
 		~Manager();
 
-		bool Init(InputManager* inputManager, const Ref<Render::Window>& window);
+		bool Init(InputManager* inputManager, const Ref<Window>& window);
 
 		void Update();
 
@@ -32,7 +32,7 @@ namespace vkr::Editor
 
 	private:
 		UniquePtr<Renderer> m_Renderer;
-		Ref<Render::Window> m_Window;
+		Ref<Window> m_Window;
 		InputManager* m_InputManager;
 
 		MovingAverage<uint32_t, 64> m_FpsMovingAverage;

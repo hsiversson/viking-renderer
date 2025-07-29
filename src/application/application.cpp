@@ -3,7 +3,7 @@
 #include "core/logger.h"
 
 #include "render/device.h"
-#include "render/window.h"
+#include "window.h"
 
 #include "graphics/viewrenderer.h"
 #include "graphics/scene.h"
@@ -33,7 +33,7 @@ namespace vkr
 	{
 		m_Scene->DestroyView(m_View);
 		Logger::Destroy();
-		Render::Window::UnregisterWindowClass();
+		Window::UnregisterWindowClass();
 	}
 
 	ReturnCode Application::Launch(const ApplicationInitDesc& desc)
@@ -55,9 +55,9 @@ namespace vkr
 	{
 		CommandLine::Parse(__argc, __argv);
 
-		Render::Window::RegisterWindowClass(nullptr);
+		Window::RegisterWindowClass(nullptr);
 
-		Render::CreateWindowDesc windowDesc = {};
+		CreateWindowDesc windowDesc = {};
 		windowDesc.m_Size = desc.m_Resolution;
 		windowDesc.m_Position = Vector2u(100, 100);
 		windowDesc.m_ShowCmd = desc.m_ShowCmd;
@@ -66,7 +66,7 @@ namespace vkr
 		windowDesc.m_IsDecorated = true;
 		windowDesc.m_IsMaximized = false;
 
-		m_Window = MakeRef<Render::Window>();
+		m_Window = MakeRef<Window>();
 		if (!m_Window->Init(windowDesc))
 		{
 			return RETURN_ERROR;
@@ -117,7 +117,12 @@ namespace vkr
 				running = false;
 			}
 
-			// TODO: Apply changes coming from window messages
+			const uint32_t windowChangeFlags = m_Window->GetChangeFlags();
+			if (windowChangeFlags > WINDOW_CHANGE_FLAG_NONE)
+			{
+				m_SwapChain->Resize(m_Window->GetSize());
+				m_Window->ResetChangeFlags();
+			}
 			// TODO: Apply changes going to window
 
 			m_ElapsedTimer.Tick();

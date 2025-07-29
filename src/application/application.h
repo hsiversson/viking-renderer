@@ -10,7 +10,6 @@ namespace vkr
 	{
 		class Device;
 		class SwapChain;
-		class Window;
 	}
 
 	namespace Graphics
@@ -39,6 +38,7 @@ namespace vkr
 		ApplicationMode m_Mode;
 	};
 
+	class Window;
 	class Application
 	{
 	public:
@@ -67,7 +67,7 @@ namespace vkr
 
 		Ref<Render::SwapChain> m_SwapChain;
 		UniquePtr<Render::Device> m_RenderDevice;
-		Ref<Render::Window> m_Window;
+		Ref<Window> m_Window;
 
 //#if !BUILD_CONFIG_SHIPPING
 		UniquePtr<Editor::Manager> m_EditorManager;

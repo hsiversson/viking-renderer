@@ -4,7 +4,10 @@
 namespace vkr::Render
 {
 	class SwapChain;
+}
 
+namespace vkr
+{
 	struct IMessageHandler
 	{
 		virtual void ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam) = 0;
@@ -25,8 +28,16 @@ namespace vkr::Render
 		bool m_IsMaximized = false;
 	};
 
+	enum WindowChangeFlags
+	{
+		WINDOW_CHANGE_FLAG_NONE = 0,
+		WINDOW_CHANGE_FLAG_SIZE = (1 << 0),
+		WINDOW_CHANGE_FLAG_POSITION = (1 << 1),
+	};
+
 	class Window
 	{
+		friend LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 	public:
 		Window();
 		~Window();
@@ -51,16 +62,27 @@ namespace vkr::Render
 		void SetAssociatedSwapChain(Render::SwapChain* swapChain);
 		Render::SwapChain* GetAssociatedSwapChain() const;
 
+		const Vector2u GetPosition() const;
 		const Vector2u GetSize() const;
+		uint32_t GetChangeFlags() const;
+		void ResetChangeFlags();
+
 		const Vector2f GetDpiScale() const;
 		void* GetNativeHandle() const;
+
 
 		static bool RegisterWindowClass(void* appIcon);
 		static void UnregisterWindowClass();
 
 	private:
+		void HandlePositionChanged();
+
 		void* m_NativeHandle;
 		std::unordered_set<IMessageHandler*> m_MessageHandlers;
 		Render::SwapChain* m_AssociatedSwapChain;
+
+		Vector2u m_Position;
+		Vector2u m_Size;
+		uint32_t m_ChangeFlags;
 	};
 }

@@ -3,7 +3,7 @@
 #if ENABLE_EDITOR
 
 #include "editorrenderer.h"
-#include "render/window.h"
+#include "application/window.h"
 #include "core/timer.h"
 #include "core/inputmanager.h"
 
@@ -22,7 +22,7 @@ namespace vkr::Editor
 
 	}
 
-	bool Manager::Init(InputManager* inputManager, const Ref<Render::Window>& window)
+	bool Manager::Init(InputManager* inputManager, const Ref<Window>& window)
 	{
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
