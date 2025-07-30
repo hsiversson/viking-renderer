@@ -13,6 +13,8 @@ namespace vkr::Render
 		bool m_CpuWritable = false;
 		bool m_IsRaytracingAccelerationStructure = false;
 
+		const char* m_Name = nullptr;
+
 		inline uint32_t ByteSize() const { return m_ElementCount * m_ElementSize; }
 	};
 

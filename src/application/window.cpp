@@ -232,7 +232,7 @@ namespace vkr
 		{
 			RECT borders = {};
 			DWORD windowStyle = static_cast<DWORD>(::GetWindowLong(nativeHandle, GWL_STYLE));
-			::AdjustWindowRect(&borders, windowStyle, FALSE);
+			::AdjustWindowRect(&borders, windowStyle, false);
 
 			RECT rect = {};
 			::GetWindowRect(nativeHandle, &rect);

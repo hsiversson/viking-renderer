@@ -109,18 +109,18 @@ namespace vkr
 
 	ReturnCode Application::MainLoop()
 	{
-		bool running = true;
-		while (running)
+		while (true)
 		{
 			if (!m_Window->PeekMessages())
 			{
-				running = false;
+				break;
 			}
 
 			const uint32_t windowChangeFlags = m_Window->GetChangeFlags();
 			if (windowChangeFlags > WINDOW_CHANGE_FLAG_NONE)
 			{
 				m_SwapChain->Resize(m_Window->GetSize());
+				m_View->SetRenderSize(m_Window->GetSize());
 				m_Window->ResetChangeFlags();
 			}
 			// TODO: Apply changes going to window

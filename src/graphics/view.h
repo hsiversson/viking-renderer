@@ -12,6 +12,35 @@ namespace vkr::Render
 
 namespace vkr::Graphics
 {
+	struct TextureTarget
+	{
+		Ref<Render::Texture> m_Texture;
+		Ref<Render::TextureView> m_TextureView;
+		Ref<Render::TextureView> m_TextureViewRW;
+		Ref<Render::RenderTargetView> m_RenderTarget;
+		Ref<Render::DepthStencilView> m_DepthStencil;
+
+		bool m_IsWritable = false;
+		bool m_IsRenderTarget = false;
+		bool m_IsDepthStencil = false;
+		Render::Format m_Format = Render::FORMAT_UNKNOWN;
+
+		bool Update(uint32_t width, uint32_t height, const char* name = "Unnamed Texture");
+		bool Update(Vector2u size, const char* name = "Unnamed Texture");
+	};
+
+	struct ViewRenderTargets
+	{
+		TextureTarget m_DepthBuffer;
+		TextureTarget m_DepthBuffer_Linear;
+		TextureTarget m_Velocity;
+
+		TextureTarget m_SceneBuffer_RenderSize;
+		TextureTarget m_SceneBuffer_OutputSize;
+
+		TextureTarget m_SceneHistory;
+	};
+
 	class View
 	{
 	public:
@@ -40,14 +69,7 @@ namespace vkr::Graphics
 		void SetOutputTarget(Render::RenderTargetView* target) { m_OutputTarget = target; }
 		Render::RenderTargetView* GetOutputTarget() const { return m_OutputTarget; }
 
-		Render::DepthStencilView* GetDepthBuffer() const { return m_DepthBufferView.get(); }
-		Render::TextureView* GetDepthBufferTextureView() const { return m_DepthTextureView.get(); }
-		Render::Texture* GetDepthBufferTexture() const { return m_DepthBuffer.get(); }
-
-		Render::Texture* GetSceneTexture() const { return m_SceneTexture.get(); }
-		Render::TextureView* GetSceneTextureView() const { return m_SceneTextureView.get(); }
-		Render::TextureView* GetSceneTextureViewRW() const { return m_SceneTextureViewRW.get(); }
-		Render::RenderTargetView* GetSceneTextureRenderTarget() const { return m_SceneTextureRenderTarget.get(); }
+		ViewRenderTargets& GetRenderTargets();
 
 		void SetPrimary(bool value);
 
@@ -64,21 +86,12 @@ namespace vkr::Graphics
 		Ref<Render::RenderTaskEvent> m_EndRenderEvent;
 
 		Camera m_Camera;
-		Render::RenderTargetView* m_OutputTarget;
 
 		Vector2u m_MaxRenderSize;
 		Vector2u m_CurrentRenderSize;
 
-		// encapsulate targets in a sub struct?
-		Ref<Render::Texture> m_DepthBuffer;
-		Ref<Render::DepthStencilView> m_DepthBufferView;
-		Ref<Render::TextureView> m_DepthTextureView;
-
-		//Texture on which to render the scene pre-upscale
-		Ref<Render::Texture> m_SceneTexture;
-		Ref<Render::TextureView> m_SceneTextureView;
-		Ref<Render::TextureView> m_SceneTextureViewRW;
-		Ref<Render::RenderTargetView> m_SceneTextureRenderTarget;
+		Render::RenderTargetView* m_OutputTarget;
+		ViewRenderTargets m_RenderTargets;
 
 		//Global shaders
 

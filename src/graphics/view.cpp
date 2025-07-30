@@ -3,12 +3,69 @@
 
 namespace vkr::Graphics
 {
+	bool TextureTarget::Update(uint32_t width, uint32_t height, const char* name)
+	{
+		assert((m_IsRenderTarget && m_IsDepthStencil) == false);
+		assert((m_IsWritable && m_IsDepthStencil) == false);
+
+		bool changed = false;
+		changed |= m_Texture == nullptr;
+		changed |= m_TextureView == nullptr;
+		changed |= !m_TextureViewRW && m_IsWritable;
+		changed |= !m_RenderTarget && m_IsRenderTarget;
+		changed |= !m_DepthStencil && m_DepthStencil;
+
+		if (m_Texture)
+		{
+			const Render::TextureDesc& textureDesc = m_Texture->m_TextureDesc;
+			changed |= textureDesc.m_Size != Vector3u(width, height, 1);
+			changed |= textureDesc.m_Format != m_Format;
+		}
+
+		if (!changed)
+		{
+			return false;
+		}
+
+		Render::TextureDesc textureDesc = {};
+		textureDesc.m_Dimension = Render::ResourceDimension::Texture2D;
+		textureDesc.m_Size = { width, height, 1 };
+		textureDesc.m_MipLevels = 1;
+		textureDesc.m_Writable = m_IsWritable;
+		textureDesc.m_AllowRenderTarget = m_IsRenderTarget;
+		textureDesc.m_AllowDepthStencil = m_IsDepthStencil;
+		textureDesc.m_Format = m_Format;
+		m_Texture = Render::GetDevice()->CreateTexture(textureDesc);
+
+		m_TextureView = Render::GetDevice()->CreateTextureView({}, m_Texture);
+
+		if (m_IsWritable)
+		{
+			m_TextureViewRW = Render::GetDevice()->CreateTextureView({0, true}, m_Texture);
+		}
+
+		if (m_IsRenderTarget)
+		{
+			m_RenderTarget = Render::GetDevice()->CreateRenderTargetView({}, m_Texture);
+		}
+		else if (m_IsDepthStencil)
+		{
+			m_DepthStencil = Render::GetDevice()->CreateDepthStencilView({}, m_Texture);
+		}
+		return true;
+	}
+
+	bool TextureTarget::Update(Vector2u size, const char* name)
+	{
+		return Update(size.x, size.y, name);
+	}
 
 	View::View()
 		: m_PrepareDataIndex(0)
 		, m_RenderDataIndex(1)
 		, m_MaxRenderSize{}
 		, m_CurrentRenderSize{}
+		, m_OutputTarget(nullptr)
 		, m_IsRendering(false)
 		, m_IsPrimary(false)
 	{
@@ -22,11 +79,10 @@ namespace vkr::Graphics
 
 	void View::SetRenderSize(const Vector2u& size)
 	{
-		if (size.x != m_MaxRenderSize.x ||
-			size.y != m_MaxRenderSize.y)
+		if (size != m_MaxRenderSize)
 		{
 			m_MaxRenderSize = size;
-			InitTargets();
+
 		}
 	}
 
@@ -79,6 +135,11 @@ namespace vkr::Graphics
 		return m_ViewRenderData[m_RenderDataIndex];
 	}
 
+	ViewRenderTargets& View::GetRenderTargets()
+	{
+		return m_RenderTargets;
+	}
+
 	void View::SetPrimary(bool value)
 	{
 		m_IsPrimary = value;
@@ -92,39 +153,6 @@ namespace vkr::Graphics
 	bool View::IsSecondary() const
 	{
 		return !m_IsPrimary;
-	}
-
-	bool View::InitTargets()
-	{
-		Render::TextureDesc depthStencilDesc = {};
-		depthStencilDesc.m_Dimension = Render::ResourceDimension::Texture2D;
-		depthStencilDesc.m_Size = { m_MaxRenderSize.x, m_MaxRenderSize.y, 0 };
-		depthStencilDesc.m_MipLevels = 1;
-		depthStencilDesc.m_AllowDepthStencil = true;
-		depthStencilDesc.m_Format = Render::FORMAT_D32_FLOAT;
-		m_DepthBuffer = Render::GetDevice()->CreateTexture(depthStencilDesc);
-
-		m_DepthTextureView = Render::GetDevice()->CreateTextureView({}, m_DepthBuffer);
-
-		Render::DepthStencilViewDesc dsvDesc;
-		dsvDesc.m_Mip = 0;
-		m_DepthBufferView = Render::GetDevice()->CreateDepthStencilView(dsvDesc, m_DepthBuffer);
-
-		//Create scene texture, later on this one will be upscaled into the final output texture
-		Render::TextureDesc sceneTextureDesc;
-		sceneTextureDesc.m_AllowDepthStencil = false;
-		sceneTextureDesc.m_AllowRenderTarget = true;
-		sceneTextureDesc.m_Dimension = Render::ResourceDimension::Texture2D;
-		sceneTextureDesc.m_ArraySize = 1;
-		sceneTextureDesc.m_Format = Render::FORMAT_RGB10A2_UNORM; //TODO: Is there a way to know which format we should be creating this in?? This should match final output texture format
-		sceneTextureDesc.m_MipLevels = 1;
-		sceneTextureDesc.m_Size = { m_MaxRenderSize.x, m_MaxRenderSize.y, 0 };
-		sceneTextureDesc.m_Writable = true;
-		m_SceneTexture = Render::GetDevice()->CreateTexture(sceneTextureDesc);
-		m_SceneTextureView = Render::GetDevice()->CreateTextureView({}, m_SceneTexture);
-		m_SceneTextureViewRW = Render::GetDevice()->CreateTextureView({0, true}, m_SceneTexture);
-		m_SceneTextureRenderTarget = Render::GetDevice()->CreateRenderTargetView({}, m_SceneTexture);
-		return true;
 	}
 
 }

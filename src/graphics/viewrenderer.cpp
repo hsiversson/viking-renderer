@@ -53,37 +53,7 @@ namespace vkr::Graphics
 		skyPSODesc.Compute.m_ComputeShader = m_SkyComputeShader.get();
 
 		m_SkyPSO = device->CreatePipelineState(skyPSODesc);
-
-		//TAA
-		m_TAAHistoryBuffer = device->CreateTexture(view.GetSceneTexture()->m_TextureDesc);
-		m_TAAResolveBuffer = device->CreateTexture(view.GetSceneTexture()->m_TextureDesc);
-
-		Render::TextureDesc TAAVelocityBufferDesc;
-		TAAVelocityBufferDesc.m_AllowDepthStencil = false;
-		TAAVelocityBufferDesc.m_AllowRenderTarget = true;
-		TAAVelocityBufferDesc.m_ArraySize = 1;
-		TAAVelocityBufferDesc.m_Dimension = Render::ResourceDimension::Texture2D;
-		TAAVelocityBufferDesc.m_Format = Render::FORMAT_RG16_FLOAT;
-		TAAVelocityBufferDesc.m_MipLevels = 1;
-		TAAVelocityBufferDesc.m_Size = view.GetSceneTexture()->m_TextureDesc.m_Size;
-		TAAVelocityBufferDesc.m_Writable = true;
-		m_TAAVelocityBuffer = device->CreateTexture(TAAVelocityBufferDesc);
-
-		Render::TextureViewDesc SRVViewDesc;
-		SRVViewDesc.m_Mip = 0;
-		SRVViewDesc.m_Writable = false;
-		Render::TextureViewDesc UAVViewDesc;
-		SRVViewDesc.m_Mip = 0;
-		SRVViewDesc.m_Writable = true;
-		Render::RenderTargetViewDesc RTViewDesc;
-		RTViewDesc.m_Mip = 0;
-		m_TAAHistorySRVView = device->CreateTextureView(SRVViewDesc, m_TAAHistoryBuffer);
-		m_TAAHistoryUAVView = device->CreateTextureView(UAVViewDesc, m_TAAHistoryBuffer);
-		m_TAAResolveSRVView = device->CreateTextureView(SRVViewDesc, m_TAAResolveBuffer);
-		m_TAAResolveUAVView = device->CreateTextureView(UAVViewDesc, m_TAAResolveBuffer);
-		m_TAAVelocityRTView = device->CreateRenderTargetView(RTViewDesc, m_TAAVelocityBuffer);
-		m_TAAVelocitySRVView = device->CreateTextureView(SRVViewDesc, m_TAAVelocityBuffer);
-		
+				
 		m_TAAResolveComputeShader = device->CreateShader("../../../content/shaders/taa.hlsl", L"ResolveCS", vkr::Render::SHADER_STAGE_COMPUTE);
 		Render::PipelineStateDesc taaPSODesc = {};
 		taaPSODesc.m_Type = Render::PIPELINE_STATE_TYPE_COMPUTE;
@@ -124,6 +94,7 @@ namespace vkr::Graphics
 	void ViewRenderer::RenderSky(View& view)
 	{
 		const ViewRenderData& renderData = view.GetRenderData();
+		ViewRenderTargets& renderTargets = view.GetRenderTargets();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
 		
@@ -131,7 +102,7 @@ namespace vkr::Graphics
 		std::vector<Render::TextureBarrierDesc> barriers;
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = view.GetSceneTexture();
+			barrierDesc.m_Texture = renderTargets.m_SceneBuffer_RenderSize.m_Texture.get();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
@@ -147,8 +118,8 @@ namespace vkr::Graphics
 			uint32_t DepthTextureDescriptor;
 		};
 		ConstantData data;
-		data.SceneTextureDescriptor = view.GetSceneTextureView()->GetIndex();
-		data.DepthTextureDescriptor = view.GetDepthBufferTextureView()->GetIndex();
+		data.SceneTextureDescriptor = renderTargets.m_SceneBuffer_RenderSize.m_TextureView->GetIndex();
+		data.DepthTextureDescriptor = renderTargets.m_DepthBuffer.m_TextureView->GetIndex();
 		ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
 		uint32_t GroupsX = ceil(view.GetRenderSize().x / 8);
@@ -159,14 +130,35 @@ namespace vkr::Graphics
 	void ViewRenderer::ForwardPass(View& view)
 	{
 		const ViewRenderData& renderData = view.GetRenderData();
+		ViewRenderTargets& renderTargets = view.GetRenderTargets();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
+
+		renderTargets.m_SceneBuffer_RenderSize.m_IsWritable = true;
+		renderTargets.m_SceneBuffer_RenderSize.m_IsRenderTarget = true;
+		renderTargets.m_SceneBuffer_RenderSize.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
+		renderTargets.m_SceneBuffer_RenderSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_RenderSize");
+
+		renderTargets.m_SceneBuffer_OutputSize.m_IsWritable = true;
+		renderTargets.m_SceneBuffer_OutputSize.m_IsRenderTarget = true;
+		renderTargets.m_SceneBuffer_OutputSize.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
+		renderTargets.m_SceneBuffer_OutputSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_OutputSize");
+
+		renderTargets.m_SceneHistory.m_IsWritable = true;
+		renderTargets.m_SceneHistory.m_IsRenderTarget = true;
+		renderTargets.m_SceneHistory.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
+		renderTargets.m_SceneHistory.Update(view.GetRenderSize(), "ViewRenderTargets::SceneHistory");
+
+		renderTargets.m_Velocity.m_IsWritable = true;
+		renderTargets.m_Velocity.m_IsRenderTarget = true;
+		renderTargets.m_Velocity.m_Format = Render::Format::FORMAT_RG16_FLOAT;
+		renderTargets.m_Velocity.Update(view.GetRenderSize(), "ViewRenderTargets::Velocity");
 
 		//Transition to RT the output
 		std::vector<Render::TextureBarrierDesc> barriers;
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = view.GetSceneTexture();
+			barrierDesc.m_Texture = renderTargets.m_SceneBuffer_RenderSize.m_Texture.get();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_RENDER_TARGET;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_RENDER_TARGET;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
@@ -175,7 +167,7 @@ namespace vkr::Graphics
 		//Transition to RT the velocity buffer
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = m_TAAVelocityBuffer.get();
+			barrierDesc.m_Texture = renderTargets.m_Velocity.m_Texture.get();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_RENDER_TARGET;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_RENDER_TARGET;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
@@ -184,7 +176,7 @@ namespace vkr::Graphics
 		//We will only read from DS now that depths are written to
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = view.GetDepthBufferTexture();
+			barrierDesc.m_Texture = renderTargets.m_DepthBuffer.m_Texture.get();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_DEPTH_READ;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_DEPTH_STENCIL_READ;
@@ -193,15 +185,15 @@ namespace vkr::Graphics
 		ctx->TextureBarrier(barriers.size(), barriers.data());
 
 
-		std::vector<Render::RenderTargetView*> renderTargets;
-		renderTargets.push_back(view.GetSceneTextureRenderTarget());
-		renderTargets.push_back(m_TAAVelocityRTView.get());
+		std::vector<Render::RenderTargetView*> targets;
+		targets.push_back(renderTargets.m_SceneBuffer_RenderSize.m_RenderTarget.get());
+		targets.push_back(renderTargets.m_Velocity.m_RenderTarget.get());
 
-		ctx->ClearRenderTargets(renderTargets.size(), renderTargets.data());
+		ctx->ClearRenderTargets(targets.size(), targets.data());
 		//ctx->ClearDepthStencil(view.GetDepthBuffer(), 0.0f);
 
-		ctx->BindRenderTargets(renderTargets.size(), renderTargets.data());
-		ctx->BindDepthStencil(view.GetDepthBuffer());
+		ctx->BindRenderTargets(targets.size(), targets.data());
+		ctx->BindDepthStencil(renderTargets.m_DepthBuffer.m_DepthStencil.get());
 
 		const Render::TextureDesc& rtDesc = view.GetOutputTarget()->GetTexture()->m_TextureDesc;
 		ctx->SetViewport(0, 0, rtDesc.m_Size.x, rtDesc.m_Size.y);
@@ -335,7 +327,12 @@ namespace vkr::Graphics
 	void ViewRenderer::DepthPrepass(View& view)
 	{
 		const ViewRenderData& renderData = view.GetRenderData();
+		ViewRenderTargets& renderTargets = view.GetRenderTargets();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
+
+		renderTargets.m_DepthBuffer.m_IsDepthStencil = true;
+		renderTargets.m_DepthBuffer.m_Format = Render::Format::FORMAT_D32_FLOAT;
+		renderTargets.m_DepthBuffer.Update(view.GetRenderSize(), "ViewRenderTargets::DepthBuffer");
 
 		ctx->InsertWait(renderData.m_RaytracingTLAS->GetBuffer()->GetGpuPending());
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
@@ -344,7 +341,7 @@ namespace vkr::Graphics
 		std::vector<Render::TextureBarrierDesc> barriers;
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = view.GetDepthBuffer()->GetTexture();
+			barrierDesc.m_Texture = renderTargets.m_DepthBuffer.m_Texture.get();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_DEPTH_STENCIL;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_DEPTH_WRITE;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_DEPTH_STENCIL_WRITE;
@@ -352,13 +349,13 @@ namespace vkr::Graphics
 		}
 		ctx->TextureBarrier(barriers.size(), barriers.data());
 
-		ctx->ClearDepthStencil(view.GetDepthBuffer(), 0.0f);
+		ctx->ClearDepthStencil(renderTargets.m_DepthBuffer.m_DepthStencil.get(), 0.0f);
 
-		std::vector<Render::RenderTargetView*> renderTargets;
-		ctx->BindRenderTargets(renderTargets.size(), renderTargets.data());
-		ctx->BindDepthStencil(view.GetDepthBuffer());
+		std::vector<Render::RenderTargetView*> targets;
+		ctx->BindRenderTargets(targets.size(), targets.data());
+		ctx->BindDepthStencil(renderTargets.m_DepthBuffer.m_DepthStencil.get());
 
-		const Render::TextureDesc& rtDesc = view.GetDepthBuffer()->GetTexture()->m_TextureDesc;
+		const Render::TextureDesc& rtDesc = renderTargets.m_DepthBuffer.m_Texture->m_TextureDesc;
 		ctx->SetViewport(0, 0, rtDesc.m_Size.x, rtDesc.m_Size.y);
 		ctx->SetScissorRect(0, 0, rtDesc.m_Size.x, rtDesc.m_Size.y);
 		
@@ -390,8 +387,9 @@ namespace vkr::Graphics
 
 	void ViewRenderer::ApplyUpscaling(View& view)
 	{
-		const ViewRenderData& renderData = view.GetRenderData();
 		// TAA, DLSS, FSR, XeSS etc.
+		const ViewRenderData& renderData = view.GetRenderData();
+		ViewRenderTargets& renderTargets = view.GetRenderTargets();
 
 		//TAA Resolve
 		Render::Context* ctx = Render::Context::GetCurrentContext();
@@ -401,7 +399,7 @@ namespace vkr::Graphics
 		std::vector<Render::TextureBarrierDesc> barriers;
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = m_TAAResolveBuffer.get();
+			barrierDesc.m_Texture = renderTargets.m_SceneBuffer_OutputSize.m_Texture.get();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
@@ -410,7 +408,7 @@ namespace vkr::Graphics
 		//Transition to SRV the scene texture
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = view.GetSceneTexture();
+			barrierDesc.m_Texture = renderTargets.m_SceneBuffer_RenderSize.m_Texture.get();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_READ;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
@@ -419,7 +417,7 @@ namespace vkr::Graphics
 		//Transition to SRV the velocity texture
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = m_TAAVelocityBuffer.get();
+			barrierDesc.m_Texture = renderTargets.m_Velocity.m_Texture.get();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_READ;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
@@ -438,10 +436,10 @@ namespace vkr::Graphics
 			uint32_t pad0;
 		};
 		ConstantData data;
-		data.ResolveTextureDescriptorIndex = m_TAAResolveUAVView->GetIndex();
-		data.SceneTextureDescriptorIndex = view.GetSceneTextureView()->GetIndex();
-		data.HistoryTextureDescriptorIndex = m_TAAHistorySRVView->GetIndex();
-		data.VelocityTextureDescriptorIndex = m_TAAVelocitySRVView->GetIndex();
+		data.ResolveTextureDescriptorIndex = renderTargets.m_SceneBuffer_OutputSize.m_TextureViewRW->GetIndex();
+		data.SceneTextureDescriptorIndex = renderTargets.m_SceneBuffer_RenderSize.m_TextureView->GetIndex();
+		data.HistoryTextureDescriptorIndex = renderTargets.m_SceneHistory.m_TextureView->GetIndex();
+		data.VelocityTextureDescriptorIndex = renderTargets.m_Velocity.m_TextureView->GetIndex();
 		ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
 		ctx->DispatchThreads(Vector3u(view.GetRenderSize().x, view.GetRenderSize().y, 1));
@@ -451,7 +449,7 @@ namespace vkr::Graphics
 		barriers.clear();
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = m_TAAResolveBuffer.get();
+			barrierDesc.m_Texture = renderTargets.m_SceneBuffer_OutputSize.m_Texture.get();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_COPY_SOURCE;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COPY_SOURCE;
@@ -460,7 +458,7 @@ namespace vkr::Graphics
 		//Transition history texture to copy dest
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = m_TAAHistoryBuffer.get();
+			barrierDesc.m_Texture = renderTargets.m_SceneHistory.m_Texture.get();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_COPY_TARGET;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COPY_TARGET;
@@ -469,7 +467,7 @@ namespace vkr::Graphics
 		ctx->TextureBarrier(barriers.size(), barriers.data());
 
 		//Perform copy operation
-		ctx->CopyTexture(m_TAAHistoryBuffer.get(), m_TAAResolveBuffer.get());
+		ctx->CopyTexture(renderTargets.m_SceneHistory.m_Texture.get(), renderTargets.m_SceneBuffer_OutputSize.m_Texture.get());
 	}
 
 	void ViewRenderer::ApplyPostEffects(View& view)
@@ -485,6 +483,7 @@ namespace vkr::Graphics
 		// finalizing work recorded here
 		// 
 		Render::Context* ctx = Render::Context::GetCurrentContext();
+		ViewRenderTargets& renderTargets = view.GetRenderTargets();
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
 		// Copy scene texture to view output resource
 		// for main view, that would probably be the swapchain backbuffer
@@ -501,7 +500,7 @@ namespace vkr::Graphics
 		}
 
 		//Perform copy operation
-		ctx->CopyTexture(view.GetOutputTarget()->GetTexture(), m_TAAResolveBuffer.get());
+		ctx->CopyTexture(view.GetOutputTarget()->GetTexture(), renderTargets.m_SceneBuffer_OutputSize.m_Texture.get());
 		
 		//Transition output to present
 		{

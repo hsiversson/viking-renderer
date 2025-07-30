@@ -74,6 +74,11 @@ namespace vkr::Render
 			UploadData(*initialData);
 		}
 
+		if (desc.m_Name)
+		{
+			m_Resource->SetName(UTF8ToUTF16(desc.m_Name).c_str());
+		}
+
 		return true;
 	}
 

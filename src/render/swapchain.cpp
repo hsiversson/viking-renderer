@@ -126,7 +126,10 @@ namespace vkr::Render
 
 	void SwapChain::ReleaseResources()
 	{
-		QueueGraphicsTask([]() {})->Wait();
+		if (Ref<RenderTaskEvent> event = QueueGraphicsTask([]() {}))
+		{
+			event->Wait();
+		}
 
 		for (uint32_t i = 0; i < NumBackBuffers; ++i)
 		{

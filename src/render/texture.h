@@ -14,6 +14,8 @@ namespace vkr::Render
 		bool m_Writable = false;
 		bool m_AllowRenderTarget = false;
 		bool m_AllowDepthStencil = false;
+
+		const char* m_Name = nullptr;
 	};
 
 	struct TextureData

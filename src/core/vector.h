@@ -72,6 +72,9 @@ namespace vkr
 	struct Vector3
 	{
 		T x, y, z;
+
+		constexpr bool operator==(const Vector3& other) const { return x == other.x && y == other.y && z == other.z; }
+		constexpr bool operator!=(const Vector3& other) const { return !(*this == other); }
 	};
 
 	template<typename T>

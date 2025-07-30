@@ -24,9 +24,12 @@ void RaytracerApp::AppInit()
 	m_Scene->AddObject(modelinst);
 
 	m_Camera = MakeRef<Graphics::Camera>();
-	Mat43 camtransform = Compose(Mat33::Identity(), Vector3f(0, 2.0f, -4.0f));
+	Mat43 camtransform = Compose(Mat33::Identity(), Vector3f(0, 2.0f, -6.0f));
 	m_Camera->SetLocalTransform(camtransform);
-	m_Camera->SetupPerspective(80.0f, (float)m_WindowSize.x / (float)m_WindowSize.y, 0.1f, 1000.0f);
+	m_Camera->SetFarZ(1000.0f);
+	m_Camera->SetSize(Vector2f(m_WindowSize));
+	m_Camera->SetInvertedZ(true);
+
 	m_RenderDevice->EndFrame();
 
 	auto camController = MakeRef<CameraController>();
@@ -39,6 +42,10 @@ void RaytracerApp::Tick(float deltaTime)
 	//Update camera based on input
 	for (auto tickable : m_Tickables)
 		tickable->Tick(deltaTime);
+
+	const Vector2f windowSize = Vector2f(m_Window->GetSize());
+	if (windowSize != m_Camera->GetSize())
+		m_Camera->SetSize(windowSize);
 
 	m_View->SetCamera(*m_Camera);
 }
