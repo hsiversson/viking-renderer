@@ -29,13 +29,6 @@ struct PSOutput
     float2 Velocity : SV_Target1;
 };
 
-struct InstanceData
-{
-	float4x4 LocalToWorld;
-    float4x4 PrevLocalToWorld;
-    uint MaterialID;
-};
-
 float2 CalcVelocity(float4 newPos, float4 oldPos)
 {
     float2 prevPos = oldPos.xy / oldPos.w;
@@ -58,7 +51,10 @@ PSOutput MainPS(PSInput input)
     
     MaterialParameters materialParameters = LoadMaterialParameters(data.MaterialID);
     
-    float3 albedo = materialParameters.albedoTexture.Sample(g_SamplerBilinearClamp, input.uv).rgb;
+    PBRMaterialInput pbrInput;
+    pbrInput.WorldPosition = input.worldPosition;
+    
+    pbrInput.Albedo = materialParameters.albedoTexture.Sample(g_SamplerBilinearClamp, input.uv).rgb;
     float2 compressedNormal = materialParameters.normalTexture.Sample(g_SamplerBilinearClamp, input.uv).rg;
     compressedNormal = compressedNormal * 2.0f - 1.0f; //Convert to -1,1 space
     //Reconstruct Z component of normal
@@ -74,12 +70,12 @@ PSOutput MainPS(PSInput input)
     float3 localNormal = mul(tangentToLocal, detailnormal);
     float3 worldNormal = normalize(mul(data.LocalToWorld, float4(localNormal, 0)).xyz);
     float4 pbrParams = materialParameters.materialTexture.Sample(g_SamplerBilinearClamp, input.uv);
-    float ao = pbrParams.r;
-    float roughness = pbrParams.g;
-    float metallic = pbrParams.b;
+    pbrInput.AO = pbrParams.r;
+    pbrInput.Roughness = pbrParams.g;
+    pbrInput.Metallic = pbrParams.b;
+    pbrInput.WorldNormal = worldNormal;
     
-    float3 V = normalize(SceneConstants.CameraPosition - input.worldPosition);
-    float3 N = worldNormal;
+    
     
     RaytracingAccelerationStructure RaytracingScene = ResourceDescriptorHeap[RaytracingSceneDescriptor];
     float3 lightingResult = float3(0.0, 0.0, 0.0);
@@ -90,7 +86,6 @@ PSOutput MainPS(PSInput input)
     {
         const DirectionalLightData dirLight = SceneConstants.DirectionalLights[i];
         const float3 L = normalize(-dirLight.Direction);
-        const float3 H = normalize(V + L);
         
         RayDesc ray;
         ray.Origin = input.worldPosition + input.normal * 0.00001f;
@@ -107,25 +102,7 @@ PSOutput MainPS(PSInput input)
             continue; // we hit geometry, this means we're in shadow for this light
         }
         
-        float3 F0 = float3(0.04, 0.04, 0.04);
-        F0 = lerp(F0, albedo, metallic);
-        float3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-        float NDF = DistributionGGX(N, H, roughness);
-        float G = GeometrySmith(N, V, L, roughness);
-    
-        float3 numerator = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
-        float3 specular = numerator / denominator;
-    
-        float3 kS = F;
-        float3 kD = float3(1.0, 1.0, 1.0) - kS;
-        kD *= 1.0 - metallic;
-    
-        float NdotL = max(dot(N, L), 0.0);
-        float3 Lo = (kD * albedo / PI + specular) * dirLight.Emission * NdotL;
-    
-        float3 ambient = float3(0.03, 0.03, 0.03) * albedo * ao;
-        lightingResult += ambient + Lo;
+        lightingResult += ComputeLuminance(pbrInput, SceneConstants.CameraPosition, L, dirLight.Emission);
     }
     
     PSOutput output;

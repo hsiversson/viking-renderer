@@ -5,6 +5,7 @@
 namespace vkr::Render
 {
 	class Buffer;
+	class BufferView;
 }
 
 namespace vkr::Graphics
@@ -38,9 +39,14 @@ namespace vkr::Graphics
 		const Render::VertexLayout& GetVertexLayout() const;
 		Render::PrimitiveTopology GetTopology() const;
 
+		const Ref<Render::BufferView>& GetRaytraceVBView() const { return m_RaytraceVBView; }
+		const Ref<Render::BufferView>& GetRaytraceIBView() const { return m_RaytraceIBView; }
+
 	private:
 		Ref<Render::Buffer> m_VertexBuffer;
 		Ref<Render::Buffer> m_IndexBuffer;
+		Ref<Render::BufferView> m_RaytraceVBView;
+		Ref<Render::BufferView> m_RaytraceIBView;
 		Render::VertexLayout m_VertexLayout;
 		Render::PrimitiveTopology m_Topology;
 

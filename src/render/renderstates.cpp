@@ -28,17 +28,36 @@ namespace vkr::Render
 
 	uint32_t VertexLayout::GetStride() const
 	{
-		uint32_t stride = 0;
-		for (const VertexAttribute& attr : m_Attributes)
-		{
-			stride += GetFormatBytesPerPixel(attr.m_Format);
-		}
-		return stride;
+		return m_Stride;
 	}
 
 	void VertexLayout::InsertAttribute(VertexAttribute::Type type, Format format, uint32_t index, uint32_t bufferSlot)
 	{
-		m_Attributes.insert(VertexAttribute{ type, index, bufferSlot, format });
+		uint32_t size = GetFormatBytesPerPixel(format);
+		VertexAttribute attr = { type, index, bufferSlot, format, size};
+		
+		if (m_Attributes.insert(attr).second)
+		{
+			m_Stride += size;
+		}
+	}
+
+	uint32_t VertexLayout::GetByteOffset(VertexAttribute::Type type, uint32_t index) const
+	{
+		uint32_t currentBufferSlot = 0;
+		uint32_t accumulated = 0;
+		for (auto& attr : m_Attributes)
+		{
+			if (currentBufferSlot != attr.m_BufferSlot)
+			{
+				accumulated = 0;
+				currentBufferSlot = attr.m_BufferSlot;
+			}
+			if ((attr.m_Type == type) && (attr.m_Index == index))
+				return accumulated;
+			accumulated += attr.m_Size;
+		}
+		return accumulated;
 	}
 
 	void GetDefaultRasterizerState(RasterizerState& outRasterizerState)

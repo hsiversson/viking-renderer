@@ -87,12 +87,7 @@ namespace vkr::Graphics
 			meshDesc.m_NumVertices = std::max(static_cast<uint32_t>(accessor->count), meshDesc.m_NumVertices);
 			if (attr.type == cgltf_attribute_type_position)
 			{
-				Render::VertexAttribute attribute;
-				attribute.m_Type = Render::VertexAttribute::TYPE_POSITION;
-				attribute.m_Index = attr.index;
-				attribute.m_BufferSlot = 0;
-				attribute.m_Format = Render::FORMAT_RGB32_FLOAT;
-				vertexLayout.m_Attributes.insert(attribute);
+				vertexLayout.InsertAttribute(Render::VertexAttribute::TYPE_POSITION, Render::FORMAT_RGB32_FLOAT, attr.index, 0);
 
 				std::vector<uint8_t>& positionData = meshDesc.m_VertexData[Render::VertexAttribute::TYPE_POSITION];
 				positionData.reserve(positionData.size() + (accessor->count * sizeof(Vector3f)));
@@ -107,12 +102,7 @@ namespace vkr::Graphics
 			}
 			else if (attr.type == cgltf_attribute_type_normal)
 			{
-				Render::VertexAttribute attribute;
-				attribute.m_Type = Render::VertexAttribute::TYPE_NORMAL;
-				attribute.m_Index = attr.index;
-				attribute.m_BufferSlot = 0;
-				attribute.m_Format = Render::FORMAT_RGB32_FLOAT;
-				vertexLayout.m_Attributes.insert(attribute);
+				vertexLayout.InsertAttribute(Render::VertexAttribute::TYPE_NORMAL, Render::FORMAT_RGB32_FLOAT, attr.index, 0);
 
 				std::vector<uint8_t>& normalData = meshDesc.m_VertexData[Render::VertexAttribute::TYPE_NORMAL];
 				normalData.reserve(normalData.size() + (accessor->count * sizeof(Vector3f)));
@@ -127,12 +117,7 @@ namespace vkr::Graphics
 			}
 			else if (attr.type == cgltf_attribute_type_tangent)
 			{
-				Render::VertexAttribute attribute;
-				attribute.m_Type = Render::VertexAttribute::TYPE_TANGENT;
-				attribute.m_Index = attr.index;
-				attribute.m_BufferSlot = 0;
-				attribute.m_Format = Render::FORMAT_RGBA32_FLOAT;
-				vertexLayout.m_Attributes.insert(attribute);
+				vertexLayout.InsertAttribute(Render::VertexAttribute::TYPE_TANGENT, Render::FORMAT_RGBA32_FLOAT, attr.index, 0);
 
 				std::vector<uint8_t>& tangentData = meshDesc.m_VertexData[Render::VertexAttribute::TYPE_TANGENT];
 				tangentData.reserve(tangentData.size() + (accessor->count * sizeof(Vector4f)));
@@ -147,12 +132,7 @@ namespace vkr::Graphics
 			}
 			else if (attr.type == cgltf_attribute_type_texcoord)
 			{
-				Render::VertexAttribute attribute;
-				attribute.m_Type = Render::VertexAttribute::TYPE_UV;
-				attribute.m_Index = attr.index;
-				attribute.m_BufferSlot = 0;
-				attribute.m_Format = Render::FORMAT_RG32_FLOAT;
-				vertexLayout.m_Attributes.insert(attribute);
+				vertexLayout.InsertAttribute(Render::VertexAttribute::TYPE_UV, Render::FORMAT_RG32_FLOAT, attr.index, 0);
 
 				std::vector<uint8_t>& uvData = meshDesc.m_VertexData[Render::VertexAttribute::TYPE_UV];
 				uvData.reserve(uvData.size() + (accessor->count * sizeof(Vector2f)));
@@ -167,12 +147,7 @@ namespace vkr::Graphics
 			}
 			else if (attr.type == cgltf_attribute_type_joints)
 			{
-				Render::VertexAttribute attribute;
-				attribute.m_Type = Render::VertexAttribute::TYPE_BONE_INDEX;
-				attribute.m_Index = attr.index;
-				attribute.m_BufferSlot = 0;
-				attribute.m_Format = Render::FORMAT_RGBA16_UINT;
-				vertexLayout.m_Attributes.insert(attribute);
+				vertexLayout.InsertAttribute(Render::VertexAttribute::TYPE_BONE_INDEX, Render::FORMAT_RGBA16_UINT, attr.index, 0);
 
 				std::vector<uint8_t>& boneIndexData = meshDesc.m_VertexData[Render::VertexAttribute::TYPE_BONE_INDEX];
 				boneIndexData.reserve(boneIndexData.size() + (accessor->count * sizeof(Vector4u16)));
@@ -187,12 +162,7 @@ namespace vkr::Graphics
 			}
 			else if (attr.type == cgltf_attribute_type_weights)
 			{
-				Render::VertexAttribute attribute;
-				attribute.m_Type = Render::VertexAttribute::TYPE_BONE_WEIGHT;
-				attribute.m_Index = attr.index;
-				attribute.m_BufferSlot = 0;
-				attribute.m_Format = Render::FORMAT_RGBA16_FLOAT;
-				vertexLayout.m_Attributes.insert(attribute);
+				vertexLayout.InsertAttribute(Render::VertexAttribute::TYPE_BONE_WEIGHT, Render::FORMAT_RGBA16_FLOAT, attr.index, 0);
 
 				std::vector<uint8_t>& boneWeightData = meshDesc.m_VertexData[Render::VertexAttribute::TYPE_BONE_INDEX];
 				boneWeightData.reserve(boneWeightData.size() + (accessor->count * sizeof(Vector4f)));
