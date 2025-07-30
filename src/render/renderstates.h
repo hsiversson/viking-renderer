@@ -27,7 +27,14 @@ namespace vkr::Render
 		Format m_Format;
 
 		bool operator==(const VertexAttribute& other) const = default;
-		bool operator<(const VertexAttribute& other) const { return m_Type < other.m_Type; }
+		bool operator<(const VertexAttribute& other) const 
+		{ 
+			if (m_Type < other.m_Type)
+				return true;
+			else if (m_BufferSlot < other.m_BufferSlot)
+				return true;
+			return false; 
+		}
 	};
 
 	struct VertexLayout

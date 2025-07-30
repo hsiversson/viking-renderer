@@ -47,7 +47,7 @@ namespace vkr::Graphics
 			param3.second = device->CreateTextureView(Render::TextureViewDesc{}, emissiveTexture);
 			materialDesc.m_Parameters.push_back(param3);
 
-			materialDesc.m_FrontCounterClockwise = true;
+			materialDesc.m_FrontCounterClockwise = false;
 			materialDesc.m_TwoSided = false;
 		}
 
@@ -246,6 +246,27 @@ namespace vkr::Graphics
 				for (uint32_t i = 0; i < accessor->count; ++i)
 				{
 					memcpy(dst + i * bytesPerIdx, src + i * stride, bytesPerIdx);
+				}
+			}
+
+			if (meshDesc.m_IndexFormat == Render::FORMAT_R32_UINT)
+			{
+				uint32_t* indexBufferU32 = reinterpret_cast<uint32_t*>(dst);
+				for (uint32_t i = 0; i < accessor->count; i += 3)
+				{
+					uint32_t& i1 = indexBufferU32[i + 1];
+					uint32_t& i2 = indexBufferU32[i + 2];
+					std::swap(i1, i2);
+				}
+			}
+			else
+			{
+				uint16_t* indexBufferU32 = reinterpret_cast<uint16_t*>(dst);
+				for (uint32_t i = 0; i < accessor->count; i += 3)
+				{
+					uint16_t& i1 = indexBufferU32[i + 1];
+					uint16_t& i2 = indexBufferU32[i + 2];
+					std::swap(i1, i2);
 				}
 			}
 		}
