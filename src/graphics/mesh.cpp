@@ -23,7 +23,7 @@ namespace vkr::Graphics
 		std::vector<uint8_t> vertexBufferData;
 		for (uint32_t i = 0; i < desc.m_NumVertices; ++i)
 		{
-			for (const auto& attr : desc.m_VertexLayout.m_Attributes)
+			for (const auto& attr : desc.m_VertexLayout.GetAttributes())
 			{
 				const std::vector<uint8_t>& attrData = desc.m_VertexData.at(attr.m_Type);
 				const uint32_t attrSize = GetFormatBytesPerPixel(attr.m_Format);
@@ -49,6 +49,22 @@ namespace vkr::Graphics
 		m_IndexBuffer = device->CreateBuffer(indexBufferDesc, desc.m_IndexData.size(), desc.m_IndexData.data());
 		if (!m_IndexBuffer)
 			return false;
+
+		//These views will be used for raytracing
+		Render::BufferViewDesc srvVBDesc;
+		srvVBDesc.m_Usage = Render::BUFFER_VIEW_USAGE_RAW;
+		srvVBDesc.m_ElementCount = desc.m_NumVertices * desc.m_VertexLayout.GetStride();
+		srvVBDesc.m_ElementSize = 1;
+		srvVBDesc.m_ElementStart = 0;
+		srvVBDesc.m_Format = Render::FORMAT_UNKNOWN;
+		m_RaytraceVBView = device->CreateBufferView(srvVBDesc, m_VertexBuffer);
+
+		Render::BufferViewDesc srvIBDesc;
+		srvIBDesc.m_Usage = Render::BUFFER_VIEW_USAGE_RAW;
+		srvIBDesc.m_ElementCount = desc.m_NumIndices * GetFormatBytesPerPixel(desc.m_IndexFormat);
+		srvIBDesc.m_ElementSize = 1;
+		srvIBDesc.m_ElementStart = 0;
+		m_RaytraceIBView = device->CreateBufferView(srvIBDesc, m_IndexBuffer);
 
 		m_Topology = desc.m_Topology;
 		m_VertexLayout = desc.m_VertexLayout;

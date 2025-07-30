@@ -44,7 +44,7 @@ namespace vkr::Render
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsDesc = {};
 
 			std::vector<D3D12_INPUT_ELEMENT_DESC> inputElements;
-			for (auto& attrib : desc.Default.m_VertexLayout.m_Attributes)
+			for (auto& attrib : desc.Default.m_VertexLayout.GetAttributes())
 			{
 				D3D12_INPUT_ELEMENT_DESC element = {};
 				element.Format = D3DConvertFormat(attrib.m_Format);

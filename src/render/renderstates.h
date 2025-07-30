@@ -25,6 +25,7 @@ namespace vkr::Render
 		uint32_t m_Index;
 		uint32_t m_BufferSlot;
 		Format m_Format;
+		uint32_t m_Size = 0;
 
 		bool operator==(const VertexAttribute& other) const = default;
 		bool operator<(const VertexAttribute& other) const 
@@ -41,9 +42,14 @@ namespace vkr::Render
 	{
 		uint32_t GetStride() const;
 		void InsertAttribute(VertexAttribute::Type type, Format format, uint32_t index = 0, uint32_t bufferSlot = 0);
-		std::set<VertexAttribute> m_Attributes;
+		uint32_t GetByteOffset(VertexAttribute::Type type, uint32_t index) const; //Returns the byte offset of the vertex attribute with the semantic and index specified
+		const std::set<VertexAttribute>& GetAttributes() const { return m_Attributes; }
 
 		bool operator==(const VertexLayout& other) const = default;
+
+	private:
+		uint32_t m_Stride;
+		std::set<VertexAttribute> m_Attributes; //Attribute descriptions sorted by buffer slot
 	};
 
 	struct RasterizerState
@@ -123,7 +129,7 @@ namespace std
 			};
 
 			size_t h = 0;
-			for (auto const& attr : vertexLayout.m_Attributes)
+			for (auto const& attr : vertexLayout.GetAttributes())
 			{
 				mix(h, std::hash<vkr::Render::VertexAttribute>{}(attr));
 			}

@@ -60,6 +60,14 @@ namespace vkr::Graphics
 		taaPSODesc.Compute.m_ComputeShader = m_TAAResolveComputeShader.get();
 
 		m_TAAResolvePSO = device->CreatePipelineState(taaPSODesc);
+
+		// Raytrace
+		m_RaytraceShader = device->CreateShader("../../../content/shaders/tracerays.hlsl", L"Main", vkr::Render::SHADER_STAGE_COMPUTE);
+		Render::PipelineStateDesc raytracePSODesc = {};
+		raytracePSODesc.m_Type = Render::PIPELINE_STATE_TYPE_COMPUTE;
+		raytracePSODesc.Compute.m_ComputeShader = m_RaytraceShader.get();
+
+		m_RaytracePSO = device->CreatePipelineState(raytracePSODesc);
 		return true;
 	}
 
@@ -68,27 +76,15 @@ namespace vkr::Graphics
 		View* viewPtr = &view; 
 		viewPtr->BeginRender();
 		Render::QueueGraphicsTask([this, viewPtr]() mutable { PreRenderUpdates(*viewPtr); });
+		//UpdateParticles(view);
 		Render::QueueGraphicsTask([this, viewPtr]() mutable { DepthPrepass(*viewPtr); });
-		Render::QueueGraphicsTask([this, viewPtr]() mutable { ForwardPass(*viewPtr); });
-		Render::QueueGraphicsTask([this, viewPtr]() mutable { RenderSky(*viewPtr); });
+		Render::QueueGraphicsTask([this, viewPtr]() mutable { TraceRadiance(*viewPtr); });
+// 		Render::QueueGraphicsTask([this, viewPtr]() mutable { ForwardPass(*viewPtr); });
+// 		Render::QueueGraphicsTask([this, viewPtr]() mutable { RenderSky(*viewPtr); });
 		Render::QueueGraphicsTask([this, viewPtr]() mutable { ApplyUpscaling(*viewPtr); });
+		//ApplyPostEffects(view);
 		Ref<Render::RenderTaskEvent> lastRenderEvent = Render::QueueGraphicsTask([this, viewPtr]() mutable { FinalizeFrame(*viewPtr); });
 		viewPtr->EndRender();
-
-		//UpdateRtScene(view);
-		//UpdateParticles(view);
-
-		//DepthPrepass(view);
-
-		//Lets just do a simple forward render for now, remove when raytracing is in place
-		//ForwardPass(view);
-
-		//
-		//TraceRadiance(view);
-		//RenderSky(view);
-		//ApplyUpscaling(view);
-		//ApplyPostEffects(view);
-		//FinalizeFrame(view);
 	}
 
 	void ViewRenderer::RenderSky(View& view)
@@ -108,6 +104,7 @@ namespace vkr::Graphics
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
 			barriers.push_back(barrierDesc);
 		}
+
 		ctx->TextureBarrier(barriers.size(), barriers.data());
 		
 		ctx->BindPipelineState(m_SkyPSO.get());
@@ -122,9 +119,7 @@ namespace vkr::Graphics
 		data.DepthTextureDescriptor = renderTargets.m_DepthBuffer.m_TextureView->GetIndex();
 		ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
-		uint32_t GroupsX = ceil(view.GetRenderSize().x / 8);
-		uint32_t GroupsY = ceil(view.GetRenderSize().y / 8);
-		ctx->Dispatch({GroupsX, GroupsY, 1});
+		ctx->DispatchThreads({view.GetRenderSize().x, view.GetRenderSize().y,1});
 	}
 
 	void ViewRenderer::ForwardPass(View& view)
@@ -334,6 +329,22 @@ namespace vkr::Graphics
 		renderTargets.m_DepthBuffer.m_Format = Render::Format::FORMAT_D32_FLOAT;
 		renderTargets.m_DepthBuffer.Update(view.GetRenderSize(), "ViewRenderTargets::DepthBuffer");
 
+		//For now put these here
+		renderTargets.m_SceneBuffer_OutputSize.m_IsWritable = true;
+		renderTargets.m_SceneBuffer_OutputSize.m_IsRenderTarget = true;
+		renderTargets.m_SceneBuffer_OutputSize.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
+		renderTargets.m_SceneBuffer_OutputSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_OutputSize");
+
+		renderTargets.m_SceneHistory.m_IsWritable = true;
+		renderTargets.m_SceneHistory.m_IsRenderTarget = true;
+		renderTargets.m_SceneHistory.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
+		renderTargets.m_SceneHistory.Update(view.GetRenderSize(), "ViewRenderTargets::SceneHistory");
+
+		renderTargets.m_Velocity.m_IsWritable = true;
+		renderTargets.m_Velocity.m_IsRenderTarget = true;
+		renderTargets.m_Velocity.m_Format = Render::Format::FORMAT_RG16_FLOAT;
+		renderTargets.m_Velocity.Update(view.GetRenderSize(), "ViewRenderTargets::Velocity");
+
 		ctx->InsertWait(renderData.m_RaytracingTLAS->GetBuffer()->GetGpuPending());
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
 
@@ -382,7 +393,57 @@ namespace vkr::Graphics
 
 	void ViewRenderer::TraceRadiance(View& view)
 	{
+		const ViewRenderData& renderData = view.GetRenderData();
+		ViewRenderTargets& renderTargets = view.GetRenderTargets();
+		Render::Context* ctx = Render::Context::GetCurrentContext();
+		SET_CONTEXT_MARKER_FUNCTION(ctx);
 
+		renderTargets.m_SceneBuffer_RenderSize.m_IsWritable = true;
+		renderTargets.m_SceneBuffer_RenderSize.m_IsRenderTarget = true;
+		renderTargets.m_SceneBuffer_RenderSize.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
+		renderTargets.m_SceneBuffer_RenderSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_RenderSize");
+
+		renderTargets.m_DepthBuffer.m_IsDepthStencil = true;
+		renderTargets.m_DepthBuffer.m_Format = Render::Format::FORMAT_D32_FLOAT;
+		renderTargets.m_DepthBuffer.Update(view.GetRenderSize(), "ViewRenderTargets::DepthBuffer");
+
+		//Transition to UAV the output
+		std::vector<Render::TextureBarrierDesc> barriers;
+		{
+			Render::TextureBarrierDesc barrierDesc;
+			barrierDesc.m_Texture = view.GetRenderTargets().m_SceneBuffer_RenderSize.m_Texture.get();
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
+			barriers.push_back(barrierDesc);
+		}
+		//Transition DS to write
+		{
+			Render::TextureBarrierDesc barrierDesc;
+			barrierDesc.m_Texture = view.GetRenderTargets().m_DepthBuffer.m_Texture.get();
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_DEPTH_STENCIL;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_DEPTH_WRITE;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_DEPTH_STENCIL_WRITE;
+			barriers.push_back(barrierDesc);
+		}
+
+		ctx->TextureBarrier(barriers.size(), barriers.data());
+
+		ctx->BindPipelineState(m_RaytracePSO.get());
+
+		struct alignas(16) ConstantData
+		{
+			uint32_t SceneTextureDescriptor;
+			uint32_t DepthTextureDescriptor;
+			uint32_t RaytracingSceneDescriptor;
+		};
+		ConstantData data;
+		data.SceneTextureDescriptor = view.GetRenderTargets().m_SceneBuffer_RenderSize.m_TextureViewRW->GetIndex();
+		data.DepthTextureDescriptor = view.GetRenderTargets().m_DepthBuffer.m_TextureView->GetIndex();
+		data.RaytracingSceneDescriptor = renderData.m_RaytracingTLAS->GetIndex();
+		ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
+
+		ctx->DispatchThreads({ view.GetRenderSize().x, view.GetRenderSize().y, 1 });
 	}
 
 	void ViewRenderer::ApplyUpscaling(View& view)

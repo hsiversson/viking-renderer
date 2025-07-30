@@ -96,6 +96,9 @@ namespace vkr::Graphics
 		};
 		
 		CollectBatchesForPass(prepareData.m_DepthPassData, DepthPSOSelector);
-		CollectBatchesForPass(prepareData.m_ForwardPassData, DefaultPSOSelector);
+		if (false) //(!useRaytracing)
+		{
+			CollectBatchesForPass(prepareData.m_ForwardPassData, DefaultPSOSelector);
+		}
 	}
 }

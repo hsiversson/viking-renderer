@@ -50,6 +50,8 @@ namespace vkr::Graphics
 		//Global shader cache??
 		Ref<Render::Shader> m_SkyComputeShader;
 		Ref<Render::PipelineState> m_SkyPSO;
+		Ref<Render::Shader> m_RaytraceShader;
+		Ref<Render::PipelineState> m_RaytracePSO;
 
 		//TAA
 		int m_CurrentJitterIndex = 0;
@@ -57,5 +59,8 @@ namespace vkr::Graphics
 		Ref<Render::PipelineState> m_TAAResolvePSO;
 		Mat44 m_PrevViewProjection = Mat44::Identity();
 		Vector2f m_PrevJitter = Vector2f(0, 0);
+
+		//RT
+
 	};
 }

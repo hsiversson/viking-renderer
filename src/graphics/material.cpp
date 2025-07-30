@@ -137,7 +137,7 @@ namespace vkr::Graphics
 				"#include \"../../../content/shaders/instancing.hlsl\"\n"
 				"struct VSInput\n"
 				"{\n";
-			for (const Render::VertexAttribute& attr : vertexLayout.m_Attributes)
+			for (const Render::VertexAttribute& attr : vertexLayout.GetAttributes())
 			{
 				switch (attr.m_Format)
 				{
@@ -201,16 +201,7 @@ namespace vkr::Graphics
 				"cbuffer PerBatchConstantBuffer : register(b0)\n"
 				"{\n"
 				"	uint BatchInstanceDataOffsetStart;\n"
-				"	uint AlbedoTextureDescriptor;\n"
-				"	uint NormalTextureDescriptor;\n"
-				"	uint MetallicRoughnessTextureDescriptor;\n"
 				"	uint RaytracingSceneDescriptor;\n"
-				"};\n"
-				"struct InstanceData\n"
-				"{\n"
-				"	float4x4 ModelToWorld;\n"
-				"	float4x4 PrevModelToWorld;\n"
-				"	uint MaterialID;\n"
 				"};\n"
 				"struct VSOutput\n"
 				"{\n"
@@ -227,10 +218,10 @@ namespace vkr::Graphics
 				"{\n"
 				"	VSOutput output;\n"
 				"	InstanceData data = GetInstanceData<InstanceData>(BatchInstanceDataOffsetStart, instanceID);"
-				"	output.worldPosition = mul(data.ModelToWorld, float4(input.position0, 1.0f)).xyz;\n"
+				"	output.worldPosition = mul(data.LocalToWorld, float4(input.position0, 1.0f)).xyz;\n"
 				"	output.clipPosition = mul(SceneConstants.ViewProjection, float4(output.worldPosition, 1.0f));\n"
 				"	output.currClipPosition = output.clipPosition;\n"
-				"	float3 prevWorldPosition = mul(data.PrevModelToWorld, float4(input.position0, 1.0f)).xyz;\n"
+				"	float3 prevWorldPosition = mul(data.PrevLocalToWorld, float4(input.position0, 1.0f)).xyz;\n"
 				"	output.prevClipPosition = mul(SceneConstants.PrevViewProjection, float4(prevWorldPosition, 1.0f));\n"
 				"	output.normal = input.normal0;\n"
 				"	output.tangent = input.tangent0;\n"

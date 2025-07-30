@@ -139,24 +139,15 @@ namespace vkr
 		meshDesc.m_NumIndices = 36;
 		meshDesc.m_Topology = Render::PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-		Render::VertexAttribute attribute;
-		attribute.m_Type = Render::VertexAttribute::TYPE_POSITION;
-		attribute.m_Index = 0;
-		attribute.m_BufferSlot = 0;
-		attribute.m_Format = Render::FORMAT_RGB32_FLOAT;
-		meshDesc.m_VertexLayout.m_Attributes.insert(attribute);
+		meshDesc.m_VertexLayout.InsertAttribute(Render::VertexAttribute::TYPE_POSITION, Render::FORMAT_RGB32_FLOAT, 0, 0);
 		meshDesc.m_VertexData[Render::VertexAttribute::TYPE_POSITION].resize(sizeof(DefaultCubePositions));
 		memcpy(meshDesc.m_VertexData[Render::VertexAttribute::TYPE_POSITION].data(), &DefaultCubePositions, sizeof(DefaultCubePositions));
 
-		attribute.m_Type = Render::VertexAttribute::TYPE_NORMAL;
-		attribute.m_Format = Render::FORMAT_RGB32_FLOAT;
-		meshDesc.m_VertexLayout.m_Attributes.insert(attribute);
+		meshDesc.m_VertexLayout.InsertAttribute(Render::VertexAttribute::TYPE_NORMAL, Render::FORMAT_RGB32_FLOAT, 0, 0);
 		meshDesc.m_VertexData[Render::VertexAttribute::TYPE_NORMAL].resize(sizeof(DefaultCubeNormals));
 		memcpy(meshDesc.m_VertexData[Render::VertexAttribute::TYPE_NORMAL].data(), &DefaultCubeNormals, sizeof(DefaultCubeNormals));
 
-		attribute.m_Type = Render::VertexAttribute::TYPE_UV;
-		attribute.m_Format = Render::FORMAT_RG32_FLOAT;
-		meshDesc.m_VertexLayout.m_Attributes.insert(attribute);
+		meshDesc.m_VertexLayout.InsertAttribute(Render::VertexAttribute::TYPE_UV, Render::FORMAT_RG32_FLOAT, 0, 0);
 		meshDesc.m_VertexData[Render::VertexAttribute::TYPE_UV].resize(sizeof(DefaultCubeUvs));
 		memcpy(meshDesc.m_VertexData[Render::VertexAttribute::TYPE_UV].data(), &DefaultCubeUvs, sizeof(DefaultCubeUvs));
 
