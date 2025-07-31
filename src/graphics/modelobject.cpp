@@ -54,6 +54,10 @@ namespace vkr::Graphics
 		obj.m_Material = part.m_Material.get();
 		renderData.m_VisibleMeshes.push_back(obj);
 
+		Render::RaytracingHitGroupDesc hitGroupDesc = {};
+		part.m_Material->GetMaterial()->GetHitGroupDesc(hitGroupDesc);
+		renderData.m_MaterialHitGroups.push_back(hitGroupDesc);
+
 		if (Ref<Render::Buffer> blas = part.m_Mesh->GetBLAS())
 		{
 			Render::RaytracingInstanceDesc rtInstanceDesc = {};

@@ -56,46 +56,8 @@ namespace vkr::Graphics
 			return false;
 		}
 
-		std::vector<D3D12_EXPORT_DESC> hitGroupExports;
-		hitGroupExports.reserve(2);
-		if (addClosestHit)
-		{
-			D3D12_EXPORT_DESC exportDesc = {};
-			exportDesc.Name = uniqueHitGroupClosestHitId.c_str();
-			hitGroupExports.push_back(exportDesc);
-		}
-		if (addAnyHit)
-		{
-			D3D12_EXPORT_DESC exportDesc = {};
-			exportDesc.Name = uniqueHitGroupAnyHitId.c_str();
-			hitGroupExports.push_back(exportDesc);
-		}
-
-		D3D12_DXIL_LIBRARY_DESC dxilLibDesc = {};
-		dxilLibDesc.DXILLibrary.pShaderBytecode = hitGroupShaderBytecode->GetByteCode();
-		dxilLibDesc.DXILLibrary.BytecodeLength = hitGroupShaderBytecode->GetByteCodeSize();
-		dxilLibDesc.NumExports = hitGroupExports.size();
-		dxilLibDesc.pExports = hitGroupExports.data();
-
-		D3D12_STATE_SUBOBJECT dxilLibSubobject = {};
-		dxilLibSubobject.Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;
-		dxilLibSubobject.pDesc = &dxilLibDesc;
-
-		D3D12_HIT_GROUP_DESC hitGroupDesc = {};
-		hitGroupDesc.HitGroupExport = uniqueHitGroupId.c_str();
-		hitGroupDesc.Type = D3D12_HIT_GROUP_TYPE_TRIANGLES;
-		if (addClosestHit)
-		{
-			hitGroupDesc.ClosestHitShaderImport = uniqueHitGroupClosestHitId.c_str();
-		}
-		if (addAnyHit)
-		{
-			hitGroupDesc.AnyHitShaderImport = uniqueHitGroupClosestHitId.c_str();
-		}
-
-		D3D12_STATE_SUBOBJECT hitGroupSubobject = {};
-		hitGroupSubobject.Type = D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP;
-		hitGroupSubobject.pDesc = &hitGroupDesc;
+		Render::RaytracingHitGroupDesc hitGroupDesc;
+		hitGroupDesc.m_Shader = hitGroupShaderBytecode.get();
 
 		return false;
 	}

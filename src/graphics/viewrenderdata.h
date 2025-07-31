@@ -85,6 +85,7 @@ namespace vkr::Graphics
 		Ref<Render::BufferView> m_InstanceDataOffsetBufferView;
 
 		MaterialDataBuffer m_MaterialDataBuffer;
+		std::vector<Render::RaytracingHitGroupDesc> m_MaterialHitGroups;
 
 		Render::TempBuffer m_PerSceneConstantBuffer;
 		
