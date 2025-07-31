@@ -129,6 +129,7 @@ RTVertex GetInterpolatedVertexAttributes(in const InstanceData data, in const ui
 TraceHitResult TraceRadianceRay(RaytracingAccelerationStructure raytracingScene, float3 rayOrigin, float3 rayDirection)
 {
     TraceHitResult result;
+    result.Hit = false;
     
     RayDesc ray;
     ray.Origin = rayOrigin;
