@@ -15,7 +15,7 @@ SamplerState g_SamplerBilinearClamp : register(s1);
 
 struct TraceHitResult
 {
-    bool hit;
+    bool Hit;
     float3 WorldPos;
     float3 Normal;
     float4 Color;
@@ -142,7 +142,7 @@ TraceHitResult TraceRadianceRay(RaytracingAccelerationStructure raytracingScene,
     
     if (rayQuery.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
     {
-        result.hit = true;
+        result.Hit = true;
         uint instanceID = rayQuery.CommittedInstanceID();
         uint primitiveIndex = rayQuery.CommittedPrimitiveIndex();
         float2 bary = rayQuery.CommittedTriangleBarycentrics();
@@ -192,17 +192,24 @@ TraceHitResult TraceRadianceRay(RaytracingAccelerationStructure raytracingScene,
         float3 lightingResult = float3(0.0f, 0.0f, 0.0f);
         for (uint i = 0; i < SceneConstants.NumDirectionalLightsInUse; ++i)
         {
-            /*RayQuery < RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH > rayQuery;
-            rayQuery.TraceRayInline(RaytracingScene, 0, 0xff, ray);
+            const DirectionalLightData dirLight = SceneConstants.DirectionalLights[i];
+            const float3 L = normalize(-dirLight.Direction);
+            
+            RayDesc ray;
+            ray.Origin = pbrInput.WorldPosition + pbrInput.WorldNormal * 0.00001f;
+            ray.Direction = L;
+            ray.TMin = 0.01f;
+            ray.TMax = 1000000.0f;
+            
+            RayQuery < RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH > rayQuery;
+            rayQuery.TraceRayInline(raytracingScene, 0, 0xff, ray);
             rayQuery.Proceed();
         
             if (rayQuery.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
             {
                 continue; // we hit geometry, this means we're in shadow for this light
-            }*/
+            }
             
-            const DirectionalLightData dirLight = SceneConstants.DirectionalLights[i];
-            const float3 L = normalize(-dirLight.Direction);
             lightingResult += ComputeLuminance(pbrInput, SceneConstants.CameraPosition, L, dirLight.Emission);
         }
         result.Color = float4(lightingResult, 1.0f);
@@ -215,7 +222,6 @@ TraceHitResult TraceRadianceRay(RaytracingAccelerationStructure raytracingScene,
 void Main(uint3 DispatchThreadId : SV_DispatchThreadID)
 {
     RWTexture2D<float4> SceneTexture = ResourceDescriptorHeap[Constants.SceneTextureDescriptorIndex];
-    Texture2D<float> DepthBuffer = ResourceDescriptorHeap[Constants.DepthBufferDescriptorIndex];
     
     uint width, height;
     SceneTexture.GetDimensions(width, height);
@@ -225,10 +231,8 @@ void Main(uint3 DispatchThreadId : SV_DispatchThreadID)
     const float2 uv = (pixel + 0.5f) * texelSize;
     float2 ndc = float2(uv.x * 2.0f - 1.0f, (1.0f - uv.y) * 2.0f - 1.0f);
     
-    float depth = DepthBuffer.Load(int3(pixel, 0));
-    
     //Unproject pixel to get ray origin and direction
-    float4 clipPos = float4(ndc, depth, 1.0f);
+    float4 clipPos = float4(ndc, 1.0f, 1.0f);
     float4 viewPos = mul(SceneConstants.InvProjection, clipPos);
     viewPos /= viewPos.w;
     float3 rd = normalize(viewPos.xyz);
@@ -239,9 +243,9 @@ void Main(uint3 DispatchThreadId : SV_DispatchThreadID)
     //Fire ray
     RaytracingAccelerationStructure raytracingScene = ResourceDescriptorHeap[Constants.RaytracingSceneDescriptorIndex];
     
-    float4 resultColor;
+    float4 resultColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
     TraceHitResult primaryHit = TraceRadianceRay(raytracingScene, ro, rd);
-    if (primaryHit.hit)
+    if (primaryHit.Hit)
     {
         resultColor = primaryHit.Color;
         // monte carlo importance sampling chooses ray dirs
