@@ -11,9 +11,9 @@ namespace vkr::Render
 		{
 		case ShaderModel::SM_6_0:
 			return L"6_0";
-		default:
 		case ShaderModel::SM_6_6:
 			return L"6_6";
+		default:
 		case ShaderModel::SM_6_7:
 			return L"6_7";
 		}
@@ -33,6 +33,8 @@ namespace vkr::Render
 		//	return L"ms";
 		//case SHADER_STAGE_AMPLIFICATION:
 		//	return L"as";
+		case SHADER_STAGE_RAYTRACING:
+			return L"lib";
 		default:
 			// error
 			return nullptr;
@@ -41,6 +43,9 @@ namespace vkr::Render
 
 	static std::wstring GetTargetProfile(ShaderStage shaderStage, ShaderModel shaderModel)
 	{
+		if (shaderStage == SHADER_STAGE_RAYTRACING)
+			assert(shaderModel >= ShaderModel::SM_6_6);
+
 		std::wstring target;
 		target.reserve(8);
 		target.append(GetShaderStageString(shaderStage));
@@ -78,8 +83,12 @@ namespace vkr::Render
 		}
 
 		std::vector<LPCWSTR> compileArguments;
-		compileArguments.push_back(L"-E");
-		compileArguments.push_back(entryPoint);
+
+		if (stage != SHADER_STAGE_RAYTRACING)
+		{
+			compileArguments.push_back(L"-E");
+			compileArguments.push_back(entryPoint);
+		}
 
 		const std::wstring targetProfile = GetTargetProfile(stage, shaderModel);
 		compileArguments.push_back(L"-T");

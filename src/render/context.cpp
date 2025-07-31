@@ -114,17 +114,40 @@ namespace vkr::Render
 		PIXEndEvent(m_CurrentD3DCommandList);
 	}
 
-	void Context::Dispatch(const Vector3u& Groups)
+	void Context::Dispatch(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ)
 	{
 		UpdateState();
-		m_CurrentD3DCommandList->Dispatch(Groups.x, Groups.y, Groups.z);
+		m_CurrentD3DCommandList->Dispatch(numGroupsX, numGroupsY, numGroupsZ);
 		++m_NumRecordedCommands;
+	}
+
+	void Context::Dispatch(const Vector3u& Groups)
+	{
+		Dispatch(Groups.x, Groups.y, Groups.z);
 	}
 
 	void Context::DispatchThreads(PipelineState* pipelineState, const Vector3u& threads)
 	{
 		BindPipelineState(pipelineState);
 		DispatchThreads(threads);
+	}
+
+	void Context::DispatchRays(PipelineState* pipelineState, uint32_t numThreadsX, uint32_t numThreadsY, uint32_t numThreadsZ)
+	{
+		assert(pipelineState->GetType() == PIPELINE_STATE_TYPE_RAYTRACING);
+		BindPipelineState(pipelineState);
+		UpdateState();
+		D3D12_DISPATCH_RAYS_DESC dispatchRaysDesc = pipelineState->GetD3DDispatchRaysDesc();
+		dispatchRaysDesc.Width = numThreadsX;
+		dispatchRaysDesc.Height = numThreadsY;
+		dispatchRaysDesc.Depth = numThreadsZ;
+		m_CurrentD3DCommandList7->DispatchRays(&dispatchRaysDesc);
+		++m_NumRecordedCommands;
+	}
+
+	void Context::DispatchRays(PipelineState* pipelineState, const Vector3u& numThreads)
+	{
+		DispatchRays(pipelineState, numThreads.x, numThreads.y, numThreads.z);
 	}
 
 	void Context::DispatchThreads(const Vector3u& threads)
@@ -311,7 +334,14 @@ namespace vkr::Render
 		{
 			if (m_StateCache.m_PipelineState)
 			{
-				m_CurrentD3DCommandList->SetPipelineState(m_StateCache.m_PipelineState->GetD3DPipelineState());
+				if (m_StateCache.m_PipelineState->GetType() == PIPELINE_STATE_TYPE_RAYTRACING)
+				{
+					m_CurrentD3DCommandList7->SetPipelineState1(m_StateCache.m_PipelineState->GetD3DStateObject());
+				}
+				else
+				{
+					m_CurrentD3DCommandList->SetPipelineState(m_StateCache.m_PipelineState->GetD3DPipelineState());
+				}
 			}
 			else
 			{

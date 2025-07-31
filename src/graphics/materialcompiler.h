@@ -12,5 +12,7 @@ namespace vkr::Graphics
 		bool Compile(Material& outMaterial);
 
 	private:
+		bool CompileRaytracingHitGroup(Material& outMaterial);
+
 	};
 }

@@ -7,6 +7,7 @@
 namespace vkr::Render
 {
 	class RootSignature;
+	class Buffer;
 	class Device;
 
 	enum PipelineStateType
@@ -14,6 +15,7 @@ namespace vkr::Render
 		PIPELINE_STATE_TYPE_DEFAULT,
 		PIPELINE_STATE_TYPE_COMPUTE,
 		//PIPELINE_STATE_TYPE_MESH,
+		PIPELINE_STATE_TYPE_RAYTRACING,
 
 		PIPELINE_STATE_TYPE_COUNT,
 		PIPELINE_STATE_TYPE_UNKNOWN = PIPELINE_STATE_TYPE_COUNT
@@ -21,8 +23,8 @@ namespace vkr::Render
 
 	struct DefaultPipelineStateDesc
 	{
-		Shader* m_VertexShader;
-		Shader* m_PixelShader;
+		Shader* m_VertexShader = nullptr;
+		Shader* m_PixelShader = nullptr;
 
 		PrimitiveType m_PrimitiveType;
 		VertexLayout m_VertexLayout;
@@ -34,7 +36,24 @@ namespace vkr::Render
 
 	struct ComputePipelineStateDesc
 	{
-		Shader* m_ComputeShader;
+		Shader* m_ComputeShader = nullptr;
+	};
+
+	struct RaytracingHitGroupDesc
+	{
+		Shader* m_Shader = nullptr;
+		std::wstring m_Identifier;
+		std::wstring m_ClosestHitIdentifier;
+		std::wstring m_AnyHitIdentifier;
+	};
+
+	struct RaytracingPipelineStateDesc
+	{
+		Shader* m_Shader = nullptr;
+		std::wstring m_RayGenerationIdentifier;
+		std::wstring m_MissIdentifier;
+
+		std::vector<RaytracingHitGroupDesc> m_HitGroups;
 	};
 
 	//struct MeshPipelineStateDesc
@@ -58,6 +77,7 @@ namespace vkr::Render
 			DefaultPipelineStateDesc Default;
 			ComputePipelineStateDesc Compute;
 			//MeshPipelineStateDesc Mesh;
+			RaytracingPipelineStateDesc Raytracing;
 		};
 
 		PipelineStateDesc() : m_Type(PIPELINE_STATE_TYPE_UNKNOWN), Default{} {}
@@ -74,6 +94,11 @@ namespace vkr::Render
 		Vector3u m_NumThreads;
 	};
 
+	struct PipelineStateRaytracingMetaData
+	{
+		Vector3u m_NumThreads;
+	};
+
 	struct PipelineStateMetaData
 	{
 		PipelineStateType m_Type;
@@ -81,6 +106,7 @@ namespace vkr::Render
 		{
 			PipelineStateDefaultMetaData Default;
 			PipelineStateComputeMetaData Compute;
+			PipelineStateComputeMetaData Raytracing;
 		};
 
 		PipelineStateMetaData() : m_Type(PIPELINE_STATE_TYPE_UNKNOWN), Default{} {}
@@ -96,11 +122,23 @@ namespace vkr::Render
 		bool Init(const PipelineStateDesc& desc, Ref<RootSignature> rootSignature);
 
 		ID3D12PipelineState* GetD3DPipelineState() const;
+		ID3D12StateObject* GetD3DStateObject() const;
+		const D3D12_DISPATCH_RAYS_DESC& GetD3DDispatchRaysDesc() const;
 		const Ref<RootSignature>& GetRootSignature() const;
 		const PipelineStateMetaData& GetMetaData() const;
+		PipelineStateType GetType() const;
+
 	private:
+		bool InitDefault(const PipelineStateDesc& desc, Ref<RootSignature> rootSignature);
+		bool InitCompute(const PipelineStateDesc& desc, Ref<RootSignature> rootSignature);
+		bool InitRaytracing(const PipelineStateDesc& desc, Ref<RootSignature> rootSignature);
+
 		ComPtr<ID3D12PipelineState> m_PipelineState;
 		Ref<RootSignature> m_RootSignature;
 		PipelineStateMetaData m_MetaData;
+
+		ComPtr<ID3D12StateObject> m_StateObject;
+		Ref<Buffer> m_RaytracingShaderTable;
+		D3D12_DISPATCH_RAYS_DESC m_RaytracingDispatchDesc;
 	};
 }

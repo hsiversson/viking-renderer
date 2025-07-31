@@ -47,6 +47,11 @@ namespace vkr::Graphics
 		return GetOrCreatePSO(vertexLayout, false);
 	}
 
+	Render::Shader* Material::GetHitGroupShader() const
+	{
+		return m_HitGroupShader.get();
+	}
+
 	void Material::AddParameter(const MaterialParameterDesc& desc, const MaterialParameterValue& defaultValue)
 	{
 		m_Parameters.push_back(desc);

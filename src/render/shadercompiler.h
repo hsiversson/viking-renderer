@@ -14,8 +14,8 @@ namespace vkr::Render
 		ShaderCompiler();
 		~ShaderCompiler();
 
-		bool CompileFromFile(Shader& outShader, const std::filesystem::path& filepath, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel = ShaderModel::SM_6_6);
-		bool CompileFromMemory(Shader& outShader, const std::string& shaderSource, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel = ShaderModel::SM_6_6);
+		bool CompileFromFile(Shader& outShader, const std::filesystem::path& filepath, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel = ShaderModel::SM_6_7);
+		bool CompileFromMemory(Shader& outShader, const std::string& shaderSource, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel = ShaderModel::SM_6_7);
 
 	private:
 		ComPtr<IDxcCompiler3> m_Compiler;

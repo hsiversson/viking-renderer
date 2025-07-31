@@ -161,6 +161,11 @@ namespace vkr::Render
 		return shader;
 	}
 
+	Ref<Shader> Device::CreateShaderFromString(const std::wstring& sourceCode, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel)
+	{
+		return CreateShaderFromString(UTF16ToUTF8(sourceCode), entryPoint, stage, shaderModel);
+	}
+
 	Ref<PipelineState> Device::CreatePipelineState(const PipelineStateDesc& desc)
 	{
 		Ref<PipelineState> pipelineState = MakeRef<PipelineState>();

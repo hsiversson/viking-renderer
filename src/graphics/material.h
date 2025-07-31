@@ -149,6 +149,7 @@ namespace vkr::Graphics
 
 	class Material
 	{
+		friend class MaterialCompiler;
 	public:
 		Material();
 		~Material();
@@ -157,6 +158,8 @@ namespace vkr::Graphics
 
 		Ref<Render::PipelineState> GetDepthPipelineState(const Render::VertexLayout& vertexLayout);
 		Ref<Render::PipelineState> GetDefaultPipelineState(const Render::VertexLayout& vertexLayout);
+
+		Render::Shader* GetHitGroupShader() const;
 
 		void AddParameter(const MaterialParameterDesc& desc, const MaterialParameterValue& defaultValue);
 		const MaterialParameterDesc* FindParameter(const std::string& identifier) const;
@@ -169,6 +172,7 @@ namespace vkr::Graphics
 
 	private:
 		Ref<Render::Shader> m_PixelShader;
+		Ref<Render::Shader> m_HitGroupShader;
 
 		using CachedPSOs = std::unordered_map<Render::VertexLayout, Ref<Render::PipelineState>>;
 		CachedPSOs m_DefaultPSOs;
