@@ -52,10 +52,10 @@ namespace vkr::Render
 		optimizedClearValue.Format = D3DConvertFormat(desc.m_Format);
 		if (desc.m_AllowRenderTarget)
 		{
-			optimizedClearValue.Color[0] = 0.0f;
-			optimizedClearValue.Color[1] = 0.0f;
-			optimizedClearValue.Color[2] = 0.0f;
-			optimizedClearValue.Color[3] = 0.0f;
+			optimizedClearValue.Color[0] = desc.m_ClearValue.x;
+			optimizedClearValue.Color[1] = desc.m_ClearValue.y;
+			optimizedClearValue.Color[2] = desc.m_ClearValue.z;
+			optimizedClearValue.Color[3] = desc.m_ClearValue.w;
 		}
 		else if(desc.m_AllowDepthStencil)
 		{

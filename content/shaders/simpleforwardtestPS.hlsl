@@ -1,6 +1,7 @@
 #include "sceneconstants.hlsl"
 #include "instancing.hlsl"
 #include "pbrutils.hlsl"
+#include "velocity.hlsl"
 
 cbuffer PerBatchConstantBuffer : register(b0)
 {
@@ -28,22 +29,6 @@ struct PSOutput
     float4 Color : SV_Target0;
     float2 Velocity : SV_Target1;
 };
-
-float2 CalcVelocity(float4 newPos, float4 oldPos)
-{
-    float2 prevPos = oldPos.xy / oldPos.w;
-    float2 currPos = newPos.xy / newPos.w;
-    
-    currPos -= SceneConstants.CurrentJitter;
-    prevPos -= SceneConstants.PrevJitter;
-    
-    currPos = currPos * float2(0.5f, -0.5f) + 0.5f;
-    prevPos = prevPos * float2(0.5f, -0.5f) + 0.5f;
-    
-    float2 velocity = prevPos - currPos; // Really were computing inverse motion vector here, so later we need to add it
-    
-    return velocity;
-}
 
 PSOutput MainPS(PSInput input)
 {

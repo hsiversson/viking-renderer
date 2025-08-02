@@ -35,6 +35,7 @@ namespace vkr::Graphics
 		textureDesc.m_AllowRenderTarget = m_IsRenderTarget;
 		textureDesc.m_AllowDepthStencil = m_IsDepthStencil;
 		textureDesc.m_Format = m_Format;
+		textureDesc.m_ClearValue = m_ClearValue;
 		m_Texture = Render::GetDevice()->CreateTexture(textureDesc);
 
 		m_TextureView = Render::GetDevice()->CreateTextureView({}, m_Texture);

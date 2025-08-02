@@ -24,6 +24,7 @@ namespace vkr::Graphics
 		bool m_IsRenderTarget = false;
 		bool m_IsDepthStencil = false;
 		Render::Format m_Format = Render::FORMAT_UNKNOWN;
+		Vector4f m_ClearValue = {0,0,0,0};
 
 		bool Update(uint32_t width, uint32_t height, const char* name = "Unnamed Texture");
 		bool Update(Vector2u size, const char* name = "Unnamed Texture");

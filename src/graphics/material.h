@@ -9,6 +9,7 @@ namespace vkr::Render
 	class TextureView;
 	class Sampler;
 	class PipelineState;
+	class RaytracingHitGroupDesc;
 	class Shader;
 }
 

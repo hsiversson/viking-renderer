@@ -32,6 +32,7 @@ namespace vkr::Graphics
 		void UpdateParticles(View& view);
 
 		void DepthPrepass(View& view);
+		void StaticVelocity(View& view);
 
 		void TraceRadiance(View& view);
 
@@ -48,6 +49,8 @@ namespace vkr::Graphics
 		// UniquePtr<VfxSimulator> m_VfxSimulator;
 
 		//Global shader cache??
+		Ref<Render::Shader> m_StaticVelShader;
+		Ref<Render::PipelineState> m_StaticVelPSO;
 		Ref<Render::Shader> m_SkyComputeShader;
 		Ref<Render::PipelineState> m_SkyPSO;
 		Ref<Render::Shader> m_RaytraceShader;

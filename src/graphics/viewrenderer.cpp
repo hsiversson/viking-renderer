@@ -39,26 +39,33 @@ namespace vkr::Graphics
 
 	bool ViewRenderer::Init(View& view)
 	{
+		Render::Device* device = Render::GetDevice();
 		// init any renderer subsystems
 		// ex. upscalers, water, vegetation, environment, particle/vfx, light culling
 
 		//Initializing global shaders/resources
 
-		//Sky
-		Render::Device* device = Render::GetDevice();
-		m_SkyComputeShader = device->CreateShader("../../../content/shaders/sky.hlsl", L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
+		// Static object velocity computing
+		m_StaticVelShader = device->CreateShader("../../../content/shaders/staticvel.hlsl", L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
+		Render::PipelineStateDesc staticVelPSODesc = {};
+		staticVelPSODesc.m_Type = Render::PIPELINE_STATE_TYPE_COMPUTE;
+		staticVelPSODesc.Compute.m_ComputeShader = m_StaticVelShader.get();
+		m_StaticVelPSO = device->CreatePipelineState(staticVelPSODesc);
 
+		//Sky
+		
+		m_SkyComputeShader = device->CreateShader("../../../content/shaders/sky.hlsl", L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
 		Render::PipelineStateDesc skyPSODesc = {};
 		skyPSODesc.m_Type = Render::PIPELINE_STATE_TYPE_COMPUTE;
 		skyPSODesc.Compute.m_ComputeShader = m_SkyComputeShader.get();
-
 		m_SkyPSO = device->CreatePipelineState(skyPSODesc);
+
+		//TAA
 				
 		m_TAAResolveComputeShader = device->CreateShader("../../../content/shaders/taa.hlsl", L"ResolveCS", vkr::Render::SHADER_STAGE_COMPUTE);
 		Render::PipelineStateDesc taaPSODesc = {};
 		taaPSODesc.m_Type = Render::PIPELINE_STATE_TYPE_COMPUTE;
 		taaPSODesc.Compute.m_ComputeShader = m_TAAResolveComputeShader.get();
-
 		m_TAAResolvePSO = device->CreatePipelineState(taaPSODesc);
 
 		// Raytrace
@@ -66,7 +73,6 @@ namespace vkr::Graphics
 		Render::PipelineStateDesc raytracePSODesc = {};
 		raytracePSODesc.m_Type = Render::PIPELINE_STATE_TYPE_COMPUTE;
 		raytracePSODesc.Compute.m_ComputeShader = m_RaytraceShader.get();
-
 		m_RaytracePSO = device->CreatePipelineState(raytracePSODesc);
 		return true;
 	}
@@ -78,6 +84,7 @@ namespace vkr::Graphics
 		Render::QueueGraphicsTask([this, viewPtr]() mutable { PreRenderUpdates(*viewPtr); });
 		//UpdateParticles(view);
 		Render::QueueGraphicsTask([this, viewPtr]() mutable { DepthPrepass(*viewPtr); });
+		Render::QueueGraphicsTask([this, viewPtr]() mutable { StaticVelocity(*viewPtr); });
 		Render::QueueGraphicsTask([this, viewPtr]() mutable { TraceRadiance(*viewPtr); });
 // 		Render::QueueGraphicsTask([this, viewPtr]() mutable { ForwardPass(*viewPtr); });
 // 		Render::QueueGraphicsTask([this, viewPtr]() mutable { RenderSky(*viewPtr); });
@@ -85,134 +92,6 @@ namespace vkr::Graphics
 		//ApplyPostEffects(view);
 		Ref<Render::RenderTaskEvent> lastRenderEvent = Render::QueueGraphicsTask([this, viewPtr]() mutable { FinalizeFrame(*viewPtr); });
 		viewPtr->EndRender();
-	}
-
-	void ViewRenderer::RenderSky(View& view)
-	{
-		const ViewRenderData& renderData = view.GetRenderData();
-		ViewRenderTargets& renderTargets = view.GetRenderTargets();
-		Render::Context* ctx = Render::Context::GetCurrentContext();
-		SET_CONTEXT_MARKER_FUNCTION(ctx);
-		
-		//Transition to UAV the output
-		std::vector<Render::TextureBarrierDesc> barriers;
-		{
-			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = renderTargets.m_SceneBuffer_RenderSize.m_Texture.get();
-			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
-			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
-			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
-			barriers.push_back(barrierDesc);
-		}
-
-		ctx->TextureBarrier(barriers.size(), barriers.data());
-		
-		ctx->BindPipelineState(m_SkyPSO.get());
-
-		struct alignas(16) ConstantData
-		{
-			uint32_t SceneTextureDescriptor;
-			uint32_t DepthTextureDescriptor;
-		};
-		ConstantData data;
-		data.SceneTextureDescriptor = renderTargets.m_SceneBuffer_RenderSize.m_TextureView->GetIndex();
-		data.DepthTextureDescriptor = renderTargets.m_DepthBuffer.m_TextureView->GetIndex();
-		ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
-
-		ctx->DispatchThreads({view.GetRenderSize().x, view.GetRenderSize().y,1});
-	}
-
-	void ViewRenderer::ForwardPass(View& view)
-	{
-		const ViewRenderData& renderData = view.GetRenderData();
-		ViewRenderTargets& renderTargets = view.GetRenderTargets();
-		Render::Context* ctx = Render::Context::GetCurrentContext();
-		SET_CONTEXT_MARKER_FUNCTION(ctx);
-
-		renderTargets.m_SceneBuffer_RenderSize.m_IsWritable = true;
-		renderTargets.m_SceneBuffer_RenderSize.m_IsRenderTarget = true;
-		renderTargets.m_SceneBuffer_RenderSize.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
-		renderTargets.m_SceneBuffer_RenderSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_RenderSize");
-
-		renderTargets.m_SceneBuffer_OutputSize.m_IsWritable = true;
-		renderTargets.m_SceneBuffer_OutputSize.m_IsRenderTarget = true;
-		renderTargets.m_SceneBuffer_OutputSize.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
-		renderTargets.m_SceneBuffer_OutputSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_OutputSize");
-
-		renderTargets.m_SceneHistory.m_IsWritable = true;
-		renderTargets.m_SceneHistory.m_IsRenderTarget = true;
-		renderTargets.m_SceneHistory.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
-		renderTargets.m_SceneHistory.Update(view.GetRenderSize(), "ViewRenderTargets::SceneHistory");
-
-		renderTargets.m_Velocity.m_IsWritable = true;
-		renderTargets.m_Velocity.m_IsRenderTarget = true;
-		renderTargets.m_Velocity.m_Format = Render::Format::FORMAT_RG16_FLOAT;
-		renderTargets.m_Velocity.Update(view.GetRenderSize(), "ViewRenderTargets::Velocity");
-
-		//Transition to RT the output
-		std::vector<Render::TextureBarrierDesc> barriers;
-		{
-			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = renderTargets.m_SceneBuffer_RenderSize.m_Texture.get();
-			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_RENDER_TARGET;
-			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_RENDER_TARGET;
-			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
-			barriers.push_back(barrierDesc);
-		}
-		//Transition to RT the velocity buffer
-		{
-			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = renderTargets.m_Velocity.m_Texture.get();
-			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_RENDER_TARGET;
-			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_RENDER_TARGET;
-			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
-			barriers.push_back(barrierDesc);
-		}
-		//We will only read from DS now that depths are written to
-		{
-			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = renderTargets.m_DepthBuffer.m_Texture.get();
-			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
-			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_DEPTH_READ;
-			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_DEPTH_STENCIL_READ;
-			barriers.push_back(barrierDesc);
-		}
-		ctx->TextureBarrier(barriers.size(), barriers.data());
-
-
-		std::vector<Render::RenderTargetView*> targets;
-		targets.push_back(renderTargets.m_SceneBuffer_RenderSize.m_RenderTarget.get());
-		targets.push_back(renderTargets.m_Velocity.m_RenderTarget.get());
-
-		ctx->ClearRenderTargets(targets.size(), targets.data());
-		//ctx->ClearDepthStencil(view.GetDepthBuffer(), 0.0f);
-
-		ctx->BindRenderTargets(targets.size(), targets.data());
-		ctx->BindDepthStencil(renderTargets.m_DepthBuffer.m_DepthStencil.get());
-
-		const Render::TextureDesc& rtDesc = view.GetOutputTarget()->GetTexture()->m_TextureDesc;
-		ctx->SetViewport(0, 0, rtDesc.m_Size.x, rtDesc.m_Size.y);
-		ctx->SetScissorRect(0, 0, rtDesc.m_Size.x, rtDesc.m_Size.y);
-
-		for (auto& batch : renderData.m_ForwardPassData.m_InstanceBatches)
-		{
-			ctx->BindVertexBuffer(batch.m_Mesh->GetVertexBuffer().get());
-			ctx->BindIndexBuffer(batch.m_Mesh->GetIndexBuffer().get());
-			ctx->SetPrimitiveTopology(batch.m_Mesh->GetTopology());
-			ctx->BindPipelineState(batch.m_PSO.get());
-
-			struct alignas(16) ConstantData
-			{
-				uint32_t m_BatchStart;
-				uint32_t RaytracingSceneDescriptor;
-			};
-			ConstantData data;
-			data.m_BatchStart = batch.m_StartOffset;
-			data.RaytracingSceneDescriptor = renderData.m_RaytracingTLAS->GetIndex();
-			ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
-
-			ctx->DrawIndexedInstanced(batch.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount, batch.m_Count);
-		}
 	}
 
 	void ViewRenderer::PreRenderUpdates(View& view)
@@ -329,36 +208,22 @@ namespace vkr::Graphics
 		renderTargets.m_DepthBuffer.m_Format = Render::Format::FORMAT_D32_FLOAT;
 		renderTargets.m_DepthBuffer.Update(view.GetRenderSize(), "ViewRenderTargets::DepthBuffer");
 
-		//For now put these here
-		renderTargets.m_SceneBuffer_OutputSize.m_IsWritable = true;
-		renderTargets.m_SceneBuffer_OutputSize.m_IsRenderTarget = true;
-		renderTargets.m_SceneBuffer_OutputSize.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
-		renderTargets.m_SceneBuffer_OutputSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_OutputSize");
-
-		renderTargets.m_SceneHistory.m_IsWritable = true;
-		renderTargets.m_SceneHistory.m_IsRenderTarget = true;
-		renderTargets.m_SceneHistory.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
-		renderTargets.m_SceneHistory.Update(view.GetRenderSize(), "ViewRenderTargets::SceneHistory");
-
-		renderTargets.m_Velocity.m_IsWritable = true;
-		renderTargets.m_Velocity.m_IsRenderTarget = true;
-		renderTargets.m_Velocity.m_Format = Render::Format::FORMAT_RG16_FLOAT;
-		renderTargets.m_Velocity.Update(view.GetRenderSize(), "ViewRenderTargets::Velocity");
-
 		ctx->InsertWait(renderData.m_RaytracingTLAS->GetBuffer()->GetGpuPending());
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
-
-		//Transition DS to write
-		std::vector<Render::TextureBarrierDesc> barriers;
+		//Depth prepass Transitions
 		{
-			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = renderTargets.m_DepthBuffer.m_Texture.get();
-			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_DEPTH_STENCIL;
-			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_DEPTH_WRITE;
-			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_DEPTH_STENCIL_WRITE;
-			barriers.push_back(barrierDesc);
+			//Transition DS to write
+			std::vector<Render::TextureBarrierDesc> barriers;
+			{
+				Render::TextureBarrierDesc barrierDesc;
+				barrierDesc.m_Texture = renderTargets.m_DepthBuffer.m_Texture.get();
+				barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_DEPTH_STENCIL;
+				barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_DEPTH_WRITE;
+				barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_DEPTH_STENCIL_WRITE;
+				barriers.push_back(barrierDesc);
+			}
+			ctx->TextureBarrier(barriers.size(), barriers.data());
 		}
-		ctx->TextureBarrier(barriers.size(), barriers.data());
 
 		ctx->ClearDepthStencil(renderTargets.m_DepthBuffer.m_DepthStencil.get(), 0.0f);
 
@@ -389,9 +254,104 @@ namespace vkr::Graphics
 
 			ctx->DrawIndexedInstanced(batch.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount, batch.m_Count);
 		}
+		
 	}
 
-	void ViewRenderer::TraceRadiance(View& view)
+	void ViewRenderer::StaticVelocity(View& view)
+	{
+		const ViewRenderData& renderData = view.GetRenderData();
+		ViewRenderTargets& renderTargets = view.GetRenderTargets();
+		Render::Context* ctx = Render::Context::GetCurrentContext();
+
+		renderTargets.m_SceneBuffer_RenderSize.m_IsWritable = true;
+		renderTargets.m_SceneBuffer_RenderSize.m_IsRenderTarget = true;
+		renderTargets.m_SceneBuffer_RenderSize.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
+		renderTargets.m_SceneBuffer_RenderSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_RenderSize");
+
+		renderTargets.m_Velocity.m_IsWritable = true;
+		renderTargets.m_Velocity.m_IsRenderTarget = true;
+		renderTargets.m_Velocity.m_Format = Render::Format::FORMAT_RG16_FLOAT;
+		uint32_t nanBits = 0xffffffff;
+		float nanValue = *reinterpret_cast<float*>(&nanBits);
+		renderTargets.m_Velocity.m_ClearValue = { nanValue, nanValue, nanValue, nanValue };
+		renderTargets.m_Velocity.Update(view.GetRenderSize(), "ViewRenderTargets::Velocity");
+
+		SET_CONTEXT_MARKER_FUNCTION(ctx);
+
+		// At this point dynamic objects should have velocity (computed in PS in depth prepass)
+		// Add a small compute pass to add velocity to all static geometry (existing depth but no velocity written)
+		// Static velocity computing transitions
+		{
+			//Transition DS to read
+			std::vector<Render::TextureBarrierDesc> barriers;
+			{
+				Render::TextureBarrierDesc barrierDesc;
+				barrierDesc.m_Texture = renderTargets.m_DepthBuffer.m_Texture.get();
+				barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_DEPTH_STENCIL;
+				barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_DEPTH_READ;
+				barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_DEPTH_STENCIL_READ;
+				barriers.push_back(barrierDesc);
+			}
+			//Transition the velocity buffer to render target for the clear
+			{
+				Render::TextureBarrierDesc barrierDesc;
+				barrierDesc.m_Texture = renderTargets.m_Velocity.m_Texture.get();
+				barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_RENDER_TARGET;
+				barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_RENDER_TARGET;
+				barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
+				barriers.push_back(barrierDesc);
+			}
+			//Transition the scene buffer to render target for the clear
+			{
+				Render::TextureBarrierDesc barrierDesc;
+				barrierDesc.m_Texture = renderTargets.m_SceneBuffer_RenderSize.m_Texture.get();
+				barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_RENDER_TARGET;
+				barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_RENDER_TARGET;
+				barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
+				barriers.push_back(barrierDesc);
+			}
+			ctx->TextureBarrier(barriers.size(), barriers.data());
+		}
+
+		{
+			Vector4f clearValues[2] = { {0,0,0,0},{nanValue,nanValue,nanValue,nanValue} };
+			std::vector<Render::RenderTargetView*> targets;
+			targets.push_back(renderTargets.m_SceneBuffer_RenderSize.m_RenderTarget.get());
+			targets.push_back(renderTargets.m_Velocity.m_RenderTarget.get());
+			ctx->ClearRenderTargets(targets.size(), targets.data(), clearValues);
+
+			{
+				std::vector<Render::TextureBarrierDesc> barriers;
+				//Transition the velocity buffer to write
+				{
+					Render::TextureBarrierDesc barrierDesc;
+					barrierDesc.m_Texture = renderTargets.m_Velocity.m_Texture.get();
+					barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
+					barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
+					barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
+					barriers.push_back(barrierDesc);
+				}
+				ctx->TextureBarrier(barriers.size(), barriers.data());
+			}
+
+			ctx->BindPipelineState(m_StaticVelPSO.get());
+
+			struct alignas(16) ConstantData
+			{
+				uint32_t DepthBufferDescriptorIndex;
+				uint32_t VelocityBufferDescriptorIndex;
+			};
+			ConstantData data;
+			data.DepthBufferDescriptorIndex = view.GetRenderTargets().m_DepthBuffer.m_TextureView->GetIndex();
+			data.VelocityBufferDescriptorIndex = view.GetRenderTargets().m_Velocity.m_TextureViewRW->GetIndex();
+
+			ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
+
+			ctx->DispatchThreads({ view.GetRenderSize().x, view.GetRenderSize().y, 1 });
+		}
+	}
+
+	void ViewRenderer::ForwardPass(View& view)
 	{
 		const ViewRenderData& renderData = view.GetRenderData();
 		ViewRenderTargets& renderTargets = view.GetRenderTargets();
@@ -403,9 +363,91 @@ namespace vkr::Graphics
 		renderTargets.m_SceneBuffer_RenderSize.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
 		renderTargets.m_SceneBuffer_RenderSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_RenderSize");
 
-		renderTargets.m_DepthBuffer.m_IsDepthStencil = true;
-		renderTargets.m_DepthBuffer.m_Format = Render::Format::FORMAT_D32_FLOAT;
-		renderTargets.m_DepthBuffer.Update(view.GetRenderSize(), "ViewRenderTargets::DepthBuffer");
+		renderTargets.m_SceneBuffer_OutputSize.m_IsWritable = true;
+		renderTargets.m_SceneBuffer_OutputSize.m_IsRenderTarget = true;
+		renderTargets.m_SceneBuffer_OutputSize.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
+		renderTargets.m_SceneBuffer_OutputSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_OutputSize");
+
+
+
+		renderTargets.m_Velocity.m_IsWritable = true;
+		renderTargets.m_Velocity.m_IsRenderTarget = true;
+		renderTargets.m_Velocity.m_Format = Render::Format::FORMAT_RG16_FLOAT;
+		renderTargets.m_Velocity.m_ClearValue = { FLT_MAX,FLT_MAX,FLT_MAX ,FLT_MAX };
+		renderTargets.m_Velocity.Update(view.GetRenderSize(), "ViewRenderTargets::Velocity");
+
+		//Transition to RT the output
+		std::vector<Render::TextureBarrierDesc> barriers;
+		{
+			Render::TextureBarrierDesc barrierDesc;
+			barrierDesc.m_Texture = renderTargets.m_SceneBuffer_RenderSize.m_Texture.get();
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_RENDER_TARGET;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_RENDER_TARGET;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
+			barriers.push_back(barrierDesc);
+		}
+		//Transition to RT the velocity buffer
+		{
+			Render::TextureBarrierDesc barrierDesc;
+			barrierDesc.m_Texture = renderTargets.m_Velocity.m_Texture.get();
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_RENDER_TARGET;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_RENDER_TARGET;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
+			barriers.push_back(barrierDesc);
+		}
+		//We will only read from DS now that depths are written to
+		{
+			Render::TextureBarrierDesc barrierDesc;
+			barrierDesc.m_Texture = renderTargets.m_DepthBuffer.m_Texture.get();
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_DEPTH_READ;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_DEPTH_STENCIL_READ;
+			barriers.push_back(barrierDesc);
+		}
+		ctx->TextureBarrier(barriers.size(), barriers.data());
+
+
+		std::vector<Render::RenderTargetView*> targets;
+		targets.push_back(renderTargets.m_SceneBuffer_RenderSize.m_RenderTarget.get());
+		targets.push_back(renderTargets.m_Velocity.m_RenderTarget.get());
+
+		ctx->ClearRenderTargets(targets.size(), targets.data());
+		//ctx->ClearDepthStencil(view.GetDepthBuffer(), 0.0f);
+
+		ctx->BindRenderTargets(targets.size(), targets.data());
+		ctx->BindDepthStencil(renderTargets.m_DepthBuffer.m_DepthStencil.get());
+
+		const Render::TextureDesc& rtDesc = view.GetOutputTarget()->GetTexture()->m_TextureDesc;
+		ctx->SetViewport(0, 0, rtDesc.m_Size.x, rtDesc.m_Size.y);
+		ctx->SetScissorRect(0, 0, rtDesc.m_Size.x, rtDesc.m_Size.y);
+
+		for (auto& batch : renderData.m_ForwardPassData.m_InstanceBatches)
+		{
+			ctx->BindVertexBuffer(batch.m_Mesh->GetVertexBuffer().get());
+			ctx->BindIndexBuffer(batch.m_Mesh->GetIndexBuffer().get());
+			ctx->SetPrimitiveTopology(batch.m_Mesh->GetTopology());
+			ctx->BindPipelineState(batch.m_PSO.get());
+
+			struct alignas(16) ConstantData
+			{
+				uint32_t m_BatchStart;
+				uint32_t RaytracingSceneDescriptor;
+			};
+			ConstantData data;
+			data.m_BatchStart = batch.m_StartOffset;
+			data.RaytracingSceneDescriptor = renderData.m_RaytracingTLAS->GetIndex();
+			ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
+
+			ctx->DrawIndexedInstanced(batch.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount, batch.m_Count);
+		}
+	}
+
+	void ViewRenderer::TraceRadiance(View& view)
+	{
+		const ViewRenderData& renderData = view.GetRenderData();
+		ViewRenderTargets& renderTargets = view.GetRenderTargets();
+		Render::Context* ctx = Render::Context::GetCurrentContext();
+		SET_CONTEXT_MARKER_FUNCTION(ctx);
 
 		//Transition to UAV the output
 		std::vector<Render::TextureBarrierDesc> barriers;
@@ -415,15 +457,6 @@ namespace vkr::Graphics
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
-			barriers.push_back(barrierDesc);
-		}
-		//Transition DS to write
-		{
-			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = view.GetRenderTargets().m_DepthBuffer.m_Texture.get();
-			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_DEPTH_STENCIL;
-			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_DEPTH_WRITE;
-			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_DEPTH_STENCIL_WRITE;
 			barriers.push_back(barrierDesc);
 		}
 
@@ -446,11 +479,56 @@ namespace vkr::Graphics
 		ctx->DispatchThreads({ view.GetRenderSize().x, view.GetRenderSize().y, 1 });
 	}
 
+	void ViewRenderer::RenderSky(View& view)
+	{
+		const ViewRenderData& renderData = view.GetRenderData();
+		ViewRenderTargets& renderTargets = view.GetRenderTargets();
+		Render::Context* ctx = Render::Context::GetCurrentContext();
+		SET_CONTEXT_MARKER_FUNCTION(ctx);
+
+		//Transition to UAV the output
+		std::vector<Render::TextureBarrierDesc> barriers;
+		{
+			Render::TextureBarrierDesc barrierDesc;
+			barrierDesc.m_Texture = renderTargets.m_SceneBuffer_RenderSize.m_Texture.get();
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
+			barriers.push_back(barrierDesc);
+		}
+
+		ctx->TextureBarrier(barriers.size(), barriers.data());
+
+		ctx->BindPipelineState(m_SkyPSO.get());
+
+		struct alignas(16) ConstantData
+		{
+			uint32_t SceneTextureDescriptor;
+			uint32_t DepthTextureDescriptor;
+		};
+		ConstantData data;
+		data.SceneTextureDescriptor = renderTargets.m_SceneBuffer_RenderSize.m_TextureView->GetIndex();
+		data.DepthTextureDescriptor = renderTargets.m_DepthBuffer.m_TextureView->GetIndex();
+		ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
+
+		ctx->DispatchThreads({ view.GetRenderSize().x, view.GetRenderSize().y,1 });
+	}
+
 	void ViewRenderer::ApplyUpscaling(View& view)
 	{
 		// TAA, DLSS, FSR, XeSS etc.
 		const ViewRenderData& renderData = view.GetRenderData();
 		ViewRenderTargets& renderTargets = view.GetRenderTargets();
+
+		renderTargets.m_SceneBuffer_OutputSize.m_IsWritable = true;
+		renderTargets.m_SceneBuffer_OutputSize.m_IsRenderTarget = true;
+		renderTargets.m_SceneBuffer_OutputSize.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
+		renderTargets.m_SceneBuffer_OutputSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_OutputSize");
+
+		renderTargets.m_SceneHistory.m_IsWritable = true;
+		renderTargets.m_SceneHistory.m_IsRenderTarget = true;
+		renderTargets.m_SceneHistory.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
+		renderTargets.m_SceneHistory.Update(view.GetRenderSize(), "ViewRenderTargets::SceneHistory");
 
 		//TAA Resolve
 		Render::Context* ctx = Render::Context::GetCurrentContext();
@@ -573,4 +651,5 @@ namespace vkr::Graphics
 			ctx->TextureBarrier(barrierDesc);
 		}
 	}
+
 }
