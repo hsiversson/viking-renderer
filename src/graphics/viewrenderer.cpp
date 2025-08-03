@@ -136,6 +136,10 @@ namespace vkr::Graphics
 			Mat44 PrevViewProjection;
 			Vector2f CurrentJitter;
 			Vector2f PrevJitter;
+			uint32_t FrameIndex;
+			float DeltaTime;
+			float ElapsedTime;
+			uint32_t _pad;
 			uint32_t InstanceDataBufferDescriptorIndex; // Descriptor index to the global buffer where all instance data for the scene is stored
 			uint32_t InstanceDataOffsetBufferDescriptorIndex;
 			uint32_t MaterialDataBufferDescriptorIndex;
@@ -157,8 +161,10 @@ namespace vkr::Graphics
 		Projection[9] = perSceneConstantData.CurrentJitter.y;
 		perSceneConstantData.PrevJitter = m_PrevJitter;
 		m_PrevJitter = perSceneConstantData.CurrentJitter;
+		perSceneConstantData.FrameIndex = ElapsedTimer::FrameIndex();
+		perSceneConstantData.DeltaTime = ElapsedTimer::DeltaTime();
+		perSceneConstantData.ElapsedTime = ElapsedTimer::ElapsedTime();
 
-		
 		Mat43 CamWorld = const_cast<Camera&>(view.GetCamera()).GetWorldTransform();
 		perSceneConstantData.CameraWorldPosition = Vector3f(CamWorld[9], CamWorld[10], CamWorld[11]);
 		perSceneConstantData.View = const_cast<Camera&>(view.GetCamera()).GetView();

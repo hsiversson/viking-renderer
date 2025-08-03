@@ -199,7 +199,7 @@ namespace vkr::Render
 		subObjects.push_back({ D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG, &shaderConfig });
 
 		D3D12_RAYTRACING_PIPELINE_CONFIG pipelineConfig = {};
-		pipelineConfig.MaxTraceRecursionDepth = 1;
+		pipelineConfig.MaxTraceRecursionDepth = 2;
 		subObjects.push_back({ D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG, &pipelineConfig });
 
 		const uint32_t numHitGroups = raytracingDesc.m_NumHitGroups;

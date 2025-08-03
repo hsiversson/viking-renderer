@@ -53,6 +53,8 @@ float3 ConvertBarycentricsFromCommitted(in float2 committedBarycentrics)
 struct [raypayload] RaytracingPayload
 {
     float3 irradiance : read(caller, closesthit, miss) : write(caller, closesthit, miss);
+    uint recursionDepth : read(caller, closesthit, miss) : write(caller, closesthit, miss);
+    uint rngState : read(caller, closesthit, miss) : write(caller, closesthit, miss);
 };
 
 #endif //RAYTRACING_COMMON_HLSL

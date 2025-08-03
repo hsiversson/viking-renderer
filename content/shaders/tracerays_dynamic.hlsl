@@ -61,7 +61,6 @@ void Miss(inout RaytracingPayload payload)
         float3(1.00, 0.85, 0.60) // Pale yellow/gold (sun glow)
     };
         
-    const float3 ro = WorldRayOrigin();
     const float3 rd = WorldRayDirection();
         
     float t = saturate(1.0 - abs(dot(rd, float3(0, 1, 0))));

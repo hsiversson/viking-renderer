@@ -20,6 +20,10 @@ struct SceneConstantsStruct
     float4x4 PrevViewProjection;
     float2 CurrentJitter;
     float2 PrevJitter;
+    uint FrameIndex;
+    float DeltaTime;
+    float ElapsedTime;
+    uint _pad;
     uint InstanceDataBufferDescriptorIndex;         // Descriptor index to the global buffer where all instance data for the scene is stored
     uint InstanceDataOffsetBufferDescriptorIndex;   // Descriptor index to the buffer which contains indices for this pass where the instance data of every instance of the batch is stored
     uint MaterialDataBufferDescriptorIndex;         // Descriptor index to the global buffer where all material data for the scene is stored
