@@ -42,18 +42,19 @@ namespace vkr::Render
 	struct RaytracingHitGroupDesc
 	{
 		Shader* m_Shader = nullptr;
-		std::wstring m_Identifier;
-		std::wstring m_ClosestHitIdentifier;
-		std::wstring m_AnyHitIdentifier;
+		std::string m_Identifier;
+		std::string m_ClosestHitIdentifier;
+		std::string m_AnyHitIdentifier;
 	};
 
 	struct RaytracingPipelineStateDesc
 	{
 		Shader* m_Shader = nullptr;
-		std::wstring m_RayGenerationIdentifier;
-		std::wstring m_MissIdentifier;
+		std::string m_RayGenerationIdentifier;
+		std::string m_MissIdentifier;
 
-		std::vector<RaytracingHitGroupDesc> m_HitGroups;
+		RaytracingHitGroupDesc* m_HitGroups = nullptr;
+		uint32_t m_NumHitGroups = 0;
 	};
 
 	//struct MeshPipelineStateDesc
@@ -80,7 +81,23 @@ namespace vkr::Render
 			RaytracingPipelineStateDesc Raytracing;
 		};
 
-		PipelineStateDesc() : m_Type(PIPELINE_STATE_TYPE_UNKNOWN), Default{} {}
+		PipelineStateDesc(PipelineStateType type) : m_Type(type) 
+		{
+			switch (m_Type)
+			{
+			case PIPELINE_STATE_TYPE_DEFAULT:
+				new (&Default) DefaultPipelineStateDesc();
+				break;
+			case PIPELINE_STATE_TYPE_COMPUTE:
+				new (&Compute) ComputePipelineStateDesc();
+				break;
+			case PIPELINE_STATE_TYPE_RAYTRACING:
+				new (&Raytracing) RaytracingPipelineStateDesc();
+				break;
+			default:
+				break;
+			}
+		}
 		~PipelineStateDesc() {}
 	};
 

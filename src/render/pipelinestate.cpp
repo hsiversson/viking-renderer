@@ -202,22 +202,25 @@ namespace vkr::Render
 		pipelineConfig.MaxTraceRecursionDepth = 1;
 		subObjects.push_back({ D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG, &pipelineConfig });
 
-		const uint32_t numHitGroups = raytracingDesc.m_HitGroups.size();
+		const uint32_t numHitGroups = raytracingDesc.m_NumHitGroups;
 
-		std::vector<D3D12_EXPORT_DESC> exports;
-		exports.reserve((numHitGroups * 2) + 2); // 2 per hit group plus ray gen and miss
+		std::vector<std::vector<D3D12_EXPORT_DESC>> exports;
+		exports.resize(numHitGroups + 1); // 1 array per hit group plus 1 for ray gen and miss
 
 		assert(!raytracingDesc.m_RayGenerationIdentifier.empty());
 		assert(!raytracingDesc.m_MissIdentifier.empty());
 
-		exports.push_back({ raytracingDesc.m_RayGenerationIdentifier.c_str(), nullptr, D3D12_EXPORT_FLAG_NONE });
-		exports.push_back({ raytracingDesc.m_MissIdentifier.c_str(), nullptr, D3D12_EXPORT_FLAG_NONE });
+		const std::wstring rayGenerationIdentifier = UTF8ToUTF16(raytracingDesc.m_RayGenerationIdentifier);
+		const std::wstring missIdentifier = UTF8ToUTF16(raytracingDesc.m_MissIdentifier);
+
+		exports[0].push_back({ rayGenerationIdentifier.c_str(), nullptr, D3D12_EXPORT_FLAG_NONE});
+		exports[0].push_back({ missIdentifier.c_str(), nullptr, D3D12_EXPORT_FLAG_NONE });
 
 		D3D12_DXIL_LIBRARY_DESC rayGenDxilDesc = {};
 		rayGenDxilDesc.DXILLibrary.BytecodeLength = raytracingDesc.m_Shader->GetByteCodeSize();
 		rayGenDxilDesc.DXILLibrary.pShaderBytecode = raytracingDesc.m_Shader->GetByteCode();
-		rayGenDxilDesc.pExports = &exports[0];
-		rayGenDxilDesc.NumExports = 2;
+		rayGenDxilDesc.pExports = exports[0].data();
+		rayGenDxilDesc.NumExports = exports[0].size();
 		subObjects.push_back({ D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY, &rayGenDxilDesc });
 
 		std::vector<D3D12_HIT_GROUP_DESC> hitGroups;
@@ -226,39 +229,49 @@ namespace vkr::Render
 		std::vector<D3D12_DXIL_LIBRARY_DESC> dxilLibraries;
 		dxilLibraries.reserve(numHitGroups);
 
+		std::vector<std::wstring> stringStorage;
+		stringStorage.reserve(numHitGroups * 2);
+
+		std::vector<std::wstring> hitGroupIdentifiers;
+		hitGroupIdentifiers.reserve(numHitGroups);
+
 		for (uint32_t i = 0; i < numHitGroups; ++i)
 		{
 			const RaytracingHitGroupDesc& hitGroupDesc = raytracingDesc.m_HitGroups[i];
+			hitGroupIdentifiers.push_back(UTF8ToUTF16(hitGroupDesc.m_Identifier));
+			const std::wstring& hitGroupIdentifier = hitGroupIdentifiers.back();
+			stringStorage.push_back(UTF8ToUTF16(hitGroupDesc.m_ClosestHitIdentifier));
+			const std::wstring& closestHitIdentifier = stringStorage.back();
+			stringStorage.push_back(UTF8ToUTF16(hitGroupDesc.m_AnyHitIdentifier));
+			const std::wstring& anyHitIdentifier = stringStorage.back();
 
-			uint32_t numExports = 0;
-			if (!hitGroupDesc.m_ClosestHitIdentifier.empty())
+			if (!closestHitIdentifier.empty())
 			{
-				exports.push_back({hitGroupDesc.m_ClosestHitIdentifier.c_str(), nullptr, D3D12_EXPORT_FLAG_NONE });
-				++numExports;
+				exports[i + 1].push_back({ closestHitIdentifier.c_str(), nullptr, D3D12_EXPORT_FLAG_NONE});
 			}
-			if (!hitGroupDesc.m_AnyHitIdentifier.empty())
+			if (!anyHitIdentifier.empty())
 			{
-				exports.push_back({ hitGroupDesc.m_AnyHitIdentifier.c_str(), nullptr, D3D12_EXPORT_FLAG_NONE });
-				++numExports;
+				exports[i + 1].push_back({ anyHitIdentifier.c_str(), nullptr, D3D12_EXPORT_FLAG_NONE});
 			}
 
 			D3D12_DXIL_LIBRARY_DESC hitGroupDxilDesc = {};
 			hitGroupDxilDesc.DXILLibrary.BytecodeLength = hitGroupDesc.m_Shader->GetByteCodeSize();
 			hitGroupDxilDesc.DXILLibrary.pShaderBytecode = hitGroupDesc.m_Shader->GetByteCode();
-			hitGroupDxilDesc.pExports = &exports[exports.size() - numExports];
-			hitGroupDxilDesc.NumExports = numExports;
+			hitGroupDxilDesc.pExports = exports[i + 1].data();
+			hitGroupDxilDesc.NumExports = exports[i + 1].size();
 			dxilLibraries.push_back(hitGroupDxilDesc);
+			subObjects.push_back({ D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY, &dxilLibraries[i] });
 
 			D3D12_HIT_GROUP_DESC d3dHitGroupDesc = {};
-			d3dHitGroupDesc.HitGroupExport = hitGroupDesc.m_Identifier.c_str();
+			d3dHitGroupDesc.HitGroupExport = hitGroupIdentifier.c_str();
 			d3dHitGroupDesc.Type = D3D12_HIT_GROUP_TYPE_TRIANGLES;
-			if (!hitGroupDesc.m_ClosestHitIdentifier.empty())
+			if (!closestHitIdentifier.empty())
 			{
-				d3dHitGroupDesc.ClosestHitShaderImport = hitGroupDesc.m_ClosestHitIdentifier.c_str();
+				d3dHitGroupDesc.ClosestHitShaderImport = closestHitIdentifier.c_str();
 			}
-			if (!hitGroupDesc.m_AnyHitIdentifier.empty())
+			if (!anyHitIdentifier.empty())
 			{
-				d3dHitGroupDesc.AnyHitShaderImport = hitGroupDesc.m_AnyHitIdentifier.c_str();
+				d3dHitGroupDesc.AnyHitShaderImport = anyHitIdentifier.c_str();
 			}
 
 			hitGroups.push_back(d3dHitGroupDesc);
@@ -295,19 +308,19 @@ namespace vkr::Render
 		std::vector<uint8_t> data;
 		data.resize(bufferDesc.m_ElementCount);
 
-		const void* rayGenerationId = stateObjectProperties->GetShaderIdentifier(raytracingDesc.m_RayGenerationIdentifier.c_str());
-		memcpy(data.data() + rayGenerationOffset, rayGenerationId, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+		const void* rayGenerationId = stateObjectProperties->GetShaderIdentifier(rayGenerationIdentifier.c_str());
+		memcpy(data.data() + rayGenerationOffset, rayGenerationId, recordSize);
 
-		const void* missId = stateObjectProperties->GetShaderIdentifier(raytracingDesc.m_MissIdentifier.c_str());
-		memcpy(data.data() + missOffset, missId, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+		const void* missId = stateObjectProperties->GetShaderIdentifier(missIdentifier.c_str());
+		memcpy(data.data() + missOffset, missId, recordSize);
 
 		for (uint32_t i = 0; i < numHitGroups; ++i)
 		{
 			const RaytracingHitGroupDesc& hitGroupDesc = raytracingDesc.m_HitGroups[i];
-			const void* hitGroupId = stateObjectProperties->GetShaderIdentifier(hitGroupDesc.m_Identifier.c_str());
+			const void* hitGroupId = stateObjectProperties->GetShaderIdentifier(hitGroupIdentifiers[i].c_str());
 
 			uint32_t offset = hitGroupsOffset + i * recordSize;
-			memcpy(data.data() + offset, missId, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+			memcpy(data.data() + offset, hitGroupId, recordSize);
 		}
 
 		m_RaytracingShaderTable = GetDevice()->CreateBuffer(bufferDesc, data.size(), data.data());
@@ -315,13 +328,13 @@ namespace vkr::Render
 		const D3D12_GPU_VIRTUAL_ADDRESS address = m_RaytracingShaderTable->GetD3DResource()->GetGPUVirtualAddress();
 		m_RaytracingDispatchDesc = {};
 		m_RaytracingDispatchDesc.RayGenerationShaderRecord.StartAddress = address + rayGenerationOffset;
-		m_RaytracingDispatchDesc.RayGenerationShaderRecord.SizeInBytes = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+		m_RaytracingDispatchDesc.RayGenerationShaderRecord.SizeInBytes = recordSize;
 		m_RaytracingDispatchDesc.MissShaderTable.StartAddress = address + missOffset;
-		m_RaytracingDispatchDesc.MissShaderTable.SizeInBytes = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
-		m_RaytracingDispatchDesc.MissShaderTable.StrideInBytes = 0;
+		m_RaytracingDispatchDesc.MissShaderTable.SizeInBytes = recordSize;
+		m_RaytracingDispatchDesc.MissShaderTable.StrideInBytes = recordSize;
 		m_RaytracingDispatchDesc.HitGroupTable.StartAddress = address + hitGroupsOffset;
 		m_RaytracingDispatchDesc.HitGroupTable.SizeInBytes = hitGroupsSize;
-		m_RaytracingDispatchDesc.HitGroupTable.StrideInBytes = numHitGroups > 1 ? recordSize : 0;
+		m_RaytracingDispatchDesc.HitGroupTable.StrideInBytes = recordSize;
 
 		return true;
 	}

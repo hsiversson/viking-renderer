@@ -4,6 +4,11 @@
 
 #include "viewrenderdata.h"
 
+namespace vkr::Render
+{
+	struct Render::RaytracingHitGroupDesc;
+}
+
 namespace vkr::Graphics
 {
 	class SceneObject : public std::enable_shared_from_this<SceneObject>
@@ -17,6 +22,7 @@ namespace vkr::Graphics
 
 		//Temporal render mechanism
 		virtual void CollectRenderObjects(ViewRenderData& renderdata) {}
+		virtual void CollectRaytracingHitGroups(std::vector<Render::RaytracingHitGroupDesc>& outHitGroups) {}
 	protected:
 		void ComputeTransform();
 

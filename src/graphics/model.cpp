@@ -2,10 +2,12 @@
 #include "core/types.h"
 #include "mesh.h"
 #include "material.h"
+#include "render/pipelinestate.h"
 
 namespace vkr::Graphics
 {
 	Model::Model()
+		: m_TotalNumParts(0)
 	{
 
 	}
@@ -38,6 +40,11 @@ namespace vkr::Graphics
 		return m_Parts;
 	}
 
+	uint32_t Model::GetTotalNumParts() const
+	{
+		return m_TotalNumParts;
+	}
+
 	bool Model::InitPart(const ModelDesc::PartDesc& partDesc, Part& outPart)
 	{
 		outPart.m_LocalTransform = partDesc.m_LocalTransform;
@@ -49,7 +56,7 @@ namespace vkr::Graphics
 		}
 
 		Ref<Material> material = MakeRef<Material>();
-		if (!material->Init(partDesc.m_MaterialDesc))
+		if (!material->Init(outPart.m_Mesh->GetVertexLayout(), partDesc.m_MaterialDesc))
 		{
 			return false;
 		}
@@ -63,7 +70,15 @@ namespace vkr::Graphics
 			outPart.m_ChildParts.push_back(childPart);
 		}
 
+		++m_TotalNumParts;
 		return true;
+	}
+
+	Render::RaytracingHitGroupDesc Model::Part::GetHitGroupDesc()
+	{
+		Render::RaytracingHitGroupDesc hitGroupDesc = {};
+		m_Material->GetMaterial()->GetHitGroupDesc(/*m_Mesh->GetVertexLayout(),*/ hitGroupDesc);
+		return hitGroupDesc;
 	}
 
 }

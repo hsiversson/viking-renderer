@@ -26,6 +26,30 @@ namespace vkr::Render
 		}
 	}
 
+	const char* VertexAttribute::GetTypeVariableName(Type type)
+	{
+		switch (type)
+		{
+		case TYPE_POSITION:
+			return "Position";
+		case TYPE_NORMAL:
+			return "Normal";
+		case TYPE_TANGENT:
+			return "Tangent";
+		case TYPE_UV:
+			return "UV";
+		case TYPE_COLOR:
+			return "Color";
+		case TYPE_BONE_INDEX:
+			return "BoneIndex";
+		case TYPE_BONE_WEIGHT:
+			return "BoneWeight";
+		default:
+			assert(false);
+			return nullptr;
+		}
+	}
+
 	uint32_t VertexLayout::GetStride() const
 	{
 		return m_Stride;

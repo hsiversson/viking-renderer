@@ -2,6 +2,12 @@
 
 #include "core/types.h"
 
+namespace vkr::Render
+{
+	class Shader;
+	class PipelineState;
+}
+
 namespace vkr::Graphics
 {
 	class SceneObject;
@@ -27,7 +33,11 @@ namespace vkr::Graphics
 		// I.e extract renderable information and store in list to be picked up by render tasks later
 		void PrepareView(View& view);
 
-		void AddObject(Ref<SceneObject> object) { m_SceneObjects.push_back(object); }
+		void AddObject(Ref<SceneObject> object) 
+		{
+			m_SceneObjects.push_back(object); 
+			m_HasChanges = true;
+		}
 
 	private:
 		// For now only a simple list of scene objects, 
@@ -35,6 +45,10 @@ namespace vkr::Graphics
 		// Quadtree, Octree, Grid?
 		std::vector<Ref<SceneObject>> m_SceneObjects;
 
-		std::vector<Ref<View>> m_Views;
+		std::vector<Ref<View>> m_Views; 
+
+		Ref<Render::Shader> m_TraceRaysDynamicShaderLib;
+		Ref<Render::PipelineState> m_TraceRaysPipelineState;
+		bool m_HasChanges;
 	};
 }

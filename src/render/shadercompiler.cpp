@@ -151,15 +151,20 @@ namespace vkr::Render
 			return false;
 		}
 
-		if (result->HasOutput(DXC_OUT_ERRORS))
+		HRESULT status = S_OK;
+		result->GetStatus(&status);
+		if (FAILED(status))
 		{
-			ComPtr<IDxcBlobUtf8> errors;
-			ComPtr<IDxcBlobUtf16> errorsOutputName;
-			hr = result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), &errorsOutputName);
-			if (errors && errors->GetStringLength() > 0)
+			if (result->HasOutput(DXC_OUT_ERRORS))
 			{
-				OutputDebugString(errors->GetStringPointer());
-				return false;
+				ComPtr<IDxcBlobUtf8> errors;
+				ComPtr<IDxcBlobUtf16> errorsOutputName;
+				hr = result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), &errorsOutputName);
+				if (errors && errors->GetStringLength() > 0)
+				{
+					OutputDebugString(errors->GetStringPointer());
+					return false;
+				}
 			}
 		}
 

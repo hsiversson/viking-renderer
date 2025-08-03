@@ -1,5 +1,10 @@
 #pragma once
 
+namespace vkr::Render 
+{
+	struct VertexLayout;
+}
+
 namespace vkr::Graphics
 {
 	class Material;
@@ -9,10 +14,26 @@ namespace vkr::Graphics
 		MaterialCompiler();
 		~MaterialCompiler();
 
-		bool Compile(Material& outMaterial);
+		bool Compile(const Render::VertexLayout* vertexLayout, Material* outMaterial);
 
 	private:
-		bool CompileRaytracingHitGroup(Material& outMaterial);
+		std::string GenerateInstanceDataStruct();
 
+		std::string GenerateMaterialParametersStruct();
+		std::string GeneratePackedMaterialParametersStruct();
+		std::string GenerateResolveMaterialParametersCode();
+
+		std::string GenerateResolvedHitInfoStruct();
+		std::string GenerateResolveHitCode();
+
+		std::string GenerateResolveMaterialCode();
+
+		bool CompileRaytracingHitGroup();
+
+		bool CompilePixelShader();
+		bool CompileVertexShader();
+
+		Material* m_CurrentMaterial;
+		const Render::VertexLayout* m_CurrentVertexLayout;
 	};
 }

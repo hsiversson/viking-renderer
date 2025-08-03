@@ -10,14 +10,14 @@ struct InstanceData
     float4x4 LocalToWorld;
     float4x4 PrevLocalToWorld;
     uint MaterialID;
+    uint IndexBufferDescriptorIndex;
+    uint IndexStride;
     uint VertexBufferDescriptorIndex;
     uint VertexStride;
     uint VertexPositionByteOffset;
     uint VertexNormalByteOffset;
     uint VertexTangentByteOffset;
     uint VertexUVByteOffset;
-    uint IndexBufferDescriptorIndex;
-    uint IndexStride;
     uint3 Pad;
 };
 

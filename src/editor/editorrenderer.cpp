@@ -77,8 +77,7 @@ namespace vkr::Editor
 
 		//Ref<Render::Shader> hdrPixelShader = Render::GetDevice()->CreateShader();
 
-		Render::PipelineStateDesc sdrPsoDesc = {};
-		sdrPsoDesc.m_Type = Render::PIPELINE_STATE_TYPE_DEFAULT;
+		Render::PipelineStateDesc sdrPsoDesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_DEFAULT);
 		sdrPsoDesc.Default.m_VertexShader = vertexShader.get();
 		sdrPsoDesc.Default.m_PixelShader = sdrPixelShader.get();
 		sdrPsoDesc.Default.m_VertexLayout.InsertAttribute(Render::VertexAttribute::TYPE_POSITION, Render::FORMAT_RG32_FLOAT);

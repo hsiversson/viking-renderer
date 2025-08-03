@@ -1,5 +1,5 @@
-#ifndef BSDF_COMMON_HLSL
-#define BSDF_COMMON_HLSL
+#ifndef BXDF_COMMON_HLSL
+#define BXDF_COMMON_HLSL
 
 #include "common.hlsl"
 
@@ -39,4 +39,4 @@ float3 F_Schlick(float cosTheta, float3 F0)
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-#endif //BSDF_COMMON_HLSL
+#endif //BXDF_COMMON_HLSL

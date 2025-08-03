@@ -47,33 +47,30 @@ namespace vkr::Graphics
 
 		// Static object velocity computing
 		m_StaticVelShader = device->CreateShader("../../../content/shaders/staticvel.hlsl", L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
-		Render::PipelineStateDesc staticVelPSODesc = {};
-		staticVelPSODesc.m_Type = Render::PIPELINE_STATE_TYPE_COMPUTE;
+		Render::PipelineStateDesc staticVelPSODesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
 		staticVelPSODesc.Compute.m_ComputeShader = m_StaticVelShader.get();
 		m_StaticVelPSO = device->CreatePipelineState(staticVelPSODesc);
 
 		//Sky
 		
 		m_SkyComputeShader = device->CreateShader("../../../content/shaders/sky.hlsl", L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
-		Render::PipelineStateDesc skyPSODesc = {};
-		skyPSODesc.m_Type = Render::PIPELINE_STATE_TYPE_COMPUTE;
+		Render::PipelineStateDesc skyPSODesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
 		skyPSODesc.Compute.m_ComputeShader = m_SkyComputeShader.get();
 		m_SkyPSO = device->CreatePipelineState(skyPSODesc);
 
 		//TAA
 				
 		m_TAAResolveComputeShader = device->CreateShader("../../../content/shaders/taa.hlsl", L"ResolveCS", vkr::Render::SHADER_STAGE_COMPUTE);
-		Render::PipelineStateDesc taaPSODesc = {};
-		taaPSODesc.m_Type = Render::PIPELINE_STATE_TYPE_COMPUTE;
+		Render::PipelineStateDesc taaPSODesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
 		taaPSODesc.Compute.m_ComputeShader = m_TAAResolveComputeShader.get();
 		m_TAAResolvePSO = device->CreatePipelineState(taaPSODesc);
 
 		// Raytrace
 		m_RaytraceShader = device->CreateShader("../../../content/shaders/tracerays.hlsl", L"Main", vkr::Render::SHADER_STAGE_COMPUTE);
-		Render::PipelineStateDesc raytracePSODesc = {};
-		raytracePSODesc.m_Type = Render::PIPELINE_STATE_TYPE_COMPUTE;
+		Render::PipelineStateDesc raytracePSODesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
 		raytracePSODesc.Compute.m_ComputeShader = m_RaytraceShader.get();
 		m_RaytracePSO = device->CreatePipelineState(raytracePSODesc);
+
 		return true;
 	}
 
@@ -142,7 +139,7 @@ namespace vkr::Graphics
 			uint32_t InstanceDataBufferDescriptorIndex; // Descriptor index to the global buffer where all instance data for the scene is stored
 			uint32_t InstanceDataOffsetBufferDescriptorIndex;
 			uint32_t MaterialDataBufferDescriptorIndex;
-			uint32_t pad0;
+			uint32_t RaytracingSceneDescriptorIndex;
 			Vector3f CameraWorldPosition;
 			uint32_t NumDirectionalLightsInUse;
 			DirectionalLight DirectionalLights[2];
@@ -175,6 +172,7 @@ namespace vkr::Graphics
 		perSceneConstantData.InstanceDataBufferDescriptorIndex = renderData.m_InstanceDataBufferView->GetIndex();
 		perSceneConstantData.InstanceDataOffsetBufferDescriptorIndex = renderData.m_InstanceDataOffsetBufferView->GetIndex();
 		perSceneConstantData.MaterialDataBufferDescriptorIndex = renderData.m_MaterialDataBuffer.GetBufferView()->GetIndex();
+		perSceneConstantData.RaytracingSceneDescriptorIndex = renderData.m_RaytracingTLAS->GetIndex();
 
 		perSceneConstantData.NumDirectionalLightsInUse = 2;
 
@@ -191,6 +189,7 @@ namespace vkr::Graphics
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 		ctx->ClearStateCache();
 		ctx->BindGlobalConstantBuffer(renderData.m_PerSceneConstantBuffer.m_Buffer.get(), renderData.m_PerSceneConstantBuffer.m_Offset, Render::GLOBAL_CONSTANT_BUFFER_SCENE);
+
 	}
 
 	void ViewRenderer::UpdateParticles(View& view)
@@ -462,7 +461,7 @@ namespace vkr::Graphics
 
 		ctx->TextureBarrier(barriers.size(), barriers.data());
 
-		ctx->BindPipelineState(m_RaytracePSO.get());
+		//ctx->BindPipelineState(renderData.m_TraceRaysPipelineState.get());
 
 		struct alignas(16) ConstantData
 		{
@@ -476,7 +475,7 @@ namespace vkr::Graphics
 		data.RaytracingSceneDescriptor = renderData.m_RaytracingTLAS->GetIndex();
 		ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
-		ctx->DispatchThreads({ view.GetRenderSize().x, view.GetRenderSize().y, 1 });
+		ctx->DispatchRays(renderData.m_TraceRaysPipelineState.get() , view.GetRenderSize().x, view.GetRenderSize().y);
 	}
 
 	void ViewRenderer::RenderSky(View& view)

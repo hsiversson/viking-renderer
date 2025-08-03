@@ -28,6 +28,8 @@ namespace vkr::Graphics
 			Ref<MaterialInstance> m_Material;
 			Mat44 m_LocalTransform;
 			std::vector<Part> m_ChildParts;
+
+			Render::RaytracingHitGroupDesc GetHitGroupDesc();
 		};
 
 	public:
@@ -39,9 +41,12 @@ namespace vkr::Graphics
 		void AddPart(const Part& part);
 		const std::vector<Part>& GetParts() const;
 
+		uint32_t GetTotalNumParts() const;
+
 	private:
 		bool InitPart(const ModelDesc::PartDesc& partDesc, Part& outPart);
 
 		std::vector<Part> m_Parts;
+		uint32_t m_TotalNumParts;
 	};
 }

@@ -20,6 +20,7 @@ namespace vkr::Render
 		};
 
 		static const char* GetTypeSemantic(Type type);
+		static const char* GetTypeVariableName(Type type);
 
 		Type m_Type;
 		uint32_t m_Index;

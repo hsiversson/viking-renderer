@@ -85,6 +85,7 @@ namespace vkr::Render
 	uint32_t GetFormatBitsPerPixel(Format format);
 	uint32_t GetFormatBytesPerPixel(Format format);
 	uint32_t GetFormatBlockSize(Format format);
+	const char* GetFormatHLSLName(Format format);
 
 	enum FaceCullMode : uint8_t
 	{

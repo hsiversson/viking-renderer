@@ -2,6 +2,8 @@
 #include "material.h"
 #include "mesh.h"
 #include "view.h"
+#include "modelobject.h"
+#include "render/device.h"
 
 #include <functional>
 
@@ -9,8 +11,9 @@
 namespace vkr::Graphics
 {
 	Scene::Scene()
+		: m_HasChanges(false)
 	{
-
+		m_TraceRaysDynamicShaderLib = Render::GetDevice()->CreateShader("../../../content/shaders/tracerays_dynamic.hlsl", nullptr, Render::SHADER_STAGE_RAYTRACING);
 	}
 
 	Scene::~Scene()
@@ -38,6 +41,26 @@ namespace vkr::Graphics
 
 		// sort views based on frame structure?
 		// main view goes last usually
+		if (m_HasChanges)
+		{
+			// update tracing pipeline state
+
+			std::vector<Render::RaytracingHitGroupDesc> materialHitGroups;
+			for (size_t i = 0; i < m_SceneObjects.size(); i++)
+			{
+				m_SceneObjects[i]->CollectRaytracingHitGroups(materialHitGroups);
+			}
+
+			Render::PipelineStateDesc psoDesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_RAYTRACING);
+			psoDesc.Raytracing.m_HitGroups = materialHitGroups.data();
+			psoDesc.Raytracing.m_NumHitGroups = materialHitGroups.size();
+			psoDesc.Raytracing.m_MissIdentifier = "Miss";
+			psoDesc.Raytracing.m_RayGenerationIdentifier = "TraceRays";
+			psoDesc.Raytracing.m_Shader = m_TraceRaysDynamicShaderLib.get();
+			m_TraceRaysPipelineState = Render::GetDevice()->CreatePipelineState(psoDesc);
+
+			m_HasChanges = false;
+		}
 	}
 
 	void Scene::PrepareView(View& view)
@@ -45,6 +68,8 @@ namespace vkr::Graphics
 		// traverse all objects in Scene, add relevant ones to view.PrepareData()
 		PrepareViewContext prepareViewCtx(view);
 		ViewRenderData& prepareData = view.GetPrepareData();
+
+		prepareData.m_TraceRaysPipelineState = m_TraceRaysPipelineState;
 
 		for (size_t i = 0; i < m_SceneObjects.size(); i++)
 		{

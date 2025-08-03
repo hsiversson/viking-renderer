@@ -11,6 +11,7 @@ namespace vkr::Render
 	class PipelineState;
 	class RaytracingHitGroupDesc;
 	class Shader;
+	struct RaytracingHitGroupDesc;
 }
 
 namespace vkr::Graphics
@@ -155,7 +156,7 @@ namespace vkr::Graphics
 		Material();
 		~Material();
 
-		bool Init(const MaterialDesc& desc);
+		bool Init(const Render::VertexLayout& vertexLayout, const MaterialDesc& desc);
 
 		Ref<Render::PipelineState> GetDepthPipelineState(const Render::VertexLayout& vertexLayout);
 		Ref<Render::PipelineState> GetDefaultPipelineState(const Render::VertexLayout& vertexLayout);
@@ -174,9 +175,9 @@ namespace vkr::Graphics
 	private:
 		Ref<Render::Shader> m_PixelShader;
 		Ref<Render::Shader> m_HitGroupShader;
-		std::wstring m_HitGroupIdentifier;
-		std::wstring m_ClosestHitIdentifier;
-		std::wstring m_AnyHitIdentifier;
+		std::string m_HitGroupIdentifier;
+		std::string m_ClosestHitIdentifier;
+		std::string m_AnyHitIdentifier;
 
 		using CachedPSOs = std::unordered_map<Render::VertexLayout, Ref<Render::PipelineState>>;
 		CachedPSOs m_DefaultPSOs;

@@ -165,7 +165,6 @@ TraceHitResult TraceRadianceRay(RaytracingAccelerationStructure raytracingScene,
         PBRMaterialInput pbrInput;
         pbrInput.WorldPosition = WorldPos;
         
-        
         //Compute tangent frame
         float3 normal = normalize(vertex.Normal);
         float3 tangent = normalize(vertex.Tangent.rgb);
@@ -246,6 +245,7 @@ void Main(uint3 DispatchThreadId : SV_DispatchThreadID)
     
     float4 resultColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
     TraceHitResult primaryHit = TraceRadianceRay(raytracingScene, ro, rd);
+
     if (primaryHit.Hit)
     {
         resultColor = primaryHit.Color;

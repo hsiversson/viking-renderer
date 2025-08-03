@@ -58,6 +58,19 @@ namespace vkr
 		return contents.str();
 	}
 
+	void ReplaceString(const std::string& from, const std::string& to, std::string& outString)
+	{
+		if (from.empty()) 
+			return;
+
+		size_t startPos = 0;
+		while ((startPos = outString.find(from, startPos)) != std::string::npos)
+		{
+			outString.replace(startPos, from.length(), to);
+			startPos += to.length();
+		}
+	}
+
 	bool IsInt(const std::string& str)
 	{
 		return !str.empty() && std::find_if(str.begin(),str.end(), [](unsigned char c) { return !std::isdigit(c); }) == str.end();

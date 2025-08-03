@@ -1,5 +1,5 @@
-#ifndef MATERIAL_COMMON_H
-#define MATEIRAL_COMMON_H
+#ifndef MATERIAL_COMMON_HLSL
+#define MATERIAL_COMMON_HLSL
 
 #include "common.hlsl"
 
@@ -12,4 +12,4 @@ struct ResolvedMaterial
     float metallic;
 };
 
-#endif //MATERIAL_COMMON_H
+#endif //MATERIAL_COMMON_HLSL

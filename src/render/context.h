@@ -52,6 +52,7 @@ namespace vkr::Render
 	{
 		Mat44 m_Transform;
 		uint32_t m_InstanceId;
+		uint32_t m_HitGroupIndex;
 		Ref<Buffer> m_BLAS;
 	};
 

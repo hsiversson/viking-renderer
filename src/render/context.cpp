@@ -361,7 +361,8 @@ namespace vkr::Render
 				};
 				m_CurrentD3DCommandList->SetDescriptorHeaps(2, descriptorHeaps);
 
-				if (m_StateCache.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE)
+				if (m_StateCache.m_PipelineState->GetType() == PIPELINE_STATE_TYPE_COMPUTE ||
+					m_StateCache.m_PipelineState->GetType() == PIPELINE_STATE_TYPE_RAYTRACING)
 				{
 					m_CurrentD3DCommandList->SetComputeRootSignature(m_StateCache.m_RootSignature->GetD3DRootSignature());
 				}
@@ -442,7 +443,8 @@ namespace vkr::Render
 				{
 					const uint64_t offset = m_StateCache.m_LocalConstantBufferOffsets[i];
 					const D3D12_GPU_VIRTUAL_ADDRESS addr = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
-					if (m_StateCache.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE)
+					if (m_StateCache.m_PipelineState->GetType() == PIPELINE_STATE_TYPE_COMPUTE ||
+						m_StateCache.m_PipelineState->GetType() == PIPELINE_STATE_TYPE_RAYTRACING)
 					{
 						m_CurrentD3DCommandList->SetComputeRootConstantBufferView(localConstantsParamStartIndex + i, addr);
 					}
@@ -467,7 +469,8 @@ namespace vkr::Render
 
 
 				//Aditional buffer bound or different buffer bound at a previously bound slot
-				if (m_StateCache.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_COMPUTE)
+				if (m_StateCache.m_PipelineState->GetType() == PIPELINE_STATE_TYPE_COMPUTE ||
+					m_StateCache.m_PipelineState->GetType() == PIPELINE_STATE_TYPE_RAYTRACING)
 				{
 					m_CurrentD3DCommandList->SetComputeRootConstantBufferView(globalConstantsParamStartIndex + i, addr);
 				}
@@ -544,7 +547,7 @@ namespace vkr::Render
 				desc.AccelerationStructure = rtInstanceDesc.m_BLAS->GetD3DResource()->GetGPUVirtualAddress();
 				desc.InstanceID = rtInstanceDesc.m_InstanceId;
 				desc.InstanceMask = 0xff;
-				desc.InstanceContributionToHitGroupIndex = 0;
+				desc.InstanceContributionToHitGroupIndex = rtInstanceDesc.m_HitGroupIndex;
 				desc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_FORCE_OPAQUE;
 				// TODO: the other instance desc params
 

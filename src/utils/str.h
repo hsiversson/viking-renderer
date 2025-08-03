@@ -9,6 +9,8 @@ namespace vkr
 	std::string UTF16ToUTF8(const std::wstring& utf16Str);
 	std::string ReadFileToString(const std::filesystem::path& filename);
 
+	void ReplaceString(const std::string& from, const std::string& to, std::string& outString);
+
 	bool IsInt(const std::string& str);
 	int32_t ToInt(const std::string& str);
 	bool IsFloat(const std::string& str);

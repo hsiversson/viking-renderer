@@ -3,6 +3,7 @@
 #include "render/pipelinestate.h"
 #include "render/device.h"
 #include "materialdatabuffer.h"
+#include "materialcompiler.h"
 
 namespace vkr::Graphics
 {
@@ -17,7 +18,7 @@ namespace vkr::Graphics
 
 	}
 
-	bool Material::Init(const MaterialDesc& desc)
+	bool Material::Init(const Render::VertexLayout& vertexLayout, const MaterialDesc& desc)
 	{
 		for (const auto& param : desc.m_Parameters)
 		{
@@ -34,6 +35,10 @@ namespace vkr::Graphics
 		m_WriteVelocity = desc.m_WriteVelocity;
 		m_TwoSided = desc.m_TwoSided;
 		m_FrontCounterClockwise = desc.m_FrontCounterClockwise;
+
+		MaterialCompiler compiler;
+		compiler.Compile(&vertexLayout, this);
+
 		return true;
 	}
 
@@ -240,8 +245,7 @@ namespace vkr::Graphics
 
 			Ref<Render::Shader> vertexShader = device->CreateShaderFromString(vertexShaderCode.str(), L"MainVS", Render::SHADER_STAGE_VERTEX);
 
-			Render::PipelineStateDesc psoDesc = {};
-			psoDesc.m_Type = Render::PIPELINE_STATE_TYPE_DEFAULT;
+			Render::PipelineStateDesc psoDesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_DEFAULT);
 			psoDesc.Default.m_PrimitiveType = Render::PRIMITIVE_TYPE_TRIANGLE;
 			psoDesc.Default.m_VertexShader = vertexShader.get();
 			psoDesc.Default.m_PixelShader = depthOnly ? nullptr : m_PixelShader.get();

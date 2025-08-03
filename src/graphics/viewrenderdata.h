@@ -21,14 +21,14 @@ namespace vkr::Graphics
 		Mat44 m_Transform;
 		Mat44 m_PrevTransform;
 		uint32_t m_MaterialID;
+		uint32_t m_IndexBufferDescriptorIndex;
+		uint32_t m_IndexStride;
 		uint32_t m_VertexBufferDescriptorIndex;
 		uint32_t m_VertexStride;
 		uint32_t m_VertexPositionByteOffset;
 		uint32_t m_VertexNormalByteOffset;
 		uint32_t m_VertexTangentByteOffset;
 		uint32_t m_VertexUVByteOffset;
-		uint32_t m_IndexBufferDescriptorIndex;
-		uint32_t m_IndexStride;
 		uint32_t m_Pad0[3];
 	};
 
@@ -85,7 +85,8 @@ namespace vkr::Graphics
 		Ref<Render::BufferView> m_InstanceDataOffsetBufferView;
 
 		MaterialDataBuffer m_MaterialDataBuffer;
-		std::vector<Render::RaytracingHitGroupDesc> m_MaterialHitGroups;
+
+		Ref<Render::PipelineState> m_TraceRaysPipelineState;
 
 		Render::TempBuffer m_PerSceneConstantBuffer;
 		

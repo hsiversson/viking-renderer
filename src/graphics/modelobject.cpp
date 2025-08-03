@@ -20,15 +20,28 @@ namespace vkr::Graphics
 		if (!m_Model)
 			return;
 
+		uint32_t partCounter = 0;
 		for (const auto& part : m_Model->GetParts())
 		{
-			CollectModelPart(renderData, part, m_World, m_PrevWorld);
+			CollectModelPart(partCounter, renderData, part, m_World, m_PrevWorld);
 		}
 
 		m_PrevWorld = m_World;
 	}
 
-	void ModelObject::CollectModelPart(ViewRenderData& renderData, const Model::Part& part, const Mat44& parentWorldTransform, const Mat44& prevParentWorldTransform)
+	void ModelObject::CollectRaytracingHitGroups(std::vector<Render::RaytracingHitGroupDesc>& outHitGroups)
+	{
+		if (!m_Model)
+			return;
+
+		m_MaterialHitGroupIndexOffset = outHitGroups.size();
+		for (const auto& part : m_Model->GetParts())
+		{
+			CollectRaytracingHitGroup(outHitGroups, part);
+		}
+	}
+
+	void ModelObject::CollectModelPart(uint32_t& partCounter, ViewRenderData& renderData, const Model::Part& part, const Mat44& parentWorldTransform, const Mat44& prevParentWorldTransform)
 	{
 		Graphics::RenderObject obj;
 		InstanceData data;
@@ -54,22 +67,33 @@ namespace vkr::Graphics
 		obj.m_Material = part.m_Material.get();
 		renderData.m_VisibleMeshes.push_back(obj);
 
-		Render::RaytracingHitGroupDesc hitGroupDesc = {};
-		part.m_Material->GetMaterial()->GetHitGroupDesc(hitGroupDesc);
-		renderData.m_MaterialHitGroups.push_back(hitGroupDesc);
-
 		if (Ref<Render::Buffer> blas = part.m_Mesh->GetBLAS())
 		{
 			Render::RaytracingInstanceDesc rtInstanceDesc = {};
 			rtInstanceDesc.m_BLAS = blas;
 			rtInstanceDesc.m_InstanceId = obj.m_InstanceDataIndex;
 			rtInstanceDesc.m_Transform = data.m_Transform;
+			rtInstanceDesc.m_HitGroupIndex = m_MaterialHitGroupIndexOffset + partCounter;
 			renderData.m_RaytracingInstances.push_back(rtInstanceDesc);
 		}
 
+		++partCounter;
 		for (uint32_t i = 0; i < part.m_ChildParts.size(); ++i)
 		{
-			CollectModelPart(renderData, part.m_ChildParts[i], data.m_Transform, data.m_PrevTransform);
+			CollectModelPart(partCounter, renderData, part.m_ChildParts[i], data.m_Transform, data.m_PrevTransform);
+		}
+	}
+
+	void ModelObject::CollectRaytracingHitGroup(std::vector<Render::RaytracingHitGroupDesc>& outHitGroups, const Model::Part& part)
+	{
+		Material* material = part.m_Material->GetMaterial();
+		Render::RaytracingHitGroupDesc hitGroupDesc = {};
+		material->GetHitGroupDesc(hitGroupDesc);
+		outHitGroups.push_back(hitGroupDesc);
+
+		for (const auto& part : part.m_ChildParts)
+		{
+			CollectRaytracingHitGroup(outHitGroups, part);
 		}
 	}
 

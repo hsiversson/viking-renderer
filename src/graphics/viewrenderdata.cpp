@@ -4,7 +4,7 @@ namespace vkr::Graphics
 {
 	void ViewRenderData::Clear()
 	{
-		m_RaytracingTLAS = {};
+		m_RaytracingTLAS.reset();
 		m_RaytracingInstances.clear();
 
 		m_VisibleMeshes.clear();
@@ -13,12 +13,13 @@ namespace vkr::Graphics
 		m_ForwardPassData = {};
 
 		m_InstanceData.clear(); 
-		m_InstanceDataBufferView = {};
+		m_InstanceDataBufferView.reset();
 
 		m_InstanceDataOffsetBuffer.clear();
-		m_InstanceDataOffsetBufferView = {};
+		m_InstanceDataOffsetBufferView.reset();
 
 		m_MaterialDataBuffer.Clear();
+		m_TraceRaysPipelineState.reset();
 
 		m_PerSceneConstantBuffer = {};
 
