@@ -76,6 +76,21 @@ float3 fresnelSchlick(float cosTheta, float3 F0)
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
+float3 SampleHemisphereCosine(float2 xi, float3 N)
+{
+    float phi = 2.0f * 3.14159265f * xi.x;
+    float cosTheta = sqrt(1.0f - xi.y);
+    float sinTheta = sqrt(xi.y);
+
+    float3 localDir = float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+
+    // Build tangent space
+    float3 T = normalize(abs(N.y) < 0.999f ? cross(N, float3(0, 1, 0)) : cross(N, float3(1, 0, 0)));
+    float3 B = cross(T, N);
+
+    return localDir.x * T + localDir.y * B + localDir.z * N;
+}
+
 float3 ComputeSpecularBRDF(in const ResolvedMaterial mat, float3 V, float3 L, out float3 kS)
 {
     const float3 H = normalize(V + L);

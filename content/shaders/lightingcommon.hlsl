@@ -2,21 +2,9 @@
 #define LIGHTING_COMMON_HLSL
 
 #include "common.hlsl"
+#include "random.hlsl"
 #include "pbrutils.hlsl"
 #include "sceneconstants.hlsl"
-
-float2 SampleDisk(float2 xi)
-{
-    float r = sqrt(xi.x);
-    float theta = 2.0f * PI * xi.y;
-    return float2(r * cos(theta), r * sin(theta));
-}
-
-void CreateOrthonormalBasis(float3 N, out float3 T, out float3 B)
-{
-    T = normalize(abs(N.z) < 0.999f ? cross(N, float3(0, 0, 1)) : cross(N, float3(0, 1, 0)));
-    B = cross(N, T);
-}
 
 float3 ApplyDirectionalLighting(in ResolvedMaterial material, in float3 V, RaytracingAccelerationStructure RaytracingScene)
 {    

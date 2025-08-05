@@ -76,31 +76,58 @@ void $CLOSESTHIT_IDENTIFIER$(inout RaytracingPayload payload, in BuiltInTriangle
     
     const MaterialParameters materialParameters = LoadMaterialParameters(instanceData.materialId);
     ResolvedMaterial resolvedMaterial = ResolveMaterial(instanceData, hitInfo, materialParameters);
+    //resolvedMaterial.Roughness = resolvedMaterial.Roughness * 0.15f;
+    resolvedMaterial.Roughness = max(resolvedMaterial.Roughness, 0.045f); // Clamp roughness such that ggx evals doesn't explode.
     
     payload.irradiance = ApplyLighting(resolvedMaterial, -WorldRayDirection());
-
     
     if(payload.recursionDepth < 1)
     {
+        const uint2 pixel = DispatchRaysIndex().xy;
+        RaytracingAccelerationStructure RaytracingScene = ResourceDescriptorHeap[SceneConstants.RaytracingSceneDescriptorIndex];
+        static const uint NumIndirectRays = 1;
+        static const float RayWeight = 1.0f / NumIndirectRays;
+        
         // diffuse indirect
-        //{
-        //    // add diffuse indirect contrib and make sure to weight properly against brdf
-        //}
+        for (uint rayIdx = 0; rayIdx < NumIndirectRays; ++rayIdx)
+        {
+            float2 xi;
+            xi.x = RandomFloat01(payload.rngState);
+            xi.y = RandomFloat01(payload.rngState);
+            
+            float3 diffuseDir = SampleHemisphereCosine(xi, resolvedMaterial.WorldNormal); // tangent-space cosine-weighted
+            
+            RayDesc ray;
+            ray.Origin = resolvedMaterial.WorldPosition + resolvedMaterial.WorldNormal * 0.00001f;
+            ray.Direction = diffuseDir;
+            ray.TMin = 0.0f;
+            ray.TMax = 1000000.0f;
+
+            uint flags = RAY_FLAG_NONE;
+            flags |= RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES;
+            
+            RaytracingPayload diffusePayload = (RaytracingPayload) 0;
+            diffusePayload.recursionDepth = payload.recursionDepth + 1;
+            diffusePayload.rngState = payload.rngState;
+            TraceRay(RaytracingScene, flags, 0xff, 0, 0, 0, ray, diffusePayload);
+            
+            float3 diffuseContribution = resolvedMaterial.Albedo * diffusePayload.irradiance;
+            payload.irradiance += diffuseContribution * RayWeight;
+            payload.rngState = diffusePayload.rngState;
+        }
         
         // specular indirect
+        for (uint rayIdx = 0; rayIdx < NumIndirectRays; ++rayIdx)
         {
-            const uint2 pixel = DispatchRaysIndex().xy;
-
             float pdf;
             float2 xi;
-            xi.x = InterleavedGradientNoise(pixel,SceneConstants.FrameIndex);
-            xi.y = InterleavedGradientNoise(pixel.yx + 17,SceneConstants.FrameIndex);
+            xi.x = RandomFloat01(payload.rngState);
+            xi.y = RandomFloat01(payload.rngState);
 
             float3 reflectionDir = SampleGGXSpecular(xi, resolvedMaterial.WorldNormal, -WorldRayDirection(), resolvedMaterial.Roughness, pdf);
-
-            RaytracingAccelerationStructure RaytracingScene = ResourceDescriptorHeap[SceneConstants.RaytracingSceneDescriptorIndex];
             RaytracingPayload specularPayload = (RaytracingPayload)0;
-            specularPayload.recursionDepth = payload.recursionDepth+1;
+            specularPayload.recursionDepth = payload.recursionDepth + 1;
+            specularPayload.rngState = payload.rngState;
 
             RayDesc ray;
             ray.Origin = resolvedMaterial.WorldPosition + resolvedMaterial.WorldNormal * 0.00001f;
@@ -112,14 +139,14 @@ void $CLOSESTHIT_IDENTIFIER$(inout RaytracingPayload payload, in BuiltInTriangle
             flags |= RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES;
             TraceRay(RaytracingScene, flags, 0xff, 0, 0, 0, ray, specularPayload);
             
-            // add diffuse indirect contrib and make sure to weight properly against brdf
             float3 Li = specularPayload.irradiance;
             float3 kS;
             float3 L = reflectionDir;
             float NdotL = saturate(dot(resolvedMaterial.WorldNormal,L));
             float3 specularBRDF = ComputeSpecularBRDF(resolvedMaterial, -WorldRayDirection(), L, kS);
             float3 specular = specularBRDF * Li * NdotL / pdf;
-            payload.irradiance += specular;
+            payload.irradiance += specular * RayWeight;
+            payload.rngState = specularPayload.rngState;
         }
     }
 }

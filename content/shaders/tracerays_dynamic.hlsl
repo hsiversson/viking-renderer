@@ -41,6 +41,8 @@ void TraceRays()
     flags |= RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES;
     
     RaytracingPayload payload = (RaytracingPayload)0;
+    payload.rngState = GenerateRandomSeed(pixel.x, pixel.y, SceneConstants.FrameIndex);
+    
     TraceRay(RaytracingScene, flags, 0xff, 0, 0, 0, ray, payload);
 
     target[pixel] = float4(payload.irradiance, 1.0f);
