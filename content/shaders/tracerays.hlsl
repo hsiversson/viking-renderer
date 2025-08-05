@@ -162,7 +162,7 @@ TraceHitResult TraceRadianceRay(RaytracingAccelerationStructure raytracingScene,
         MaterialParameters mat = LoadMaterialParameters(data.MaterialID);
         
         //For now just sample basic properties from textures in material. We need to find a way to have different materials fill in the PBR properties in custom ways
-        PBRMaterialInput pbrInput;
+        ResolvedMaterial pbrInput;
         pbrInput.WorldPosition = WorldPos;
         
         //Compute tangent frame
@@ -210,7 +210,8 @@ TraceHitResult TraceRadianceRay(RaytracingAccelerationStructure raytracingScene,
                 continue; // we hit geometry, this means we're in shadow for this light
             }
             
-            lightingResult += ComputeLuminance(pbrInput, SceneConstants.CameraPosition, L, dirLight.Emission);
+            float3 V = normalize(SceneConstants.CameraPosition - pbrInput.WorldPosition);
+            lightingResult += ComputeLuminance(pbrInput, V, L, dirLight.Emission);
         }
         result.Color = float4(lightingResult, 1.0f);
     }

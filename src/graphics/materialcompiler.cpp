@@ -153,8 +153,8 @@ namespace vkr::Graphics
 		// TODO: base below on material setup
 
 		std::ostringstream ss;
-		ss << "    resolvedMaterial.worldPosition = mul(instanceData.localToWorld, float4(hitInfo.Position, 1.0f)).xyz;\n";
-		ss << "    resolvedMaterial.color = materialParameters.albedoTexture.SampleLevel(g_SamplerBilinearClamp, hitInfo.UV, hitInfo.mipLevel).rgb;\n";
+		ss << "    resolvedMaterial.WorldPosition = mul(instanceData.localToWorld, float4(hitInfo.Position, 1.0f)).xyz;\n";
+		ss << "    resolvedMaterial.Albedo = materialParameters.albedoTexture.SampleLevel(g_SamplerBilinearClamp, hitInfo.UV, hitInfo.mipLevel).rgb;\n";
 		ss << "    float2 compressedNormal = materialParameters.normalTexture.SampleLevel(g_SamplerBilinearClamp, hitInfo.UV, hitInfo.mipLevel).rg * 2.0f - 1.0f;\n";
 		ss << "    float3 detailnormal = normalize(float3(compressedNormal.x, compressedNormal.y, sqrt(1.0f - compressedNormal.x * compressedNormal.x - compressedNormal.y * compressedNormal.y)));\n";
 		ss << "    detailnormal.y = -detailnormal.y;\n";
@@ -163,10 +163,11 @@ namespace vkr::Graphics
 		ss << "    float3 binormal = cross(normal, tangent) * hitInfo.Tangent.w;\n";
 		ss << "    float3x3 tangentToLocal = float3x3(tangent.x, binormal.x, normal.x, tangent.y, binormal.y, normal.y, tangent.z, binormal.z, normal.z);\n";
 		ss << "    float3 localNormal = mul(tangentToLocal, detailnormal);\n";
-		ss << "    resolvedMaterial.worldNormal = normalize(mul(instanceData.localToWorld, float4(localNormal, 0)).xyz);\n";
+		ss << "    resolvedMaterial.WorldNormal = normalize(mul(instanceData.localToWorld, float4(localNormal, 0)).xyz);\n";
 		ss << "    float4 material = materialParameters.materialTexture.SampleLevel(g_SamplerBilinearClamp, hitInfo.UV, hitInfo.mipLevel);\n";
-		ss << "    resolvedMaterial.roughness = material.g;\n";
-		ss << "    resolvedMaterial.metallic = material.b;\n";
+		ss << "    resolvedMaterial.Roughness = material.g;\n";
+		ss << "    resolvedMaterial.Metallic = material.b;\n";
+		ss << "    resolvedMaterial.AO = 1.0f;\n";
 
 		return ss.str();
 	}

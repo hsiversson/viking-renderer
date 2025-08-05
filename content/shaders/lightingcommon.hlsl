@@ -2,8 +2,8 @@
 #define LIGHTING_COMMON_HLSL
 
 #include "common.hlsl"
+#include "pbrutils.hlsl"
 #include "sceneconstants.hlsl"
-#include "shading.hlsl"
 
 float2 SampleDisk(float2 xi)
 {
@@ -37,7 +37,7 @@ float3 ApplyDirectionalLighting(in ResolvedMaterial material, in float3 V, Raytr
         float shadowFactor = 1.0f;
         for (uint i = 0; i < SamplesPerLight; ++i)
         {
-            ray.Origin = material.worldPosition + material.worldNormal * 0.00001f;
+            ray.Origin = material.WorldPosition + material.WorldNormal * 0.00001f;
             
             RayQuery<RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> rayQuery;       
             rayQuery.TraceRayInline(RaytracingScene, 0, 0xff, ray);
@@ -50,7 +50,7 @@ float3 ApplyDirectionalLighting(in ResolvedMaterial material, in float3 V, Raytr
             }
         }
         
-        result += ApplyShading(material, V, L) * dirLight.Emission * shadowFactor;
+        result += ComputeLuminance(material, V, L, dirLight.Emission) * shadowFactor;
     }         
     
     return result;

@@ -36,7 +36,7 @@ PSOutput MainPS(PSInput input)
     
     MaterialParameters materialParameters = LoadMaterialParameters(data.MaterialID);
     
-    PBRMaterialInput pbrInput;
+    ResolvedMaterial pbrInput;
     pbrInput.WorldPosition = input.worldPosition;
     
     pbrInput.Albedo = materialParameters.albedoTexture.Sample(g_SamplerBilinearClamp, input.uv).rgb;
@@ -87,7 +87,8 @@ PSOutput MainPS(PSInput input)
             continue; // we hit geometry, this means we're in shadow for this light
         }
         
-        lightingResult += ComputeLuminance(pbrInput, SceneConstants.CameraPosition, L, dirLight.Emission);
+        float3 V = normalize(SceneConstants.CameraPosition - pbrInput.WorldPosition);
+        lightingResult += ComputeLuminance(pbrInput, V, L, dirLight.Emission);
     }
     
     PSOutput output;

@@ -5,11 +5,12 @@
 
 struct ResolvedMaterial
 {
-    float3 worldPosition;
-    float3 color;
-    float3 worldNormal;
-    float roughness;
-    float metallic;
+    float3 WorldPosition;
+    float3 WorldNormal;
+    float3 Albedo;
+    float Roughness;
+    float Metallic;
+    float AO;
 };
 
 #endif //MATERIAL_COMMON_HLSL
