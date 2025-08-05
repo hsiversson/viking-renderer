@@ -115,7 +115,7 @@ void $CLOSESTHIT_IDENTIFIER$(inout RaytracingPayload payload, in BuiltInTriangle
             // add diffuse indirect contrib and make sure to weight properly against brdf
             float3 Li = specularPayload.irradiance;
             float3 kS;
-            float3 L = -reflectionDir;
+            float3 L = reflectionDir;
             float NdotL = saturate(dot(resolvedMaterial.WorldNormal,L));
             float3 specularBRDF = ComputeSpecularBRDF(resolvedMaterial, -WorldRayDirection(), L, kS);
             float3 specular = specularBRDF * Li * NdotL / pdf;
