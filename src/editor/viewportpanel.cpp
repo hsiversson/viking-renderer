@@ -157,18 +157,27 @@ namespace vkr::Editor
 		bool selected = true;
 		if (selected)
 		{
-			ImGui::PushClipRect({ m_ContentAreaPosition.x, m_ContentAreaPosition.y }, { m_ContentAreaPosition.x + m_ContentAreaSize.x, m_ContentAreaPosition.y + m_ContentAreaSize.y }, false);
-			ImGuizmo::SetOrthographic(false);
-			ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
-			ImGuizmo::SetRect(m_ContentAreaPosition.x, m_ContentAreaPosition.y, m_ContentAreaSize.x, m_ContentAreaSize.y);
+			Mat44 cameraTransform = m_Camera.GetWorldTransform();
 
-			Mat44 view = m_Camera.GetView();
-			Mat44 proj = m_Camera.GetProjection();
+			Mat44 objectTransform = Mat44::Identity();
+			Vector3f objectPosition = Vector3f(objectTransform.At(3, 0), objectTransform.At(3, 1), objectTransform.At(3, 2));
 
-			Mat44 transform = Mat44::Identity();
+			Vector3f cameraForward = Normalized(Vector3f(cameraTransform.At(2, 0), cameraTransform.At(2, 1), cameraTransform.At(2, 2)));
+			Vector3f cameraPosition = Vector3f(cameraTransform.At(3, 0), cameraTransform.At(3, 1), cameraTransform.At(3, 2));
+			Vector3f toObject = Normalized(objectPosition - cameraPosition);
 
-			ImGuizmo::Manipulate(&view[0], &proj[0], IMGUIZMO_NAMESPACE::TRANSLATE, IMGUIZMO_NAMESPACE::WORLD, &transform[0]);
-			ImGui::PopClipRect();
+			if (Dot(cameraForward, toObject) > 0.0f)
+			{
+				ImGui::PushClipRect({ m_ContentAreaPosition.x, m_ContentAreaPosition.y }, { m_ContentAreaPosition.x + m_ContentAreaSize.x, m_ContentAreaPosition.y + m_ContentAreaSize.y }, false);
+				ImGuizmo::SetOrthographic(false);
+				ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
+				ImGuizmo::SetRect(m_ContentAreaPosition.x, m_ContentAreaPosition.y, m_ContentAreaSize.x, m_ContentAreaSize.y);
+
+				Mat44 view = m_Camera.GetView();
+				Mat44 proj = m_Camera.GetProjection();
+				ImGuizmo::Manipulate(&view[0], &proj[0], IMGUIZMO_NAMESPACE::TRANSLATE, IMGUIZMO_NAMESPACE::WORLD, &objectTransform[0]);
+				ImGui::PopClipRect();
+			}
 		}
     }
 }

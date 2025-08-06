@@ -144,6 +144,12 @@ namespace vkr
 	}
 
 	template<typename T>
+	T Dot(const Vector3<T>& a, const Vector3<T>& b)
+	{
+		return (a.x*b.x) + (a.y*b.y) + (a.z*b.z);
+	}
+
+	template<typename T>
 	Vector3<T> Cross(const Vector3<T>& a, const Vector3<T>& b)
 	{
 		return { a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x };
