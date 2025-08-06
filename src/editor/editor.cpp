@@ -176,7 +176,7 @@ namespace vkr::Editor
 			ImGui::PopStyleColor(); // ImGuiCol_Border
 		}
 
-		//DrawTitlebar();
+		DrawTitlebar();
 
 		ImGuiStyle& style = ImGui::GetStyle();
 		float minWinSizeX = style.WindowMinSize.x;
@@ -188,6 +188,10 @@ namespace vkr::Editor
 		m_Viewport->Draw();
 
 		ImGui::End();
+	}
+
+	void Manager::DrawTitlebar()
+	{
 	}
 
 	void Manager::SetStyle()

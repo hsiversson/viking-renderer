@@ -3,68 +3,90 @@
 
 #include "materialcommon.hlsl"
 
-#define PI 3.1415926535
-
-float3 SampleGGXSpecular(float2 xi, float3 N, float3 V, float roughness, out float pdf)
+bool SampleGGXSpecular(float2 xi, float3 N, float3 V, float roughness, out float3 L, out float pdf)
 {
     float alpha = roughness * roughness;
 
-    // GGX importance sampling of the half-vector
-    float phi = 2.0f * 3.14159265f * xi.x;
-    float cosTheta = sqrt((1.0f - xi.y) / (1.0f + (alpha * alpha - 1.0f) * xi.y));
-    float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
-
-    // Half vector in tangent space
-    float3 Ht = float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
-
-    // Transform to world space (build TBN from N)
+    // Build tangent space for N
     float3 Up = abs(N.y) < 0.999f ? float3(0, 1, 0) : float3(1, 0, 0);
     float3 Tangent = normalize(cross(Up, N));
     float3 Bitangent = cross(N, Tangent);
+
+    // Transform view direction to tangent space
+    float3 Vt = float3(dot(V, Tangent), dot(V, Bitangent), dot(V, N));
+    Vt = normalize(Vt);
+
+    // Sample VNDF according to Heitz 2014
+    float a = alpha;
+
+    // Stretch view vector
+    float3 Vh = normalize(float3(a * Vt.x, a * Vt.y, Vt.z));
+
+    // Orthonormal basis
+    float lensq = Vh.x * Vh.x + Vh.y * Vh.y;
+    float3 T1 = lensq > 0 ? float3(-Vh.y, Vh.x, 0) / sqrt(lensq) : float3(1, 0, 0);
+    float3 T2 = cross(Vh, T1);
+
+    // Sample point with polar coordinates (r, phi)
+    float r = sqrt(xi.x);
+    float phi = 2.0f * PI * xi.y;
+    float t1 = r * cos(phi);
+    float t2 = r * sin(phi);
+    float s = 0.5f * (1.0f + Vh.z);
+    t2 = (1.0f - s) * sqrt(1.0f - t1 * t1) + s * t2;
+
+    // Compute normal in stretched hemisphere
+    float3 Nh = t1 * T1 + t2 * T2 + sqrt(max(0.0f, 1.0f - t1 * t1 - t2 * t2)) * Vh;
+
+    // Unstretch
+    float3 Ht = normalize(float3(a * Nh.x, a * Nh.y, max(0.0f, Nh.z)));
+
+    // Transform H back to world space
     float3 H = normalize(Tangent * Ht.x + Bitangent * Ht.y + N * Ht.z);
 
-    // Reflection direction
-    float3 L = reflect(-V, H);
+    // Reflect view vector about half-vector
+    L = normalize(reflect(-V, H));
+    if (!all(isfinite(L)))
+        return false;
 
-    // Compute PDF: D(h) * (n·h) / (4 * v·h)
+    // Compute PDF: D(h) * (nÂ·h) / (4 * vÂ·h)
     float NoH = saturate(dot(N, H));
     float VoH = saturate(dot(V, H));
 
-    // GGX normal distribution function
+    // GGX NDF
     float alpha2 = alpha * alpha;
     float denom = NoH * NoH * (alpha2 - 1.0f) + 1.0f;
-    float D = alpha2 / (3.14159265f * denom * denom);
+    float D = alpha2 / (PI * denom * denom + FLT_EPSILON_VALUE);
 
-    pdf = (D * NoH) / (4.0f * VoH + 1e-5f);
+    pdf = (D * NoH) / (4.0f * VoH + FLT_EPSILON_VALUE);
 
-    return normalize(L);
+    return true;
 }
 
 float DistributionGGX(float3 N, float3 H, float roughness)
 {
     float roughnessSquared = roughness * roughness;
-    float NdotH = max(dot(N, H), 0.0);
+    float NdotH = saturate(dot(N, H));
     float NdotH2 = NdotH * NdotH;
 	
     float nom = roughnessSquared;
     float denom = (NdotH2 * (roughnessSquared - 1.0) + 1.0);
     denom = PI * denom * denom;
 	
-    return nom / denom;
+    return nom / (denom + FLT_EPSILON_VALUE);
 }
 
 float GeometrySchlickGGX(float NdotV, float k)
 {
     float nom = NdotV;
     float denom = NdotV * (1.0 - k) + k;
-	
-    return nom / denom;
+    return nom / (denom + FLT_EPSILON_VALUE);
 }
   
 float GeometrySmith(float3 N, float3 V, float3 L, float k)
 {
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotL = max(dot(N, L), 0.0);
+    float NdotV = saturate(dot(N, V));
+    float NdotL = saturate(dot(N, L));
     float ggx1 = GeometrySchlickGGX(NdotV, k);
     float ggx2 = GeometrySchlickGGX(NdotL, k);
 	
@@ -78,7 +100,7 @@ float3 fresnelSchlick(float cosTheta, float3 F0)
 
 float3 SampleHemisphereCosine(float2 xi, float3 N)
 {
-    float phi = 2.0f * 3.14159265f * xi.x;
+    float phi = 2.0f * PI * xi.x;
     float cosTheta = sqrt(1.0f - xi.y);
     float sinTheta = sqrt(xi.y);
 
@@ -99,13 +121,13 @@ float3 ComputeSpecularBRDF(in const ResolvedMaterial mat, float3 V, float3 L, ou
     
     float3 F0 = float3(0.04, 0.04, 0.04);
     F0 = lerp(F0, mat.Albedo, mat.Metallic);
-    float3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+    float3 F = fresnelSchlick(saturate(dot(H, V)), F0);
     float NDF = DistributionGGX(mat.WorldNormal, H, mat.Roughness);
     float G = GeometrySmith(mat.WorldNormal, V, L, mat.Roughness);
     
     float3 numerator = NDF * G * F;
-    float denominator = 4.0 * NdotV * NdotL + 0.0001;
-    float3 specular = numerator / denominator;
+    float denominator = 4.0 * NdotV * NdotL;
+    float3 specular = numerator / (denominator + FLT_EPSILON_VALUE);
     
     kS = F;
     return specular;
@@ -115,7 +137,7 @@ float3 ComputeLuminance(in const ResolvedMaterial mat, float3 V, float3 L, float
 {
     float3 Result;
     
-    float NdotL = max(dot(mat.WorldNormal, L), 0.0);
+    float NdotL = saturate(dot(mat.WorldNormal, L));
     
     float3 kS;
     float3 specular = ComputeSpecularBRDF(mat, V, L, kS);
@@ -123,7 +145,7 @@ float3 ComputeLuminance(in const ResolvedMaterial mat, float3 V, float3 L, float
     float3 kD = float3(1.0, 1.0, 1.0) - kS;
     kD *= 1.0 - mat.Metallic;
     
-    float3 Lo = (kD * mat.Albedo / PI + specular) * LightColor * NdotL;
+    float3 Lo = (kD * mat.Albedo / (PI + specular + FLT_EPSILON_VALUE)) * LightColor * NdotL;
     
     float3 ambient = float3(0.03, 0.03, 0.03) * mat.Albedo * mat.AO;
     Result = ambient + Lo;

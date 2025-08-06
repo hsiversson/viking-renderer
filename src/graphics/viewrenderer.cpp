@@ -180,9 +180,9 @@ namespace vkr::Graphics
 		perSceneConstantData.MaterialDataBufferDescriptorIndex = renderData.m_MaterialDataBuffer.GetBufferView()->GetIndex();
 		perSceneConstantData.RaytracingSceneDescriptorIndex = renderData.m_RaytracingTLAS->GetIndex();
 
-		perSceneConstantData.NumDirectionalLightsInUse = 2;
+		perSceneConstantData.NumDirectionalLightsInUse = 1;
 
-		perSceneConstantData.DirectionalLights[0].Emission = Vector3f(2.0, 2.0, 8.0);
+		perSceneConstantData.DirectionalLights[0].Emission = Vector3f(6.0, 6.0, 6.0);
 		perSceneConstantData.DirectionalLights[0].Direction = Vector3f(0.4, -0.5, 0.6);
 		perSceneConstantData.DirectionalLights[0].Radius = 0.02f;
 

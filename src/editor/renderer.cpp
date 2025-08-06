@@ -92,6 +92,7 @@ namespace vkr::Editor
 		sdrPsoDesc.Default.m_BlendState.RTBlends[0].m_WriteMask = Render::COLOR_WRITE_ALL;
 		sdrPsoDesc.Default.m_RenderTargetState.m_Formats[0] = Render::Format::FORMAT_RGB10A2_UNORM;
 		sdrPsoDesc.Default.m_RasterizerState.m_CullMode = Render::FACE_CULL_MODE_NONE;
+		sdrPsoDesc.Default.m_RasterizerState.m_AntialiasedLine = true;
 		sdrPsoDesc.Default.m_PrimitiveType = Render::PRIMITIVE_TYPE_TRIANGLE;
 		m_SdrShader = device->CreatePipelineState(sdrPsoDesc);
 

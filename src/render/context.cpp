@@ -126,6 +126,19 @@ namespace vkr::Render
 		Dispatch(Groups.x, Groups.y, Groups.z);
 	}
 
+	void Context::DispatchThreads(uint32_t numThreadsX, uint32_t numThreadsY, uint32_t numThreadsZ)
+	{
+		assert(m_StateCache.m_PipelineState);
+		const PipelineStateMetaData& metaData = m_StateCache.m_PipelineState->GetMetaData();
+		assert(metaData.m_Type == PIPELINE_STATE_TYPE_COMPUTE);
+
+		Vector3u threadGroups;
+		threadGroups.x = (numThreadsX + metaData.Compute.m_NumThreads.x - 1) / metaData.Compute.m_NumThreads.x;
+		threadGroups.y = (numThreadsY + metaData.Compute.m_NumThreads.y - 1) / metaData.Compute.m_NumThreads.y;
+		threadGroups.z = (numThreadsZ + metaData.Compute.m_NumThreads.z - 1) / metaData.Compute.m_NumThreads.z;
+		Dispatch(threadGroups);
+	}
+
 	void Context::DispatchThreads(PipelineState* pipelineState, const Vector3u& threads)
 	{
 		BindPipelineState(pipelineState);
@@ -152,15 +165,13 @@ namespace vkr::Render
 
 	void Context::DispatchThreads(const Vector3u& threads)
 	{
-		assert(m_StateCache.m_PipelineState);
-		const PipelineStateMetaData& metaData = m_StateCache.m_PipelineState->GetMetaData();
-		assert(metaData.m_Type == PIPELINE_STATE_TYPE_COMPUTE);
+		DispatchThreads(threads.x, threads.y, threads.z);
+	}
 
-		Vector3u threadGroups;
-		threadGroups.x = (threads.x + metaData.Compute.m_NumThreads.x - 1) / metaData.Compute.m_NumThreads.x;
-		threadGroups.y = (threads.y + metaData.Compute.m_NumThreads.y - 1) / metaData.Compute.m_NumThreads.y;
-		threadGroups.z = (threads.z + metaData.Compute.m_NumThreads.z - 1) / metaData.Compute.m_NumThreads.z;
-		Dispatch(threadGroups);
+	void Context::DispatchThreads(PipelineState* pipelineState, uint32_t numThreadsX, uint32_t numThreadsY, uint32_t numThreadsZ)
+	{
+		BindPipelineState(pipelineState);
+		DispatchThreads(numThreadsX, numThreadsY, numThreadsZ);
 	}
 
 	void Context::BindPipelineState(PipelineState* pipelineState)

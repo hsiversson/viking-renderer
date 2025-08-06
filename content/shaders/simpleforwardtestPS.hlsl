@@ -73,7 +73,7 @@ PSOutput MainPS(PSInput input)
         const float3 L = normalize(-dirLight.Direction);
         
         RayDesc ray;
-        ray.Origin = input.worldPosition + input.normal * 0.00001f;
+        ray.Origin = input.worldPosition + input.normal * FLT_SMALL_VALUE;
         ray.Direction = L;
         ray.TMin = 0.01f;
         ray.TMax = 1000000.0f;

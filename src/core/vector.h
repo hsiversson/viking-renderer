@@ -51,6 +51,12 @@ namespace vkr
 	}
 
 	template<typename T>
+	constexpr Vector2<T> operator-(const Vector2<T>& v0, const Vector2<T>& v1)
+	{
+		return { v0.x - v1.x, v0.y - v1.y };
+	}
+
+	template<typename T>
 	constexpr Vector2<T> operator*(const Vector2<T>& v, float scalar)
 	{
 		return { v.x * scalar, v.y * scalar };
@@ -66,6 +72,18 @@ namespace vkr
 	constexpr Vector2<T> operator/(const Vector2<T>& v0, const Vector2<T>& v1)
 	{
 		return { v0.x / v1.x, v0.y / v1.y };
+	}
+
+	template<typename T>
+	constexpr Vector2<T> operator/(const Vector2<T>& v0, float scalar)
+	{
+		return { v0.x / scalar, v0.y / scalar };
+	}
+
+	template<typename T>
+	constexpr Vector2<T> operator/(float scalar, const Vector2<T>& v0)
+	{
+		return { scalar / v0.x, scalar / v0.y };
 	}
 
 	template<typename T>

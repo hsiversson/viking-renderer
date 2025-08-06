@@ -42,7 +42,7 @@ uint RandomUint(inout uint state)
 
 float RandomFloat01(inout uint state)
 {
-    return PcgHash(state) / float(uint(0xffffffff));
+    return saturate(PcgHash(state) / float(uint(0xffffffff)));
 }
 
 #endif //RANDOM_HLSL

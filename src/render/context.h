@@ -94,7 +94,9 @@ namespace vkr::Render
 		// Compute
 		void Dispatch(uint32_t numGroupsX, uint32_t numGroupsY = 1, uint32_t numGroupsZ = 1);
 		void Dispatch(const Vector3u& Groups);
+		void DispatchThreads(uint32_t numThreadsX, uint32_t numThreadsY = 1, uint32_t numThreadsZ = 1);
 		void DispatchThreads(const Vector3u& threads);
+		void DispatchThreads(PipelineState* pipelineState, uint32_t numThreadsX, uint32_t numThreadsY = 1, uint32_t numThreadsZ = 1);
 		void DispatchThreads(PipelineState* pipelineState, const Vector3u& threads);
 
 		// Raytracing

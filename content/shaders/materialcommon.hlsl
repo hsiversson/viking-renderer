@@ -8,6 +8,7 @@ struct ResolvedMaterial
     float3 WorldPosition;
     float3 WorldNormal;
     float3 Albedo;
+    float3 Emission;
     float Roughness;
     float Metallic;
     float AO;

@@ -25,7 +25,7 @@ float3 ApplyDirectionalLighting(in ResolvedMaterial material, in float3 V, Raytr
         float shadowFactor = 1.0f;
         for (uint i = 0; i < SamplesPerLight; ++i)
         {
-            ray.Origin = material.WorldPosition + material.WorldNormal * 0.00001f;
+            ray.Origin = material.WorldPosition + material.WorldNormal * FLT_SMALL_VALUE;
             
             RayQuery<RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> rayQuery;       
             rayQuery.TraceRayInline(RaytracingScene, 0, 0xff, ray);

@@ -140,7 +140,7 @@ namespace vkr::Graphics
 			ss << "    float2 dUV2 = v[2].UV - v[0].UV;\n";
 			ss << "    float3 dpdu = normalize(dUV2.y * dPos1 - dUV1.y * dPos2);\n";
 			ss << "    float3 dpdv = normalize(-dUV2.x * dPos1 + dUV1.x * dPos2);\n";
-			ss << "    float footprint = max(length(cross(dpdu, dpdv)), 1e-6);\n";
+			ss << "    float footprint = max(length(cross(dpdu, dpdv)), FLT_EPSILON_VALUE);\n";
 			ss << "    float mipLevel = 0.5 * log2(footprint);\n";
 			ss << "    resolvedHitInfo.mipLevel = max(mipLevel, 0.0f);\n";
 		}
@@ -155,14 +155,17 @@ namespace vkr::Graphics
 		std::ostringstream ss;
 		ss << "    resolvedMaterial.WorldPosition = mul(instanceData.localToWorld, float4(hitInfo.Position, 1.0f)).xyz;\n";
 		ss << "    resolvedMaterial.Albedo = materialParameters.albedoTexture.SampleLevel(g_SamplerBilinearClamp, hitInfo.UV, hitInfo.mipLevel).rgb;\n";
-		ss << "    float2 compressedNormal = materialParameters.normalTexture.SampleLevel(g_SamplerBilinearClamp, hitInfo.UV, hitInfo.mipLevel).rg * 2.0f - 1.0f;\n";
-		ss << "    float3 detailnormal = normalize(float3(compressedNormal.x, compressedNormal.y, sqrt(1.0f - compressedNormal.x * compressedNormal.x - compressedNormal.y * compressedNormal.y)));\n";
-		ss << "    detailnormal.y = -detailnormal.y;\n";
+		ss << "    resolvedMaterial.Emission = materialParameters.emissiveTexture.SampleLevel(g_SamplerBilinearClamp, hitInfo.UV, hitInfo.mipLevel).rgb;\n";
+		ss << "    float2 encodedNormal = materialParameters.normalTexture.SampleLevel(g_SamplerBilinearClamp, hitInfo.UV, hitInfo.mipLevel).rg * 2.0f - 1.0f;\n";
+		ss << "    float nx = encodedNormal.x;\n";
+		ss << "    float ny = encodedNormal.y;\n";
+		ss << "    float nz = sqrt(saturate(1.0f - nx * nx - ny * ny));\n";
+		ss << "    float3 detailNormal = float3(nx, -ny, nz);\n";
 		ss << "    float3 normal = normalize(hitInfo.Normal);\n";
 		ss << "    float3 tangent = normalize(hitInfo.Tangent.xyz);\n";
 		ss << "    float3 binormal = cross(normal, tangent) * hitInfo.Tangent.w;\n";
 		ss << "    float3x3 tangentToLocal = float3x3(tangent.x, binormal.x, normal.x, tangent.y, binormal.y, normal.y, tangent.z, binormal.z, normal.z);\n";
-		ss << "    float3 localNormal = mul(tangentToLocal, detailnormal);\n";
+		ss << "    float3 localNormal = mul(tangentToLocal, detailNormal);\n";
 		ss << "    resolvedMaterial.WorldNormal = normalize(mul(instanceData.localToWorld, float4(localNormal, 0)).xyz);\n";
 		ss << "    float4 material = materialParameters.materialTexture.SampleLevel(g_SamplerBilinearClamp, hitInfo.UV, hitInfo.mipLevel);\n";
 		ss << "    resolvedMaterial.Roughness = material.g;\n";

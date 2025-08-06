@@ -40,6 +40,7 @@ namespace vkr::Editor
 
 	private:
 		void Draw();
+		void DrawTitlebar();
 
 		void SetStyle();
 

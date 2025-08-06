@@ -196,7 +196,7 @@ TraceHitResult TraceRadianceRay(RaytracingAccelerationStructure raytracingScene,
             const float3 L = normalize(-dirLight.Direction);
             
             RayDesc ray;
-            ray.Origin = pbrInput.WorldPosition + pbrInput.WorldNormal * 0.00001f;
+            ray.Origin = pbrInput.WorldPosition + pbrInput.WorldNormal * FLT_SMALL_VALUE;
             ray.Direction = L;
             ray.TMin = 0.01f;
             ray.TMax = 1000000.0f;
