@@ -98,6 +98,13 @@ float3 fresnelSchlick(float cosTheta, float3 F0)
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
+float2 SampleUniformDisk(float2 xi)
+{
+    float r = sqrt(xi.x);
+    float theta = 2.0 * PI * xi.y;
+    return float2(r * cos(theta), r * sin(theta));
+}
+
 float3 SampleHemisphereCosine(float2 xi, float3 N)
 {
     float phi = 2.0f * PI * xi.x;

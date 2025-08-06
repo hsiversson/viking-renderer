@@ -6,13 +6,17 @@
 #include "pbrutils.hlsl"
 #include "sceneconstants.hlsl"
 
-float3 ApplyDirectionalLighting(in ResolvedMaterial material, in float3 V, RaytracingAccelerationStructure RaytracingScene)
+float3 ApplyDirectionalLighting(in ResolvedMaterial material, in float3 V, inout uint rngState, RaytracingAccelerationStructure RaytracingScene)
 {    
     float3 result = float3(0.0f, 0.0f, 0.0f);
     for (uint i = 0; i < SceneConstants.NumDirectionalLightsInUse; ++i)
     {
         const DirectionalLightData dirLight = SceneConstants.DirectionalLights[i];
         const float3 L = normalize(-dirLight.Direction);
+            
+        const float3 up = abs(L.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0);
+        const float3 right = normalize(cross(up, L));
+        const float3 forward = normalize(cross(L, right));
                 
         RayDesc ray;
         ray.Direction = L;
@@ -25,7 +29,15 @@ float3 ApplyDirectionalLighting(in ResolvedMaterial material, in float3 V, Raytr
         float shadowFactor = 1.0f;
         for (uint i = 0; i < SamplesPerLight; ++i)
         {
-            ray.Origin = material.WorldPosition + material.WorldNormal * FLT_SMALL_VALUE;
+            float2 xi;
+            xi.x = RandomFloat01(rngState);
+            xi.y = RandomFloat01(rngState);
+            
+            float2 diskSample = SampleUniformDisk(xi);
+
+            // Transform disk sample into world space offset
+            float3 offset = (diskSample.x * right + diskSample.y * forward) * dirLight.Radius;
+            ray.Origin = material.WorldPosition + offset + material.WorldNormal * FLT_SMALL_VALUE;
             
             RayQuery<RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> rayQuery;       
             rayQuery.TraceRayInline(RaytracingScene, 0, 0xff, ray);
@@ -44,11 +56,11 @@ float3 ApplyDirectionalLighting(in ResolvedMaterial material, in float3 V, Raytr
     return result;
 }
 
-float3 ApplyLighting(in ResolvedMaterial material, in float3 V)
+float3 ApplyLighting(in ResolvedMaterial material, in float3 V, inout uint rngState)
 {
     RaytracingAccelerationStructure RaytracingScene = ResourceDescriptorHeap[SceneConstants.RaytracingSceneDescriptorIndex];
     float3 result = float3(0.0f, 0.0f, 0.0f);
-    result += ApplyDirectionalLighting(material, V, RaytracingScene);
+    result += ApplyDirectionalLighting(material, V, rngState, RaytracingScene);
     return result;
 }
 

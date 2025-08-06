@@ -184,7 +184,7 @@ namespace vkr::Graphics
 
 		perSceneConstantData.DirectionalLights[0].Emission = Vector3f(6.0, 6.0, 6.0);
 		perSceneConstantData.DirectionalLights[0].Direction = Vector3f(0.4, -0.5, 0.6);
-		perSceneConstantData.DirectionalLights[0].Radius = 0.02f;
+		perSceneConstantData.DirectionalLights[0].Radius = tanf(DegToRad(0.53f));
 
 		perSceneConstantData.DirectionalLights[1].Emission = Vector3f(8.0, 2.0, 2.0);
 		perSceneConstantData.DirectionalLights[1].Direction = Vector3f(-0.4, -0.5, 0.6);
