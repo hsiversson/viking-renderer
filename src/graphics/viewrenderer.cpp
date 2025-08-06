@@ -373,8 +373,6 @@ namespace vkr::Graphics
 		renderTargets.m_SceneBuffer_OutputSize.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
 		renderTargets.m_SceneBuffer_OutputSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_OutputSize");
 
-
-
 		renderTargets.m_Velocity.m_IsWritable = true;
 		renderTargets.m_Velocity.m_IsRenderTarget = true;
 		renderTargets.m_Velocity.m_Format = Render::Format::FORMAT_RG16_FLOAT;
@@ -454,6 +452,10 @@ namespace vkr::Graphics
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
 
+		renderTargets.m_Normals.m_IsWritable = true;
+		renderTargets.m_Normals.m_Format = Render::Format::FORMAT_RGBA16_SNORM;
+		renderTargets.m_Normals.Update(view.GetRenderSize(), "ViewRenderTargets::Normals");
+
 		//Transition to UAV the output
 		std::vector<Render::TextureBarrierDesc> barriers;
 		{
@@ -472,13 +474,11 @@ namespace vkr::Graphics
 		struct alignas(16) ConstantData
 		{
 			uint32_t SceneTextureDescriptor;
-			uint32_t DepthTextureDescriptor;
-			uint32_t RaytracingSceneDescriptor;
+			uint32_t NormalsTextureDescriptor;
 		};
 		ConstantData data;
-		data.SceneTextureDescriptor = view.GetRenderTargets().m_SceneBuffer_RenderSize.m_TextureViewRW->GetIndex();
-		data.DepthTextureDescriptor = view.GetRenderTargets().m_DepthBuffer.m_TextureView->GetIndex();
-		data.RaytracingSceneDescriptor = renderData.m_RaytracingTLAS->GetIndex();
+		data.SceneTextureDescriptor = renderTargets.m_SceneBuffer_RenderSize.m_TextureViewRW->GetIndex();
+		data.NormalsTextureDescriptor = renderTargets.m_Normals.m_TextureViewRW->GetIndex();
 		ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
 		ctx->DispatchRays(renderData.m_TraceRaysPipelineState.get() , view.GetRenderSize().x, view.GetRenderSize().y);

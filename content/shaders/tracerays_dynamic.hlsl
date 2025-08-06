@@ -5,7 +5,8 @@
 struct ConstantsStruct
 {
     uint TargetTextureDescriptorIndex;
-    uint3 pad;
+    uint NormalsTargetTextureDescriptorIndex;
+    uint2 pad;
 };
 ConstantBuffer<ConstantsStruct> Constants : register(b0);
 
@@ -46,6 +47,10 @@ void TraceRays()
     TraceRay(RaytracingScene, flags, 0xff, 0, 0, 0, ray, payload);
 
     target[pixel] = float4(payload.irradiance, 1.0f);
+    
+    // write normals for denoising
+    RWTexture2D<float4> normalsTarget = ResourceDescriptorHeap[Constants.NormalsTargetTextureDescriptorIndex];
+    normalsTarget[pixel] = float4(payload.worldNormal, 0.0f);
 }
 
 [shader("miss")]

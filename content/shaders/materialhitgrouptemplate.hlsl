@@ -79,6 +79,7 @@ void $CLOSESTHIT_IDENTIFIER$(inout RaytracingPayload payload, in BuiltInTriangle
     //resolvedMaterial.Roughness = resolvedMaterial.Roughness * 0.15f;
     resolvedMaterial.Roughness = max(resolvedMaterial.Roughness, 0.045f); // Clamp roughness such that ggx evals doesn't explode.
     
+    payload.worldNormal = resolvedMaterial.WorldNormal;
     payload.irradiance = ApplyLighting(resolvedMaterial, -WorldRayDirection());
     
     if(payload.recursionDepth < 1)
