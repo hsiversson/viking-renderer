@@ -24,7 +24,9 @@ vcpkg\vcpkg.exe install directx-dxc
 vcpkg\vcpkg.exe install directxtex
 vcpkg\vcpkg.exe install winpixevent
 vcpkg\vcpkg.exe install cgltf
+vcpkg\vcpkg.exe install nlohmann-json
 vcpkg\vcpkg.exe install imgui[core,docking-experimental]
+vcpkg\vcpkg.exe install imguizmo
 if errorlevel 1 goto ERROR_END
 
 :: CMAKE BUILD

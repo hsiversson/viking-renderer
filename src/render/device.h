@@ -55,6 +55,9 @@ namespace vkr::Render
 		Ref<Buffer> CreateTLAS(uint32_t numRtInstanceDescs, RaytracingInstanceDesc* rtInstanceDescs);
 		Ref<Buffer> CreateBLAS(uint32_t numRtGeometryDescs, RaytracingGeometryDesc* rtGeometryDescs);
 
+		void SetCurrentSwapChain(const Ref<SwapChain>& swapChain);
+		const Ref<SwapChain>& GetCurrentSwapChain() const;
+
 		ID3D12Device* GetD3DDevice() const;
 		ID3D12Device10* GetD3DDevice10() const;
 		IDXGIFactory2* GetDXGIFactory() const;
@@ -98,6 +101,8 @@ namespace vkr::Render
 		// Temp buffers
 		UniquePtr<TempBufferAllocator> m_TempBufferAllocators[TEMP_BUFFER_USAGE_COUNT];
 		std::vector<UniquePtr<TempBufferAllocator>> m_TempBuffersPendingDelete;
+
+		Ref<SwapChain> m_CurrentSwapChain;
 
 		ShaderCache m_ShaderCache;
 		TextureCache m_TextureCache;

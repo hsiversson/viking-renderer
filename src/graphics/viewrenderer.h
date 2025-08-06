@@ -21,7 +21,7 @@ namespace vkr::Graphics
 		ViewRenderer();
 		~ViewRenderer();
 
-		bool Init(View& view);
+		bool Init();
 
 		void RenderView(View& view);
 

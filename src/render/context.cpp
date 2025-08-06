@@ -683,11 +683,17 @@ namespace vkr::Render
 
 	void Context::BindRenderTargets(uint32_t numRenderTargets, RenderTargetView** renderTargetViews)
 	{
+		m_StateCache.m_RenderTargets.fill(nullptr);
 		for (uint32_t i = 0; i < numRenderTargets; ++i)
 		{
 			m_StateCache.m_RenderTargets[i] = renderTargetViews[i];
 		}
 		m_StateCache.m_RenderTargetsDirty = true;
+	}
+
+	void Context::BindRenderTarget(RenderTargetView* renderTargetView)
+	{
+		BindRenderTargets(1, &renderTargetView);
 	}
 
 	void Context::BindDepthStencil(DepthStencilView* depthStencilView)

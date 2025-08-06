@@ -31,7 +31,7 @@ namespace vkr
 	{
 		TimeType now = Time::Now();
 		const TimeType durationSeconds = now - m_LastTickTime;
-		m_DeltaTime = durationSeconds;
+		m_DeltaTime = std::clamp(durationSeconds, 0.0, 0.5);
 		m_ElapsedTime += durationSeconds;
 		m_FrameIndex += 1;
 

@@ -2,6 +2,8 @@
 #include "material.h"
 #include "mesh.h"
 #include "view.h"
+#include "viewmanager.h"
+#include "viewrenderer.h"
 #include "modelobject.h"
 #include "render/device.h"
 
@@ -14,6 +16,12 @@ namespace vkr::Graphics
 		: m_HasChanges(false)
 	{
 		m_TraceRaysDynamicShaderLib = Render::GetDevice()->CreateShader("../../../content/shaders/tracerays_dynamic.hlsl", nullptr, Render::SHADER_STAGE_RAYTRACING);
+		m_ViewManager = MakeUnique<ViewManager>(*this);
+		m_ViewRenderer = MakeUnique<ViewRenderer>();
+		if (!m_ViewRenderer->Init())
+		{
+			assert(false);
+		}
 	}
 
 	Scene::~Scene()
@@ -21,18 +29,14 @@ namespace vkr::Graphics
 
 	}
 
-	Ref<View> Scene::CreateView()
+	View* Scene::CreateView()
 	{
-		Ref<View> view = MakeRef<View>();
-		m_Views.push_back(view);
-		return view;
+		return m_ViewManager->CreateView();
 	}
 
-	void Scene::DestroyView(const Ref<View>& view)
+	void Scene::DestroyView(View* view)
 	{
-		const auto offset = std::find(m_Views.begin(), m_Views.end(), view);
-		m_Views[offset - m_Views.begin()] = m_Views.back();
-		m_Views.pop_back();
+		m_ViewManager->DestroyView(view);
 	}
 
 	void Scene::Update()
@@ -60,6 +64,12 @@ namespace vkr::Graphics
 			m_TraceRaysPipelineState = Render::GetDevice()->CreatePipelineState(psoDesc);
 
 			m_HasChanges = false;
+		}
+
+		for (View* view : m_ViewManager->GetViews())
+		{
+			PrepareView(*view);
+			m_ViewRenderer->RenderView(*view);
 		}
 	}
 

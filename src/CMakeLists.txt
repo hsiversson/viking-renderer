@@ -35,7 +35,7 @@ add_library(VikingRenderer
             ${VKR_EDITOR_SOURCES}
 			${VKR_PRECOMPILED_HEADER}) 
 
-target_precompile_headers(VikingRenderer PUBLIC ${VKR_PRECOMPILED_HEADER})
+target_precompile_headers(VikingRenderer PRIVATE ${VKR_PRECOMPILED_HEADER})
 source_group("Generated Files" FILES ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}.dir/cmake_pch.cxx)
 foreach(config_type ${CMAKE_CONFIGURATION_TYPES})
     source_group("Generated Files" FILES ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}.dir/${config_type}/cmake_pch.hxx)
@@ -59,6 +59,12 @@ target_include_directories(VikingRenderer PRIVATE ${CGLTF_INCLUDE_DIRS})
 
 find_package(imgui CONFIG REQUIRED)
 target_link_libraries(VikingRenderer PRIVATE imgui::imgui)
+
+find_package(imguizmo CONFIG REQUIRED)
+target_link_libraries(VikingRenderer PRIVATE imguizmo::imguizmo)
+
+find_package(nlohmann_json CONFIG REQUIRED)
+target_link_libraries(VikingRenderer PRIVATE nlohmann_json::nlohmann_json)
 
 target_include_directories(VikingRenderer PUBLIC ${VKR_SRC_DIR})
 

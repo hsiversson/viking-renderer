@@ -1,52 +1,18 @@
 #include "raytracer_app.h"
 
-#include "cameracontroller.h"
+RaytracerApp::RaytracerApp()
+{
+}
 
-#include "graphics/camera.h"
-#include "graphics/model.h"
-#include "graphics/modelloader_gltf.h"
-#include "graphics/modelobject.h"
-#include "graphics/scene.h"
-#include "graphics/view.h"
-
-using namespace vkr;
+RaytracerApp::~RaytracerApp()
+{
+}
 
 void RaytracerApp::AppInit()
 {
-	m_RenderDevice->BeginFrame();
-	Graphics::ModelLoader_GLTF loader;
-	Ref<Graphics::Model> model;
-	model = loader.Load("../../../content/models/cp_noodles/scene.gltf");
-	Ref<Graphics::ModelObject> modelinst = MakeRef<Graphics::ModelObject>();
-	modelinst->SetLocalTransform(Compose(Mat33::Identity(), Vector3f(0.0f, 0.0f, 0.0f)));
-
-	modelinst->SetModel(model);
-	m_Scene->AddObject(modelinst);
-
-	m_Camera = MakeRef<Graphics::Camera>();
-	Mat43 camtransform = Compose(Mat33::Identity(), Vector3f(0, 2.0f, -6.0f));
-	m_Camera->SetLocalTransform(camtransform);
-	m_Camera->SetFarZ(1000.0f);
-	m_Camera->SetSize(Vector2f(m_WindowSize));
-	m_Camera->SetInvertedZ(true);
-
-	m_RenderDevice->EndFrame();
-
-	auto camController = MakeRef<CameraController>();
-	camController->Init(m_Camera, m_InputManager.get());
-	m_Tickables.push_back(camController);
 }
 
 void RaytracerApp::Tick(float deltaTime)
 {
-	//Update camera based on input
-	for (auto tickable : m_Tickables)
-		tickable->Tick(deltaTime);
-
-	const Vector2f windowSize = Vector2f(m_Window->GetSize());
-	if (windowSize != m_Camera->GetSize())
-		m_Camera->SetSize(windowSize);
-
-	m_View->SetCamera(*m_Camera);
 }
 

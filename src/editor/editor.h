@@ -13,9 +13,15 @@ namespace vkr::Render
 	class RenderTargetView;
 }
 
+namespace vkr::Graphics
+{
+	class Scene;
+}
+
 namespace vkr::Editor
 {
 	class Renderer;
+	class ViewportPanel;
 	class Manager
 	{
 	public:
@@ -26,16 +32,30 @@ namespace vkr::Editor
 
 		void Update();
 
-		void Draw();
+		void Render();
 
-		void SetOutputTarget(Render::RenderTargetView* target);
+		InputManager* GetInputManager() const;
+
+		static Manager* Get();
 
 	private:
+		void Draw();
+
+		void SetStyle();
+
 		UniquePtr<Renderer> m_Renderer;
 		Ref<Window> m_Window;
 		InputManager* m_InputManager;
 
+		////////////////////////////////////////////
+		// TODO: not here, should go in level editor layout or something
+		UniquePtr<Graphics::Scene> m_Scene;
+		Ref<ViewportPanel> m_Viewport;
+		////////////////////////////////////////////
+
 		MovingAverage<uint32_t, 64> m_FpsMovingAverage;
+
+		static Manager* g_Instance;
 	};
 }
 #endif //ENABLE_EDITOR

@@ -347,6 +347,16 @@ namespace vkr::Render
 		return blas;
 	}
 
+	void Device::SetCurrentSwapChain(const Ref<SwapChain>& swapChain)
+	{
+		m_CurrentSwapChain = swapChain;
+	}
+
+	const Ref<SwapChain>& Device::GetCurrentSwapChain() const
+	{
+		return m_CurrentSwapChain;
+	}
+
 	ID3D12Device* Device::GetD3DDevice() const
 	{
 		return m_Device.Get();

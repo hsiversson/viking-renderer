@@ -131,6 +131,12 @@ namespace vkr
 		return { a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x };
 	}
 
+	template<typename T>
+	Vector3<T> Lerp(const Vector3<T>& a, const Vector3<T>& b, T t)
+	{
+		return a * (T(1) - t) + b * t;
+	}
+
 	using Vector3f = Vector3<float>;
 	using Vector3i = Vector3<int32_t>;
 	using Vector3u = Vector3<uint32_t>;

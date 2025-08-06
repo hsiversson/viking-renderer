@@ -22,9 +22,5 @@
 #include <functional>
 #include <format>
 
-#include "imgui.h"
-#include "imguizmo.h"
-#include "nlohmann/json.hpp"
-
 #include "core/common.h"
 #include "core/timer.h"

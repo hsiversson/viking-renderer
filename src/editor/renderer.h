@@ -22,8 +22,6 @@ namespace vkr::Editor
 
 		void Render();
 
-		void SetOutputTarget(Render::RenderTargetView* target);
-
 	private:
 		void RenderTask(const uint32_t renderDataIndex);
 
@@ -31,7 +29,6 @@ namespace vkr::Editor
 		Ref<Render::PipelineState> m_SdrShader;
 		Ref<Render::PipelineState> m_HdrShader;
 		Ref<Render::TextureView> m_FontTexture;
-		Render::RenderTargetView* m_RenderTarget;
 
 		struct ImGuiVertex
 		{

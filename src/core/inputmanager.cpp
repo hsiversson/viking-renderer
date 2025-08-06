@@ -38,7 +38,7 @@ namespace vkr
 				{
 					// Positive = scroll up, negative = scroll down
 					int16_t wheelDelta = static_cast<int16_t>(mouse.usButtonData);
-					m_CurrentMouseState.m_WheelDelta += static_cast<float>(wheelDelta / INT16_MAX);
+					m_CurrentMouseState.m_WheelDelta += static_cast<float>(wheelDelta) / static_cast<float>(INT16_MAX);
 				}
 
 				// For gaming mice with more buttons:

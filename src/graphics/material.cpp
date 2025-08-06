@@ -252,7 +252,7 @@ namespace vkr::Graphics
 			psoDesc.Default.m_VertexLayout = vertexLayout;
 			psoDesc.Default.m_RasterizerState.m_CullMode = m_TwoSided ? Render::FACE_CULL_MODE_NONE : Render::FACE_CULL_MODE_BACK;
 			psoDesc.Default.m_RasterizerState.m_FrontIsCounterClockwise = m_FrontCounterClockwise;
-			psoDesc.Default.m_RenderTargetState.m_Formats[0] = Render::Format::FORMAT_RGB10A2_UNORM;
+			psoDesc.Default.m_RenderTargetState.m_Formats[0] = Render::Format::FORMAT_RGBA16_FLOAT;
 			psoDesc.Default.m_RenderTargetState.m_Formats[1] = Render::Format::FORMAT_RG16_FLOAT;
 
 			if (depthOnly)

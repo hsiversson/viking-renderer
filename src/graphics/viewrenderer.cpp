@@ -37,7 +37,7 @@ namespace vkr::Graphics
 
 	}
 
-	bool ViewRenderer::Init(View& view)
+	bool ViewRenderer::Init()
 	{
 		Render::Device* device = Render::GetDevice();
 		// init any renderer subsystems
@@ -270,7 +270,7 @@ namespace vkr::Graphics
 
 		renderTargets.m_SceneBuffer_RenderSize.m_IsWritable = true;
 		renderTargets.m_SceneBuffer_RenderSize.m_IsRenderTarget = true;
-		renderTargets.m_SceneBuffer_RenderSize.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
+		renderTargets.m_SceneBuffer_RenderSize.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
 		renderTargets.m_SceneBuffer_RenderSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_RenderSize");
 
 		renderTargets.m_Velocity.m_IsWritable = true;
@@ -365,12 +365,12 @@ namespace vkr::Graphics
 
 		renderTargets.m_SceneBuffer_RenderSize.m_IsWritable = true;
 		renderTargets.m_SceneBuffer_RenderSize.m_IsRenderTarget = true;
-		renderTargets.m_SceneBuffer_RenderSize.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
+		renderTargets.m_SceneBuffer_RenderSize.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
 		renderTargets.m_SceneBuffer_RenderSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_RenderSize");
 
 		renderTargets.m_SceneBuffer_OutputSize.m_IsWritable = true;
 		renderTargets.m_SceneBuffer_OutputSize.m_IsRenderTarget = true;
-		renderTargets.m_SceneBuffer_OutputSize.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
+		renderTargets.m_SceneBuffer_OutputSize.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
 		renderTargets.m_SceneBuffer_OutputSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_OutputSize");
 
 		renderTargets.m_Velocity.m_IsWritable = true;
@@ -527,12 +527,12 @@ namespace vkr::Graphics
 
 		renderTargets.m_SceneBuffer_OutputSize.m_IsWritable = true;
 		renderTargets.m_SceneBuffer_OutputSize.m_IsRenderTarget = true;
-		renderTargets.m_SceneBuffer_OutputSize.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
+		renderTargets.m_SceneBuffer_OutputSize.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
 		renderTargets.m_SceneBuffer_OutputSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_OutputSize");
 
 		renderTargets.m_SceneHistory.m_IsWritable = true;
 		renderTargets.m_SceneHistory.m_IsRenderTarget = true;
-		renderTargets.m_SceneHistory.m_Format = Render::Format::FORMAT_RGB10A2_UNORM;
+		renderTargets.m_SceneHistory.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
 		renderTargets.m_SceneHistory.Update(view.GetRenderSize(), "ViewRenderTargets::SceneHistory");
 
 		//TAA Resolve

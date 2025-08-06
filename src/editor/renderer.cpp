@@ -1,4 +1,4 @@
-#include "editorrenderer.h"
+#include "renderer.h"
 
 #if ENABLE_EDITOR
 
@@ -7,7 +7,6 @@
 
 namespace vkr::Editor
 {
-
 	Renderer::Renderer()
 		: m_CurrentRenderDataIndex(0)
 	{
@@ -123,7 +122,7 @@ namespace vkr::Editor
 			Ref<Render::Texture> fontTexture = device->CreateTexture(fontTextureDesc, &fontData);
 			m_FontTexture = device->CreateTextureView({}, fontTexture);
 
-			io.Fonts->SetTexID(m_FontTexture->GetIndex());
+			io.Fonts->SetTexID((ImTextureID)m_FontTexture.get());
 		}
 
 		return true;
@@ -156,11 +155,6 @@ namespace vkr::Editor
 		prepareData.m_Event = Render::QueueGraphicsTask([this, renderDataIndex]() { RenderTask(renderDataIndex); });
 	}
 
-	void Renderer::SetOutputTarget(Render::RenderTargetView* target)
-	{
-		m_RenderTarget = target;
-	}
-
 	void Renderer::RenderTask(const uint32_t renderDataIndex)
 	{
 		const RenderData& renderData = m_RenderData[m_CurrentRenderDataIndex];
@@ -169,18 +163,21 @@ namespace vkr::Editor
 			return;
 		}
 
+		Render::Device* device = Render::GetDevice();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 		ctx->ClearStateCache();
 
+		const Ref<Render::SwapChain>& swapChain = device->GetCurrentSwapChain();
+
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = m_RenderTarget->GetTexture();
+			barrierDesc.m_Texture = swapChain->GetOutputTexture();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_RENDER_TARGET;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
 			ctx->TextureBarrier(barrierDesc);
 		}
-		ctx->BindRenderTargets(1, &m_RenderTarget);
+		ctx->BindRenderTarget(swapChain->GetOutputRenderTarget());
 		ctx->SetPrimitiveTopology(Render::PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		for (uint32_t i = 0; i < renderData.m_DrawLists.size(); ++i)
 		{
@@ -189,8 +186,8 @@ namespace vkr::Editor
 			const uint32_t vtxBufferByteSize = drawList->VtxBuffer.size_in_bytes();
 			const uint32_t vtxByteSize = sizeof(ImDrawVert);
 			const uint32_t idxBufferByteSize = drawList->IdxBuffer.size_in_bytes();
-			Render::TempBuffer vertexBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, vtxBufferByteSize, vtxBufferByteSize, drawList->VtxBuffer.begin());
-			Render::TempBuffer indexBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, idxBufferByteSize, idxBufferByteSize, drawList->IdxBuffer.begin());
+			Render::TempBuffer vertexBuffer = device->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, vtxBufferByteSize, vtxBufferByteSize, drawList->VtxBuffer.begin());
+			Render::TempBuffer indexBuffer = device->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, idxBufferByteSize, idxBufferByteSize, drawList->IdxBuffer.begin());
 
 			ctx->BindVertexBuffer(vertexBuffer.m_Buffer.get(), vertexBuffer.m_Offset, vtxBufferByteSize, vtxByteSize);
 			ctx->BindIndexBuffer(indexBuffer.m_Buffer.get(), indexBuffer.m_Offset, idxBufferByteSize, Render::FORMAT_R16_UINT);
@@ -199,7 +196,7 @@ namespace vkr::Editor
 			const Vector2f clipScale = renderData.m_ViewportScale;
 			const Vector2f clipOffset = renderData.m_ViewportOffset;
 			const Vector2f clipSize = renderData.m_ViewportSize * clipScale;
-			ctx->SetViewport(0.0f, 0.0f, clipSize.x, clipSize.y);
+			ctx->SetViewport(clipOffset.x, clipOffset.y, clipSize.x, clipSize.y);
 			for (uint32_t cmdIdx = 0; cmdIdx < drawList->CmdBuffer.size(); ++cmdIdx)
 			{
 				const ImDrawCmd& cmd = drawList->CmdBuffer[cmdIdx];
@@ -223,7 +220,10 @@ namespace vkr::Editor
 				constants.VertexScale.y = -2.0f / clipSize.y;
 				constants.VertexOffset.x = -1.0f - clipOffset.x * constants.VertexScale.x;
 				constants.VertexOffset.y = 1.0f - clipOffset.y * constants.VertexScale.y;
-				constants.TextureDescriptorIndex = cmd.TextureId;
+
+				Render::TextureView* texture = reinterpret_cast<Render::TextureView*>(cmd.TextureId);
+				constants.TextureDescriptorIndex = texture->GetIndex();
+
 				ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
 
 				ctx->DrawIndexed(cmd.ElemCount, cmd.IdxOffset, cmd.VtxOffset);
@@ -231,7 +231,7 @@ namespace vkr::Editor
 		}
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = m_RenderTarget->GetTexture();
+			barrierDesc.m_Texture = swapChain->GetOutputTexture();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_PRESENT;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COMMON;

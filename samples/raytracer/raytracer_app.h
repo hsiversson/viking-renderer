@@ -4,17 +4,14 @@
 #include "core/types.h"
 #include "tickable.h"
 
-namespace vkr::Graphics
-{
-	class Camera;
-}
-
 class RaytracerApp : public vkr::Application 
 {
 public:
+	RaytracerApp();
+	~RaytracerApp() override;
+
 	void AppInit() override;
 	void Tick(float deltaTime) override;
+
 private:
-	vkr::Ref<vkr::Graphics::Camera> m_Camera;
-	std::vector<vkr::Ref<ITickable>> m_Tickables;
 };

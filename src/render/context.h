@@ -118,6 +118,7 @@ namespace vkr::Render
 		void BindVertexBuffer(Buffer* vertexBuffers, const uint64_t offsets = 0, const uint32_t size = 0, const uint32_t stride = 0);
 		void BindIndexBuffer(Buffer* indexbuffer, const uint64_t offset = 0, const uint32_t size = 0, const Format format = FORMAT_UNKNOWN);
 		void BindRenderTargets(uint32_t numRenderTargets, RenderTargetView** renderTargetViews);
+		void BindRenderTarget(RenderTargetView* renderTargetView);
 		void BindDepthStencil(DepthStencilView* depthStencilView);
 		void SetPrimitiveTopology(PrimitiveTopology topologyType);
 		void SetViewport(uint32_t offsetX, uint32_t offsetY, uint32_t width, uint32_t height, float depthMin = 0.0f, float depthMax = 1.0f);

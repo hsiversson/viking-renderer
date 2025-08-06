@@ -31,7 +31,6 @@ namespace vkr
 
 	Application::~Application()
 	{
-		m_Scene->DestroyView(m_View);
 		Logger::Destroy();
 		Window::UnregisterWindowClass();
 	}
@@ -49,6 +48,13 @@ namespace vkr
 			return result;
 
 		return Exit();
+	}
+
+	void Application::SetCurrentSwapChain(const Ref<Render::SwapChain>& swapChain)
+	{
+		assert(Thread::IsMainThread());
+		Render::GetDevice()->SetCurrentSwapChain(swapChain);
+		m_Window->SetAssociatedSwapChain(swapChain.get());
 	}
 
 	ReturnCode Application::Init(const ApplicationInitDesc& desc)
@@ -83,16 +89,7 @@ namespace vkr
 		m_SwapChain = m_RenderDevice->CreateSwapChain(m_Window->GetNativeHandle(), desc.m_Resolution);
 		if (!m_SwapChain)
 			return RETURN_INVALID_ARG;
-		m_Window->SetAssociatedSwapChain(m_SwapChain.get());
-
-		m_Scene = MakeUnique<Graphics::Scene>();
-
-		m_View = m_Scene->CreateView();
-		m_View->SetRenderSize(desc.m_Resolution);
-
-		m_ViewRenderer = MakeUnique<Graphics::ViewRenderer>();
-		if (!m_ViewRenderer->Init(*m_View))
-			return RETURN_ERROR;
+		SetCurrentSwapChain(m_SwapChain);
 
 		m_WindowSize = desc.m_Resolution;
 
@@ -120,7 +117,6 @@ namespace vkr
 			if (windowChangeFlags > WINDOW_CHANGE_FLAG_NONE)
 			{
 				m_SwapChain->Resize(m_Window->GetSize());
-				m_View->SetRenderSize(m_Window->GetSize());
 				m_Window->ResetChangeFlags();
 			}
 			// TODO: Apply changes going to window
@@ -128,33 +124,19 @@ namespace vkr
 			m_ElapsedTimer.Tick();
 			//VKR_LOG("FPS: {}", m_FpsMovingAverage.GetAverage());
 
+			Render::QueueGraphicsTask(std::bind(&Render::Device::BeginFrame, m_RenderDevice.get()));
+
 			if (m_EditorManager)
 				m_EditorManager->Update();
 
 			// App tick
 			Tick(m_ElapsedTimer.DeltaTime());
 
-			// TODO: Move scene/world ownership into app? 
-			m_Scene->Update();
-			m_Scene->PrepareView(*m_View);
+			if (m_EditorManager)
+				m_EditorManager->Render();
 
-			{
-				Render::QueueGraphicsTask(std::bind(&Render::Device::BeginFrame, m_RenderDevice.get()));
-				Render::QueueGraphicsTask([this]() 
-					{ 
-						m_View->SetOutputTarget(m_SwapChain->GetOutputRenderTarget()); 
-
-						if (m_EditorManager)
-							m_EditorManager->SetOutputTarget(m_SwapChain->GetOutputRenderTarget());
-					});
-				m_ViewRenderer->RenderView(*m_View);
-
-				if (m_EditorManager)
-					m_EditorManager->Draw();
-
-				Render::QueueGraphicsTask(std::bind(&Render::SwapChain::Present, m_SwapChain.get()));
-				Render::QueueGraphicsTask(std::bind(&Render::Device::EndFrame, m_RenderDevice.get()));
-			}
+			Render::QueueGraphicsTask(std::bind(&Render::SwapChain::Present, m_SwapChain.get()));
+			Render::QueueGraphicsTask(std::bind(&Render::Device::EndFrame, m_RenderDevice.get()));
 			m_InputManager->EndFrame();
 		}
 

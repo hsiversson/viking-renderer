@@ -12,13 +12,6 @@ namespace vkr
 		class SwapChain;
 	}
 
-	namespace Graphics
-	{
-		class ViewRenderer;
-		class View;
-		class Scene;
-	}
-
 	namespace Editor
 	{
 		class Manager;
@@ -43,9 +36,11 @@ namespace vkr
 	{
 	public:
 		Application();
-		~Application();
+		virtual ~Application();
 
 		ReturnCode Launch(const ApplicationInitDesc& desc);
+
+		void SetCurrentSwapChain(const Ref<Render::SwapChain>& swapChain);
 
 		virtual void AppInit() {}
 		virtual void Tick(float deltaTime) {}
@@ -58,12 +53,6 @@ namespace vkr
 
 	protected:
 		ElapsedTimer m_ElapsedTimer;
-
-		// app probably shouldn't own these,
-		// eventual GameWorld or some graphics module should.
-		UniquePtr<Graphics::ViewRenderer> m_ViewRenderer;
-		Ref<Graphics::View> m_View;
-		UniquePtr<Graphics::Scene> m_Scene;
 
 		Ref<Render::SwapChain> m_SwapChain;
 		UniquePtr<Render::Device> m_RenderDevice;
