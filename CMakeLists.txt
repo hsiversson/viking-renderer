@@ -9,6 +9,7 @@ set(STREAMLINE_URL "https://github.com/NVIDIA-RTX/Streamline/releases/download/$
 set(STREAMLINE_DIR "${CMAKE_BINARY_DIR}/external/Streamline")
 set(STREAMLINE_INCLUDE_DIR "${STREAMLINE_DIR}/include")
 set(STREAMLINE_DLL_DIR "${STREAMLINE_DIR}/bin/x64")
+set(STREAMLINE_LIB_DIR "${STREAMLINE_DIR}/lib/x64")
 
 ExternalProject_Add(StreamlineSDK
     URL ${STREAMLINE_URL}

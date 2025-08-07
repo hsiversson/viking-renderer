@@ -17,13 +17,17 @@ foreach(config_type ${CMAKE_CONFIGURATION_TYPES})
 endforeach()
 
 target_link_libraries(Raytracer VikingRenderer)
+target_link_libraries(Raytracer ${STREAMLINE_LIB_DIR}/sl.interposer.lib)
 
 # Copy required runtime DLLs for NVidia Streamline
 add_custom_command(TARGET Raytracer POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${STREAMLINE_DLL_DIR}/sl.common.dll
         ${STREAMLINE_DLL_DIR}/sl.dlss.dll
+        ${STREAMLINE_DLL_DIR}/sl.dlss_d.dll
         ${STREAMLINE_DLL_DIR}/sl.interposer.dll
+        ${STREAMLINE_DLL_DIR}/nvngx_dlss.dll
+        ${STREAMLINE_DLL_DIR}/nvngx_dlssd.dll
         $<TARGET_FILE_DIR:Raytracer>
 )
 

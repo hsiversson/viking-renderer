@@ -36,26 +36,25 @@ namespace vkr::Render
 		slCreateDXGIFactory1Fn m_CreateDXGIFactory1Func = nullptr;
 		slCreateDXGIFactory2Fn m_CreateDXGIFactory2Func = nullptr;
 		slD3D12CreateDeviceFn m_CreateD3D12DeviceFunc = nullptr;
-		PFun_slInit* slInit = nullptr;
-		PFun_slShutdown* slShutdown = nullptr;
-		PFun_slSetD3DDevice* slSetD3DDevice = nullptr;
-		PFun_slIsFeatureSupported* slIsFeatureSupported = nullptr;
+		//PFun_slInit* slInit = nullptr;
+		//PFun_slShutdown* slShutdown = nullptr;
+		//PFun_slSetD3DDevice* slSetD3DDevice = nullptr;
+		//PFun_slIsFeatureSupported* slIsFeatureSupported = nullptr;
 
 		HMODULE m_InterposerDLL = nullptr;
 	};
 
 	void StreamlineLoggingCallback(sl::LogType type, const char* msg)
 	{
-
 		switch (type) {
 		case sl::LogType::eInfo:
 			VKR_LOG("Streamline: {}", msg);
 			break;
 		case sl::LogType::eWarn:
-			VKR_LOG("Streamline Warning: {}", msg);
+			VKR_WARNING("Streamline Warning: {}", msg);
 			break;
 		case sl::LogType::eError:
-			VKR_LOG("Streamline Error: {}", msg);
+			VKR_ERROR("Streamline Error: {}", msg);
 			break;
 		}
 	}
@@ -67,30 +66,30 @@ namespace vkr::Render
 		const bool isDebugging = CommandLine::Has("debug_device");
 
 		//DLL and function load
-		std::wstring slInterposerPath = L"sl.interposer.dll";
+		std::filesystem::path slInterposerPath = SystemPaths::GetExeDirectory() / "sl.interposer.dll";
 
 		//This will fail as downloaded release DLLs are not signed with the public trusted signatures recognized by Microsoft
-// 		if (!sl::security::verifyEmbeddedSignature(slInterposerPath.c_str())) 
-// 		{
-// 			return;
-// 		}
+		if (!sl::security::verifyEmbeddedSignature(slInterposerPath.c_str()))
+		{
+			return false;
+ 		}
 		m_pImpl->m_InterposerDLL = LoadLibraryW(slInterposerPath.c_str());
 		if (!m_pImpl->m_InterposerDLL)
 		{
 			return false;
 		}
 
-		m_pImpl->slInit = (PFun_slInit*)GetProcAddress(m_pImpl->m_InterposerDLL, "slInit");
-		m_pImpl->slShutdown = (PFun_slShutdown*)GetProcAddress(m_pImpl->m_InterposerDLL, "slShutdown");
-		m_pImpl->slSetD3DDevice = (PFun_slSetD3DDevice*)GetProcAddress(m_pImpl->m_InterposerDLL, "slSetD3DDevice");
-		m_pImpl->slIsFeatureSupported = (PFun_slIsFeatureSupported*)GetProcAddress(m_pImpl->m_InterposerDLL, "slIsFeatureSupported");
+		//m_pImpl->slInit = (PFun_slInit*)GetProcAddress(m_pImpl->m_InterposerDLL, "slInit");
+		//m_pImpl->slShutdown = (PFun_slShutdown*)GetProcAddress(m_pImpl->m_InterposerDLL, "slShutdown");
+		//m_pImpl->slSetD3DDevice = (PFun_slSetD3DDevice*)GetProcAddress(m_pImpl->m_InterposerDLL, "slSetD3DDevice");
+		//m_pImpl->slIsFeatureSupported = (PFun_slIsFeatureSupported*)GetProcAddress(m_pImpl->m_InterposerDLL, "slIsFeatureSupported");
 
 		// Proceed to initialize Streamline
 		sl::Preferences pref{};
 		pref.showConsole = isDebugging;
 		pref.logLevel = isDebugging ? sl::LogLevel::eDefault : sl::LogLevel::eOff;
 		pref.logMessageCallback = StreamlineLoggingCallback;
-		pref.applicationId = 0; // For development, although NGX may require a valid ID
+		pref.applicationId = 100000000; // For development, although NGX may require a valid ID
 		pref.engine = sl::EngineType::eCustom;
 		pref.engineVersion = "1.0.0";
 		pref.renderAPI = sl::RenderAPI::eD3D12;
@@ -104,12 +103,12 @@ namespace vkr::Render
 		pref.numFeaturesToLoad = _countof(featuresToLoad);
 		
 		pref.flags = {};
-		//Do we need this?
-// 		pref.flags |= sl::PreferenceFlags::eDisableCLStateTracking;
-// 		pref.flags |= sl::PreferenceFlags::eUseDXGIFactoryProxy;
+		pref.flags |= sl::PreferenceFlags::eDisableCLStateTracking;
+ 		pref.flags |= sl::PreferenceFlags::eUseDXGIFactoryProxy;
 
-		sl::Result res = m_pImpl->slInit(pref, sl::kSDKVersion);
-		if (res != sl::Result::eOk) {
+		sl::Result res = slInit(pref, sl::kSDKVersion);
+		if (res != sl::Result::eOk) 
+		{
 			VKR_LOG("[NvStreamline] Init failed");
 			FreeLibrary(m_pImpl->m_InterposerDLL);
 			return false;
@@ -126,7 +125,7 @@ namespace vkr::Render
 		if (!m_pImpl->m_InterposerDLL)
 			return false;
 
-		if (SL_FAILED(result, m_pImpl->slShutdown()))
+		if (SL_FAILED(result, slShutdown()))
 		{
 			VKR_LOG("[NvStreamline] Failed to shutdown");
 			return false;
@@ -139,7 +138,7 @@ namespace vkr::Render
 	bool NvStreamline::SetDevice(const Device* device)
 	{
 		assert(m_pImpl->m_InterposerDLL);
-		if (SL_FAILED(result, m_pImpl->slSetD3DDevice(device->GetD3DDevice())))
+		if (SL_FAILED(result, slSetD3DDevice(device->GetD3DDevice())))
 		{
 			VKR_LOG("[NvStreamline] Failed to set D3D Device.");
 			return false;
@@ -156,7 +155,7 @@ namespace vkr::Render
 		adapterInfo.deviceLUID = (uint8_t*)&adapterDesc.AdapterLuid;
 		adapterInfo.deviceLUIDSizeInBytes = sizeof(LUID);
 
-		if (SL_FAILED(result, m_pImpl->slIsFeatureSupported(FeatureToSLFeature(feature), adapterInfo)))
+		if (SL_FAILED(result, slIsFeatureSupported(FeatureToSLFeature(feature), adapterInfo)))
 		{
 			return false;
 		}

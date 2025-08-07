@@ -29,6 +29,7 @@ namespace vkr
 		: m_WindowSize{}
 	{
 		g_Instance = this;
+		SystemPaths::Init();
 		Logger::Create();
 	}
 
