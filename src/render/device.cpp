@@ -1,12 +1,14 @@
 #include "device.h"
+
+#include "commandlist.h"
+#include "commandqueue.h"
 #include "descriptorheap.h"
-#include "shadercompiler.h"
 #include "rootsignature.h"
+#include "shadercompiler.h"
 #include "textureloader_dds.h"
 #include "textureloader_png.h"
 #include "textureloader_tga.h"
-#include "commandlist.h"
-#include "commandqueue.h"
+
 #include "d3dconvert.h"
 
 #include "core/commandline.h"

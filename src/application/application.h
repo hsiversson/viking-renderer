@@ -9,6 +9,7 @@ namespace vkr
 	namespace Render
 	{
 		class Device;
+		class NvStreamline;
 		class SwapChain;
 	}
 
@@ -60,18 +61,20 @@ namespace vkr
 
 		Ref<Render::SwapChain> m_SwapChain;
 		UniquePtr<Render::Device> m_RenderDevice;
+		UniquePtr<Render::NvStreamline> m_NvStreamline;
 		Ref<Window> m_Window;
 
 //#if !BUILD_CONFIG_SHIPPING
 		UniquePtr<Editor::Manager> m_EditorManager;
 //#endif
-
 		Vector2u m_WindowSize;
 
 		UniquePtr<InputManager> m_InputManager;
 
 		bool m_QuitRequested = false;
 		ReturnCode m_QuitReturnCode = RETURN_OK;
+
+		bool m_UseDLSS = true;
 
 		static Application* g_Instance;
 	};
