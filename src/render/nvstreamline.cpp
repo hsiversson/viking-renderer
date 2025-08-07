@@ -63,7 +63,7 @@ namespace vkr::Render
 	{
 		m_pImpl = MakeUnique<PImpl>();
 
-		const bool isDebugging = CommandLine::Has("debug_device");
+		const bool isDebugging = CommandLine::Has("debug_streamline");
 
 		//DLL and function load
 		std::filesystem::path slInterposerPath = SystemPaths::GetExeDirectory() / "sl.interposer.dll";
