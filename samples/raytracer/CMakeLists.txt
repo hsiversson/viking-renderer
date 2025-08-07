@@ -8,7 +8,7 @@ file(GLOB_RECURSE RAYTRACER_SRC CONFIGURE_DEPENDS
 file(GLOB RAYTRACER_PRECOMPILED_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/raytracer_precompiled.h)
 source_group("Precompiled Header" FILES ${RAYTRACER_PRECOMPILED_HEADER})
 
-add_executable(Raytracer WIN32 ${RAYTRACER_SRC})
+add_executable(Raytracer WIN32 ${RAYTRACER_SRC} ${VKR_ICON_RESOURCE})
 
 target_precompile_headers(Raytracer PRIVATE ${RAYTRACER_PRECOMPILED_HEADER})
 source_group("Generated Files" FILES ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}.dir/cmake_pch.cxx)

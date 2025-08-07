@@ -27,7 +27,7 @@ namespace vkr::Graphics
 
 		Render::Device* device = Render::GetDevice();
 		std::string shaderCode = GenerateGetMaterialParametersFunction();
-		shaderCode += ReadFileToString("../../../content/shaders/simpleforwardtestPS.hlsl");
+		shaderCode += ReadFileToString(SystemPaths::GetInContentDirectory("shaders/simpleforwardtestPS.hlsl"));
 		m_PixelShader = device->CreateShaderFromString(shaderCode, L"MainPS", vkr::Render::SHADER_STAGE_PIXEL);
 
 		m_BlendMode = desc.m_BlendMode;
@@ -146,8 +146,8 @@ namespace vkr::Graphics
 			// Create vertex shader
 			std::stringstream vertexShaderCode;
 			vertexShaderCode <<
-				"#include \"../../../content/shaders/sceneconstants.hlsl\"\n"
-				"#include \"../../../content/shaders/instancing.hlsl\"\n"
+				"#include \"sceneconstants.hlsl\"\n"
+				"#include \"instancing.hlsl\"\n"
 				"struct VSInput\n"
 				"{\n";
 			for (const Render::VertexAttribute& attr : vertexLayout.GetAttributes())

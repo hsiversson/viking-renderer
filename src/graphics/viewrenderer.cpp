@@ -46,27 +46,27 @@ namespace vkr::Graphics
 		//Initializing global shaders/resources
 
 		// Static object velocity computing
-		m_StaticVelShader = device->CreateShader("../../../content/shaders/staticvel.hlsl", L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
+		m_StaticVelShader = device->CreateShader(SystemPaths::GetInContentDirectory("shaders/staticvel.hlsl"), L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
 		Render::PipelineStateDesc staticVelPSODesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
 		staticVelPSODesc.Compute.m_ComputeShader = m_StaticVelShader.get();
 		m_StaticVelPSO = device->CreatePipelineState(staticVelPSODesc);
 
 		//Sky
 		
-		m_SkyComputeShader = device->CreateShader("../../../content/shaders/sky.hlsl", L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
+		m_SkyComputeShader = device->CreateShader(SystemPaths::GetInContentDirectory("shaders/sky.hlsl"), L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
 		Render::PipelineStateDesc skyPSODesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
 		skyPSODesc.Compute.m_ComputeShader = m_SkyComputeShader.get();
 		m_SkyPSO = device->CreatePipelineState(skyPSODesc);
 
 		//TAA
 				
-		m_TAAResolveComputeShader = device->CreateShader("../../../content/shaders/taa.hlsl", L"ResolveCS", vkr::Render::SHADER_STAGE_COMPUTE);
+		m_TAAResolveComputeShader = device->CreateShader(SystemPaths::GetInContentDirectory("shaders/taa.hlsl"), L"ResolveCS", vkr::Render::SHADER_STAGE_COMPUTE);
 		Render::PipelineStateDesc taaPSODesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
 		taaPSODesc.Compute.m_ComputeShader = m_TAAResolveComputeShader.get();
 		m_TAAResolvePSO = device->CreatePipelineState(taaPSODesc);
 
 		// Raytrace
-		m_RaytraceShader = device->CreateShader("../../../content/shaders/tracerays.hlsl", L"Main", vkr::Render::SHADER_STAGE_COMPUTE);
+		m_RaytraceShader = device->CreateShader(SystemPaths::GetInContentDirectory("shaders/tracerays.hlsl"), L"Main", vkr::Render::SHADER_STAGE_COMPUTE);
 		Render::PipelineStateDesc raytracePSODesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
 		raytracePSODesc.Compute.m_ComputeShader = m_RaytraceShader.get();
 		m_RaytracePSO = device->CreatePipelineState(raytracePSODesc);

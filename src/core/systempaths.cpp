@@ -40,6 +40,11 @@ namespace vkr::SystemPaths
 		return g_ContentDirectory;
 	}
 
+	std::filesystem::path GetInContentDirectory(const std::filesystem::path& pathToAppend)
+	{
+		return g_ContentDirectory / pathToAppend;
+	}
+
 	const std::filesystem::path& GetUserDirectory()
 	{
 		return g_UserDirectory;

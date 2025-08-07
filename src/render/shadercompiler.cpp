@@ -101,8 +101,9 @@ namespace vkr::Render
 		compileArguments.push_back(DXC_ARG_ALL_RESOURCES_BOUND);
 
 		// TODO: fix paths
+		const std::filesystem::path shadersBaseDir = SystemPaths::GetInContentDirectory("shaders");
 		compileArguments.push_back(L"-I");
-		compileArguments.push_back(L"../../../content/shaders");
+		compileArguments.push_back(shadersBaseDir.c_str());
 
 		if (CommandLine::Has("shader_debug"))
 		{

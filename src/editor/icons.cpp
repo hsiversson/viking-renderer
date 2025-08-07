@@ -7,16 +7,16 @@ namespace vkr::Editor
 {
 	bool Icons::Init()
 	{
-		//if (!LoadIcon("../../../content/icons/icon_vkr_shaded.dds", m_Icons[EDITOR_ICON_VKR_SHADED])) return false;
-		//if (!LoadIcon("../../../content/icons/icon_vkr_black.dds", m_Icons[EDITOR_ICON_VKR_BLACK])) return false;
-		if (!LoadIcon("../../../content/icons/icon_vkr_white.dds", m_Icons[EDITOR_ICON_VKR_WHITE])) return false;
-		//if (!LoadIcon("../../../content/icons/icon_vkr_light.dds", m_Icons[EDITOR_ICON_VKR_LIGHT])) return false;
-		//if (!LoadIcon("../../../content/icons/icon_vkr_dark.dds", m_Icons[EDITOR_ICON_VKR_DARK])) return false;
+		//if (!LoadIcon(SystemPaths::GetInContentDirectory("icons/icon_vkr_shaded.dds"), m_Icons[EDITOR_ICON_VKR_SHADED])) return false;
+		//if (!LoadIcon(SystemPaths::GetInContentDirectory("icons/icon_vkr_black.dds"), m_Icons[EDITOR_ICON_VKR_BLACK])) return false;
+		if (!LoadIcon(SystemPaths::GetInContentDirectory("icons/icon_vkr_white.dds"), m_Icons[EDITOR_ICON_VKR_WHITE])) return false;
+		//if (!LoadIcon(SystemPaths::GetInContentDirectory("icons/icon_vkr_light.dds"), m_Icons[EDITOR_ICON_VKR_LIGHT])) return false;
+		//if (!LoadIcon(SystemPaths::GetInContentDirectory("icons/icon_vkr_dark.dds"), m_Icons[EDITOR_ICON_VKR_DARK])) return false;
 
-		if (!LoadIcon("../../../content/icons/icon_minus_white.dds", m_Icons[EDITOR_ICON_MINUS_WHITE])) return false;
-		if (!LoadIcon("../../../content/icons/icon_cross_white.dds", m_Icons[EDITOR_ICON_CROSS_WHITE])) return false;
-		if (!LoadIcon("../../../content/icons/icon_square_white.dds", m_Icons[EDITOR_ICON_SQUARE_WHITE])) return false;
-		if (!LoadIcon("../../../content/icons/icon_squares_white.dds", m_Icons[EDITOR_ICON_SQUARES_WHITE])) return false;
+		if (!LoadIcon(SystemPaths::GetInContentDirectory("icons/icon_minus_white.dds"), m_Icons[EDITOR_ICON_MINUS_WHITE])) return false;
+		if (!LoadIcon(SystemPaths::GetInContentDirectory("icons/icon_cross_white.dds"), m_Icons[EDITOR_ICON_CROSS_WHITE])) return false;
+		if (!LoadIcon(SystemPaths::GetInContentDirectory("icons/icon_square_white.dds"), m_Icons[EDITOR_ICON_SQUARE_WHITE])) return false;
+		if (!LoadIcon(SystemPaths::GetInContentDirectory("icons/icon_squares_white.dds"), m_Icons[EDITOR_ICON_SQUARES_WHITE])) return false;
 
 		return true;
 	}

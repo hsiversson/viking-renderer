@@ -75,6 +75,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 set(VKR_VCPKG_ROOT_DIR "${PROJECT_SOURCE_DIR}/vcpkg")
 
 set(VKR_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
+set(VKR_ICON_RESOURCE "${VKR_SRC_DIR}/core/resource/resource.rc" "${VKR_SRC_DIR}/core/resource/resource.h")
 add_subdirectory(src)
 
 set(VKR_SAMPLES_DIR "${PROJECT_SOURCE_DIR}/samples")

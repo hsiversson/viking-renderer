@@ -182,7 +182,7 @@ namespace vkr::Graphics
 
 		m_CurrentMaterial->m_HitGroupIdentifier = std::format("MaterialHitGroup_{}", reinterpret_cast<uintptr_t>(m_CurrentMaterial));
 
-		std::string hitGroupCode = ReadFileToString("../../../content/shaders/materialhitgrouptemplate.hlsl");
+		std::string hitGroupCode = ReadFileToString(SystemPaths::GetInContentDirectory("shaders/materialhitgrouptemplate.hlsl"));
 
 		if (addClosestHit)
 		{

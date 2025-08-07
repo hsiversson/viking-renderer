@@ -1,6 +1,7 @@
 #include "window.h"
 
 #include <windowsx.h>
+#include "core/resource/resource.h"
 
 #ifdef IsMaximized
 #undef IsMaximized
@@ -278,7 +279,7 @@ namespace vkr
 		windowClass.hCursor = LoadCursor(nullptr, IDC_ARROW);
 		windowClass.lpszClassName = g_WindowClassName;
 
-		windowClass.hIcon = (HICON)appIcon;
+		windowClass.hIcon = (HICON)LoadImage(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDI_APP_ICON), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
 		if (!windowClass.hIcon)
 			windowClass.hIcon = (HICON)LoadImage(nullptr, IDI_APPLICATION, IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
 
