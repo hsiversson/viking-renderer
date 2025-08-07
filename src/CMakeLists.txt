@@ -66,6 +66,11 @@ target_link_libraries(VikingRenderer PRIVATE imguizmo::imguizmo)
 find_package(nlohmann_json CONFIG REQUIRED)
 target_link_libraries(VikingRenderer PRIVATE nlohmann_json::nlohmann_json)
 
+target_include_directories(VikingRenderer PRIVATE ${STREAMLINE_INCLUDE_DIR})
+
+# Ensure it builds after the SDK has downloaded
+add_dependencies(VikingRenderer StreamlineSDK)
+
 target_include_directories(VikingRenderer PUBLIC ${VKR_SRC_DIR})
 
 if(MSVC)

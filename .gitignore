@@ -36,3 +36,6 @@ bin/
 lib/
 vcpkg/
 !tools/vswhere.exe
+
+/downloads/
+/external/Streamline/

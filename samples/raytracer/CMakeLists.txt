@@ -18,6 +18,15 @@ endforeach()
 
 target_link_libraries(Raytracer VikingRenderer)
 
+# Copy required runtime DLLs for NVidia Streamline
+add_custom_command(TARGET Raytracer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${STREAMLINE_DLL_DIR}/sl.common.dll
+        ${STREAMLINE_DLL_DIR}/sl.dlss.dll
+        ${STREAMLINE_DLL_DIR}/sl.interposer.dll
+        $<TARGET_FILE_DIR:Raytracer>
+)
+
 if(MSVC)
 	target_compile_options(Raytracer PRIVATE "/MP")
 endif()

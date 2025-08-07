@@ -2,6 +2,24 @@ cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 
 project("VikingRenderer")
 
+include(ExternalProject)
+
+set(STREAMLINE_VERSION "v2.8.0")
+set(STREAMLINE_URL "https://github.com/NVIDIA-RTX/Streamline/releases/download/${STREAMLINE_VERSION}/streamline-sdk-${STREAMLINE_VERSION}.zip")
+set(STREAMLINE_DIR "${CMAKE_BINARY_DIR}/external/Streamline")
+set(STREAMLINE_INCLUDE_DIR "${STREAMLINE_DIR}/include")
+set(STREAMLINE_DLL_DIR "${STREAMLINE_DIR}/bin/x64")
+
+ExternalProject_Add(StreamlineSDK
+    URL ${STREAMLINE_URL}
+    DOWNLOAD_DIR ${CMAKE_BINARY_DIR}/downloads
+    SOURCE_DIR ${STREAMLINE_DIR}
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+    LOG_DOWNLOAD ON
+)
+
 # Declare custom configurations for multi-config generators (e.g. Visual Studio)
 set(CMAKE_CONFIGURATION_TYPES Debug Development Shipping CACHE TYPE INTERNAL FORCE)
 
