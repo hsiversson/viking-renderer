@@ -19,6 +19,7 @@ namespace vkr
 		Vector2u m_Position = { 100, 100};
 		Vector2u m_Size = { 1280, 720 };
 		int32_t m_ShowCmd = 1;
+		uint32_t m_BorderThickness = 6;
 
 		void* m_ParentWindowHandle = nullptr;
 
@@ -35,6 +36,7 @@ namespace vkr
 		WINDOW_CHANGE_FLAG_POSITION = (1 << 1),
 	};
 
+	using IsTitleBarHoveredFn = std::function<bool(uint32_t, uint32_t)>;
 	class Window
 	{
 		friend LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -52,6 +54,7 @@ namespace vkr
 		void Show();
 		void Hide();
 
+		bool IsMaximized() const;
 		void Maximize(bool aValue);
 		void Minimize();
 		void Restore();
@@ -61,6 +64,8 @@ namespace vkr
 
 		void SetAssociatedSwapChain(Render::SwapChain* swapChain);
 		Render::SwapChain* GetAssociatedSwapChain() const;
+
+		void SetIsTitlebarHoveredCallback(IsTitleBarHoveredFn callback);
 
 		const Vector2u GetPosition() const;
 		const Vector2u GetSize() const;
@@ -81,8 +86,12 @@ namespace vkr
 		std::unordered_set<IMessageHandler*> m_MessageHandlers;
 		Render::SwapChain* m_AssociatedSwapChain;
 
+		IsTitleBarHoveredFn m_IsTitlebarHoveredCallback;
+
+		uint32_t m_BorderThickness;
 		Vector2u m_Position;
 		Vector2u m_Size;
 		uint32_t m_ChangeFlags;
+		bool m_IsMaximized;
 	};
 }

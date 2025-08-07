@@ -7,6 +7,7 @@
 #include "viewportpanel.h"
 
 #include "application/window.h"
+#include "application/application.h"
 
 #include "core/timer.h"
 #include "core/inputmanager.h"
@@ -18,6 +19,83 @@
 
 namespace vkr::Editor
 {
+	static bool BeginMenuBar(const ImRect& aMenuBarRect)
+	{
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		if (window->SkipItems)
+			return false;
+		/*if (!(window->Flags & ImGuiWindowFlags_MenuBar))
+			return false;*/
+
+		IM_ASSERT(!window->DC.MenuBarAppending);
+		ImGui::BeginGroup(); // Backup position on layer 0 // FIXME: Misleading to use a group for that backup/restore
+		ImGui::PushID("##menubar");
+
+		const ImVec2 padding = window->WindowPadding;
+
+		// We don't clip with current window clipping rectangle as it is already set to the area below. However we clip with window full rect.
+		// We remove 1 worth of rounding to Max.x to that text in long menus and small windows don't tend to display over the lower-right rounded area, which looks particularly glitchy.
+
+		ImRect barRect = aMenuBarRect;
+		barRect.Min.y += padding.y;
+		barRect.Max.y += padding.y;
+
+		ImRect clip_rect(IM_ROUND(ImMax(window->Pos.x, barRect.Min.x + window->WindowBorderSize + window->Pos.x - 10.0f)), IM_ROUND(barRect.Min.y + window->WindowBorderSize + window->Pos.y),
+			IM_ROUND(ImMax(barRect.Min.x + window->Pos.x, barRect.Max.x - ImMax(window->WindowRounding, window->WindowBorderSize))), IM_ROUND(barRect.Max.y + window->Pos.y));
+
+		clip_rect.ClipWith(window->OuterRectClipped);
+		ImGui::PushClipRect(clip_rect.Min, clip_rect.Max, false);
+
+		// We overwrite CursorMaxPos because BeginGroup sets it to CursorPos (essentially the .EmitItem hack in EndMenuBar() would need something analogous here, maybe a BeginGroupEx() with flags).
+		window->DC.CursorPos = window->DC.CursorMaxPos = ImVec2(barRect.Min.x + window->Pos.x, barRect.Min.y + window->Pos.y);
+		window->DC.LayoutType = ImGuiLayoutType_Horizontal;
+		window->DC.NavLayerCurrent = ImGuiNavLayer_Menu;
+		window->DC.MenuBarAppending = true;
+		ImGui::AlignTextToFramePadding();
+		return true;
+	}
+
+	static void EndMenuBar()
+	{
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		if (window->SkipItems)
+			return;
+		ImGuiContext& g = *GImGui;
+
+		// Nav: When a move request within one of our child menu failed, capture the request to navigate among our siblings.
+		if (ImGui::NavMoveRequestButNoResultYet() && (g.NavMoveDir == ImGuiDir_Left || g.NavMoveDir == ImGuiDir_Right) && (g.NavWindow->Flags & ImGuiWindowFlags_ChildMenu))
+		{
+			// Try to find out if the request is for one of our child menu
+			ImGuiWindow* nav_earliest_child = g.NavWindow;
+			while (nav_earliest_child->ParentWindow && (nav_earliest_child->ParentWindow->Flags & ImGuiWindowFlags_ChildMenu))
+				nav_earliest_child = nav_earliest_child->ParentWindow;
+			if (nav_earliest_child->ParentWindow == window && nav_earliest_child->DC.ParentLayoutType == ImGuiLayoutType_Horizontal && (g.NavMoveFlags & ImGuiNavMoveFlags_Forwarded) == 0)
+			{
+				// To do so we claim focus back, restore NavId and then process the movement request for yet another frame.
+				// This involve a one-frame delay which isn't very problematic in this situation. We could remove it by scoring in advance for multiple window (probably not worth bothering)
+				const ImGuiNavLayer layer = ImGuiNavLayer_Menu;
+				IM_ASSERT(window->DC.NavLayersActiveMaskNext & (1 << layer)); // Sanity check
+				ImGui::FocusWindow(window);
+				ImGui::SetNavID(window->NavLastIds[layer], layer, 0, window->NavRectRel[layer]);
+				g.NavCursorVisible = false; // Hide highlight for the current frame so we don't see the intermediary selection.
+				g.NavHighlightItemUnderNav = g.NavMousePosDirty = true;
+				ImGui::NavMoveRequestForward(g.NavMoveDir, g.NavMoveClipDir, g.NavMoveFlags, g.NavMoveScrollFlags); // Repeat
+			}
+		}
+
+		IM_MSVC_WARNING_SUPPRESS(6011); // Static Analysis false positive "warning C6011: Dereferencing NULL pointer 'window'"
+		// IM_ASSERT(window->Flags & ImGuiWindowFlags_MenuBar);
+		IM_ASSERT(window->DC.MenuBarAppending);
+		ImGui::PopClipRect();
+		ImGui::PopID();
+		window->DC.MenuBarOffset.x = window->DC.CursorPos.x - window->Pos.x; // Save horizontal position so next append can reuse it. This is kinda equivalent to a per-layer CursorPos.
+		g.GroupStack.back().EmitItem = false;
+		ImGui::EndGroup(); // Restore position on layer 0
+		window->DC.LayoutType = ImGuiLayoutType_Vertical;
+		window->DC.NavLayerCurrent = ImGuiNavLayer_Main;
+		window->DC.MenuBarAppending = false;
+	}
+
 	Manager* Manager::g_Instance = nullptr;
 
 	Manager::Manager()
@@ -61,14 +139,21 @@ namespace vkr::Editor
 			return false;
 		}
 
+		m_Icons = MakeUnique<Icons>();
+		if (!m_Icons->Init())
+		{
+			return false;
+		}
+
 		m_Window = window;
 		m_InputManager = inputManager;
+
+		m_Window->SetIsTitlebarHoveredCallback([this](uint32_t, uint32_t) { return m_IsTitlebarHovered; });
 
 		m_Scene = MakeUnique<Graphics::Scene>();
 		m_Viewport = MakeRef<ViewportPanel>(m_Scene.get());
 
 		{
-			Render::GetDevice()->EndFrame();
 			Graphics::ModelLoader_GLTF loader;
 			Ref<Graphics::Model> model;
 			model = loader.Load("../../../content/models/cp_noodles/scene.gltf");
@@ -77,8 +162,6 @@ namespace vkr::Editor
 
 			modelinst->SetModel(model);
 			m_Scene->AddObject(modelinst);
-
-			Render::GetDevice()->EndFrame();
 		}
 		return true;
 	}
@@ -99,13 +182,12 @@ namespace vkr::Editor
 
 		if (m_InputManager)
 		{
-			const Vector2u mousePos = m_InputManager->GetMousePosition();
-			io.MousePos.x = mousePos.x;
-			io.MousePos.y = mousePos.y;
-			io.MouseDown[0] = m_InputManager->IsMouseKeyPressed(INPUT_MOUSE_KEY_LEFT);
-			io.MouseDown[1] = m_InputManager->IsMouseKeyPressed(INPUT_MOUSE_KEY_RIGHT);
-			io.MouseDown[2] = m_InputManager->IsMouseKeyPressed(INPUT_MOUSE_KEY_MIDDLE);
-			io.MouseWheel = m_InputManager->GetMouseScrollDelta();
+			const Vector2i mousePos = m_InputManager->GetMousePosition();
+			io.AddMousePosEvent(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
+			io.AddMouseButtonEvent(ImGuiMouseButton_Left, m_InputManager->IsMouseKeyPressed(INPUT_MOUSE_KEY_LEFT));
+			io.AddMouseButtonEvent(ImGuiMouseButton_Right, m_InputManager->IsMouseKeyPressed(INPUT_MOUSE_KEY_RIGHT));
+			io.AddMouseButtonEvent(ImGuiMouseButton_Middle, m_InputManager->IsMouseKeyPressed(INPUT_MOUSE_KEY_MIDDLE));
+			io.AddMouseWheelEvent(0.0f, m_InputManager->GetMouseScrollDelta());
 		}
 
 		ImGui::NewFrame();
@@ -124,6 +206,11 @@ namespace vkr::Editor
 		m_Renderer->Render();
 	}
 
+	Icons* Manager::GetIcons() const
+	{
+		return m_Icons.get();
+	}
+
 	InputManager* Manager::GetInputManager() const
 	{
 		return m_InputManager;
@@ -136,7 +223,7 @@ namespace vkr::Editor
 
 	void Manager::Draw()
 	{
-		const bool isMaximized = false;
+		const bool isMaximized = m_Window->IsMaximized();
 
 		const ImGuiViewport* viewport = ImGui::GetMainViewport();
 		ImGui::SetNextWindowPos(viewport->WorkPos);
@@ -149,7 +236,6 @@ namespace vkr::Editor
 		ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f });
 
 		ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
-		//windowFlags |= ImGuiWindowFlags_MenuBar;
 		windowFlags |= ImGuiWindowFlags_NoDocking;
 		windowFlags |= ImGuiWindowFlags_NoTitleBar;
 		windowFlags |= ImGuiWindowFlags_NoCollapse;
@@ -169,11 +255,10 @@ namespace vkr::Editor
 		ImGui::PopStyleVar(4);
 
 		{
-			ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(50, 50, 50, 255));
+			ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(100, 100, 100, 255));
 			// Draw window border if the window is not maximized
-			//if (!isMaximized)
-			//	RenderWindowOuterBorders(ImGui::GetCurrentWindow());
-
+			if (!isMaximized)
+				DrawWindowBorders();
 			ImGui::PopStyleColor(); // ImGuiCol_Border
 		}
 
@@ -193,6 +278,231 @@ namespace vkr::Editor
 
 	void Manager::DrawTitlebar()
 	{
+		ImGui::PushID("_rootTitlebar");
+		const bool isMaximized = m_Window->IsMaximized();
+		const float titlebarVerticalOffset = isMaximized ? -6.0f : 0.0f;
+		const ImVec2 windowPadding = ImGui::GetStyle().WindowPadding;
+
+		const float titleBarHeight = 58.0f;
+		const float logoSize = 48.0f;
+		const float logoPadding = 16.0f;
+		const float spacing = 8.0f;
+		const float buttonsWidth = titleBarHeight * 3; // 3 buttons, all square
+		const float fullWidth = ImGui::GetWindowWidth();
+		const float leftStart = windowPadding.x + logoPadding;
+		const float rightStart = fullWidth - windowPadding.x - buttonsWidth;
+
+		ImGui::SetCursorPos(ImVec2(windowPadding.x, windowPadding.y + titlebarVerticalOffset));
+		const ImVec2 titlebarMin = ImGui::GetCursorScreenPos();
+		const ImVec2 titlebarMax = { ImGui::GetCursorScreenPos().x + ImGui::GetWindowWidth() - windowPadding.y * 2.0f, ImGui::GetCursorScreenPos().y + titleBarHeight };
+
+		auto* bgDrawList = ImGui::GetBackgroundDrawList();
+		auto* fgDrawList = ImGui::GetForegroundDrawList();
+		bgDrawList->AddRectFilled(titlebarMin, titlebarMax, IM_COL32(21, 21, 21, 255));
+
+		{
+			const ImVec2 logoPos(leftStart, windowPadding.y + -6.0f);
+			const ImVec2 logoMax(logoPos.x + logoSize, logoPos.y + logoSize);
+			fgDrawList->AddImage((ImTextureID)m_Icons->GetIcon(EDITOR_ICON_VKR_WHITE).m_Texture.get(), logoPos, logoMax);
+		}
+
+		ImGui::SetCursorPos(ImVec2(windowPadding.x, windowPadding.y + titlebarVerticalOffset));
+		float dragZoneWidth = rightStart - windowPadding.x;
+		ImGui::SetNextItemAllowOverlap();
+		ImGui::InvisibleButton("##titleBarDragZone", ImVec2(dragZoneWidth, titleBarHeight));
+		m_IsTitlebarHovered = ImGui::IsItemHovered();
+
+		if (isMaximized)
+		{
+			float windowMousePosY = ImGui::GetMousePos().y - ImGui::GetCursorScreenPos().y;
+			if (windowMousePosY >= 0.0f && windowMousePosY <= 5.0f)
+			{
+				m_IsTitlebarHovered = true; // Account for the top-most pixels which don't register
+			}
+		}
+
+		{
+			float menuStartX = leftStart + logoSize + logoPadding;
+			ImGui::SetCursorPos(ImVec2(menuStartX, 6.0f + titlebarVerticalOffset));
+			DrawTitleMenuBar();
+
+			if (ImGui::IsItemHovered())
+			{
+				m_IsTitlebarHovered = false;
+			}
+		}
+
+		{
+			// Centered Window title
+			ImVec2 textSize = ImGui::CalcTextSize("Viking Renderer");
+			float centeredX = (fullWidth - textSize.x) * 0.5f;
+			float centeredY = 2.0f + windowPadding.y + 6.0f;
+			ImGui::SetCursorPos(ImVec2(centeredX, centeredY));
+			ImGui::TextUnformatted("Viking Renderer");
+		}
+
+		// Window buttons
+		ImVec2 buttonSize = ImVec2(titleBarHeight, titleBarHeight);
+		ImVec2 iconSize = ImVec2(buttonSize.x * 0.25f, buttonSize.y * 0.25f);
+		ImVec2 iconOffset = ImVec2(buttonSize.x * 0.375f, buttonSize.y * 0.375f);
+
+		float buttonY = 0.0f;
+		float buttonX = rightStart;
+
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f });
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
+
+		// Minimize Button
+		ImGui::SetCursorPos(ImVec2(buttonX, buttonY));
+		if (ImGui::Button("##Minimize", buttonSize))
+			m_Window->Minimize();
+		ImGui::SetCursorPos(ImVec2(buttonX + iconOffset.x, buttonY + iconOffset.y));
+		ImGui::Image((ImTextureID)m_Icons->GetIcon(EDITOR_ICON_MINUS_WHITE).m_Texture.get(), iconSize);
+		buttonX += titleBarHeight;
+
+		// Maximize Button
+		ImGui::SetCursorPos(ImVec2(buttonX, buttonY));
+		if (ImGui::Button("##Maximize", buttonSize))
+			m_Window->Maximize(!isMaximized);
+		Render::TextureView* minimizeIcon = m_Icons->GetIcon(EDITOR_ICON_SQUARES_WHITE).m_Texture.get();
+		Render::TextureView* maximizeIcon = m_Icons->GetIcon(EDITOR_ICON_SQUARE_WHITE).m_Texture.get();
+		ImGui::SetCursorPos(ImVec2(buttonX + iconOffset.x, buttonY + iconOffset.y));
+		ImGui::Image((ImTextureID)(isMaximized ? minimizeIcon : maximizeIcon), iconSize);
+		buttonX += titleBarHeight;
+
+		// Close Button
+		ImGui::SetCursorPos(ImVec2(buttonX, buttonY));
+		if (ImGui::Button("##Close", buttonSize))
+		{
+			Application::RequestQuit();
+		}
+		ImGui::SetCursorPos(ImVec2(buttonX + iconOffset.x, buttonY + iconOffset.y));
+		ImGui::Image((ImTextureID)m_Icons->GetIcon(EDITOR_ICON_CROSS_WHITE).m_Texture.get(), iconSize);
+
+		ImGui::PopStyleVar(2);
+		ImGui::PopStyleColor();
+		ImGui::SetCursorPosY(titleBarHeight);
+		ImGui::PopID();
+	}
+
+	void Manager::DrawTitleMenuBar()
+	{
+		const ImRect menuBarRect = { ImGui::GetCursorPos(), { ImGui::GetContentRegionAvail().x + ImGui::GetCursorScreenPos().x, ImGui::GetFrameHeightWithSpacing() } };
+		ImGui::BeginGroup();
+
+		if (BeginMenuBar(menuBarRect))
+		{
+			if (ImGui::BeginMenu("File"))
+			{
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Edit"))
+			{
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Window"))
+			{
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Settings"))
+			{
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Help"))
+			{
+				if (ImGui::MenuItem("About"))
+				{
+					//exampleLayer->ShowAboutModal();
+				}
+				ImGui::EndMenu();
+			}
+		}
+
+		EndMenuBar();
+		ImGui::EndGroup();
+	}
+
+	void Manager::DrawWindowBorders()
+	{
+		struct ResizeBorderDef
+		{
+			ImVec2 InnerDir;
+			ImVec2 SegmentN1;
+			ImVec2 SegmentN2;
+			float OuterAngle;
+		};
+
+		static const ResizeBorderDef resizeBorderDef[4] =
+		{
+			{ ImVec2(+1, 0), ImVec2(0, 1), ImVec2(0, 0), PI * 1.00f }, // Left
+			{ ImVec2(-1, 0), ImVec2(1, 0), ImVec2(1, 1), PI * 0.00f }, // Right
+			{ ImVec2(0, +1), ImVec2(0, 0), ImVec2(1, 0), PI * 1.50f }, // Up
+			{ ImVec2(0, -1), ImVec2(1, 1), ImVec2(0, 1), PI * 0.50f }  // Down
+		};
+
+		auto GetResizeBorderRect = [](ImRect windowRect, int border_n, float perp_padding, float thickness)
+			{
+				if (thickness == 0.0f)
+				{
+					windowRect.Max.x -= 1;
+					windowRect.Max.y -= 1;
+				}
+				if (border_n == ImGuiDir_Left) 
+				{ 
+					return ImRect(windowRect.Min.x - thickness, windowRect.Min.y + perp_padding, windowRect.Min.x + thickness, windowRect.Max.y - perp_padding);
+				}
+				if (border_n == ImGuiDir_Right) 
+				{ 
+					return ImRect(windowRect.Max.x - thickness, windowRect.Min.y + perp_padding, windowRect.Max.x + thickness, windowRect.Max.y - perp_padding);
+				}
+				if (border_n == ImGuiDir_Up) 
+				{ 
+					return ImRect(windowRect.Min.x + perp_padding, windowRect.Min.y - thickness, windowRect.Max.x - perp_padding, windowRect.Min.y + thickness);
+				}
+				if (border_n == ImGuiDir_Down) 
+				{ 
+					return ImRect(windowRect.Min.x + perp_padding, windowRect.Max.y - thickness, windowRect.Max.x - perp_padding, windowRect.Max.y + thickness);
+				}
+				assert(false);
+				return ImRect();
+			};
+
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		ImGuiStyle& style = ImGui::GetStyle();
+		float rounding = window->WindowRounding;
+		float border_size = window->WindowBorderSize;
+		if (border_size > 0.0f && !(window->Flags & ImGuiWindowFlags_NoBackground))
+			window->DrawList->AddRect(window->Pos, { window->Pos.x + window->Size.x,  window->Pos.y + window->Size.y }, ImGui::GetColorU32(ImGuiCol_Border), rounding, 0, border_size);
+
+		int border_held = window->ResizeBorderHeld;
+		if (border_held != -1)
+		{
+			const ResizeBorderDef& def = resizeBorderDef[border_held];
+			ImRect border_r = GetResizeBorderRect(window->Rect(), border_held, rounding, 1.0f);
+			ImVec2 p1 = ImLerp(border_r.Min, border_r.Max, def.SegmentN1);
+			const float offsetX = def.InnerDir.x * rounding;
+			const float offsetY = def.InnerDir.y * rounding;
+			p1.x += 0.5f + offsetX;
+			p1.y += 0.5f + offsetY;
+
+			ImVec2 p2 = ImLerp(border_r.Min, border_r.Max, def.SegmentN2);
+			p2.x += 0.5f + offsetX;
+			p2.y += 0.5f + offsetY;
+
+			window->DrawList->PathArcTo(p1, rounding, def.OuterAngle - PI * 0.25f, def.OuterAngle);
+			window->DrawList->PathArcTo(p2, rounding, def.OuterAngle, def.OuterAngle + PI * 0.25f);
+			window->DrawList->PathStroke(ImGui::GetColorU32(ImGuiCol_SeparatorActive), 0, std::max(2.0f, border_size)); // Thicker than usual
+		}
+		if (style.FrameBorderSize > 0 && !(window->Flags & ImGuiWindowFlags_NoTitleBar) && !window->DockIsActive)
+		{
+			float y = window->Pos.y + window->TitleBarHeight - 1;
+			window->DrawList->AddLine(ImVec2(window->Pos.x + border_size, y), ImVec2(window->Pos.x + window->Size.x - border_size, y), ImGui::GetColorU32(ImGuiCol_Border), style.FrameBorderSize);
+		}
 	}
 
 	void Manager::SetStyle()

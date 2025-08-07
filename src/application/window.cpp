@@ -1,5 +1,11 @@
 #include "window.h"
 
+#include <windowsx.h>
+
+#ifdef IsMaximized
+#undef IsMaximized
+#endif
+
 namespace vkr
 {
 	static constexpr const char* g_WindowClassName = "VKR_WND_CLASS";
@@ -22,23 +28,30 @@ namespace vkr
 	Window::Window()
 		: m_NativeHandle(nullptr)
 		, m_AssociatedSwapChain(nullptr)
+		, m_BorderThickness(1)
 		, m_ChangeFlags(WINDOW_CHANGE_FLAG_NONE)
+		, m_IsMaximized(false)
 	{
 	}
 
 	Window::~Window()
 	{
+		DestroyWindow((HWND)m_NativeHandle);
 	}
 
 	bool Window::Init(const CreateWindowDesc& createDesc)
 	{
+		m_BorderThickness = createDesc.m_BorderThickness;
+		m_IsMaximized = createDesc.m_IsMaximized;
+
 		const uint32_t windowStyle = ConvertToWindowStyle(createDesc, createDesc.m_IsMaximized);
 
 		RECT rc = { 0, 0, (LONG)createDesc.m_Size.x, (LONG)createDesc.m_Size.y };
 		AdjustWindowRect(&rc, windowStyle, false);
 		Vector2u actualSize = { rc.right - rc.left, rc.bottom - rc.top };
 
-		m_NativeHandle = CreateWindow(
+		m_NativeHandle = CreateWindowEx(
+			WS_EX_APPWINDOW,
 			g_WindowClassName, 
 			createDesc.m_WindowName, 
 			windowStyle,
@@ -49,6 +62,9 @@ namespace vkr
 			nullptr, 
 			this);
 
+		::SetWindowLongPtr((HWND)m_NativeHandle, GWLP_USERDATA, LONG_PTR(this));
+		::SetWindowLongPtr((HWND)m_NativeHandle, GWL_STYLE, windowStyle);
+
 		RAWINPUTDEVICE rid = {};
 		rid.usUsagePage = 0x01; // Generic desktop controls
 		rid.usUsage = 0x02;     // Mouse
@@ -57,11 +73,10 @@ namespace vkr
 
 		RegisterRawInputDevices(&rid, 1, sizeof(rid));
 
-		//ShowCursor(false);
-
-		ShowWindow((HWND)m_NativeHandle, createDesc.m_ShowCmd);
 		UpdateWindow((HWND)m_NativeHandle);
+		ShowWindow((HWND)m_NativeHandle, createDesc.m_ShowCmd);
 		Focus();
+		Maximize(m_IsMaximized);
 		return true;
 	}
 
@@ -78,6 +93,63 @@ namespace vkr
 		case WM_WINDOWPOSCHANGED:
 			HandlePositionChanged();
 			return 0;
+		case WM_NCCALCSIZE:
+			if (lParam)
+				return 0;
+			break;
+		case WM_NCHITTEST:
+		{
+			POINT cursorPos = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+			ScreenToClient(hwnd, &cursorPos);
+
+			if (!m_IsMaximized)
+			{
+				RECT rc;
+				GetClientRect(hwnd, &rc);
+
+				const int32_t verticalBorderSize = GetSystemMetrics(SM_CYFRAME);
+
+				enum : uint8_t
+				{
+					Left = 0x1,
+					Top = 0x2,
+					Right = 0x4,
+					Bottom = 0x8
+				};
+
+				uint8_t hit = 0;
+				if (cursorPos.x <= m_BorderThickness)
+					hit |= Left;
+				if (cursorPos.x >= rc.right - m_BorderThickness)
+					hit |= Right;
+				if (cursorPos.y <= m_BorderThickness || cursorPos.y < verticalBorderSize)
+					hit |= Top;
+				if (cursorPos.y >= rc.bottom - m_BorderThickness)
+					hit |= Bottom;
+
+				if (hit & Top && hit & Left)        
+					return HTTOPLEFT;
+				if (hit & Top && hit & Right)       
+					return HTTOPRIGHT;
+				if (hit & Bottom && hit & Left)     
+					return HTBOTTOMLEFT;
+				if (hit & Bottom && hit & Right)    
+					return HTBOTTOMRIGHT;
+				if (hit & Left)                     
+					return HTLEFT;
+				if (hit & Top)                      
+					return HTTOP;
+				if (hit & Right)                    
+					return HTRIGHT;
+				if (hit & Bottom)                   
+					return HTBOTTOM;
+			}
+
+			if (m_IsTitlebarHoveredCallback && m_IsTitlebarHoveredCallback(cursorPos.x, cursorPos.y))
+				return HTCAPTION;
+
+			return HTCLIENT;
+		}
 		case WM_DESTROY:
 			PostQuitMessage(0);
 			return 0;
@@ -112,9 +184,15 @@ namespace vkr
 		ShowWindow((HWND)m_NativeHandle, SW_HIDE);
 	}
 
+	bool Window::IsMaximized() const
+	{
+		return m_IsMaximized;
+	}
+
 	void Window::Maximize(bool aValue)
 	{
 		SendMessage((HWND)m_NativeHandle, WM_SYSCOMMAND, (aValue) ? SC_MAXIMIZE : SC_RESTORE, 0);
+		m_IsMaximized = aValue;
 	}
 
 	void Window::Minimize()
@@ -146,6 +224,11 @@ namespace vkr
 	Render::SwapChain* Window::GetAssociatedSwapChain() const
 	{
 		return m_AssociatedSwapChain;
+	}
+
+	void Window::SetIsTitlebarHoveredCallback(IsTitleBarHoveredFn callback)
+	{
+		m_IsTitlebarHoveredCallback = callback;
 	}
 
 	const Vector2u Window::GetPosition() const
@@ -251,22 +334,11 @@ namespace vkr
 
 	LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
-		if (msg == WM_NCCREATE) 
-		{
-			// This is the first message received — set the user data
-			CREATESTRUCT* pCreate = reinterpret_cast<CREATESTRUCT*>(lParam);
-			Window* pWindow = reinterpret_cast<Window*>(pCreate->lpCreateParams);
-			SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pWindow));
-			return DefWindowProc(hwnd, msg, wParam, lParam);
-		}
-
 		Window* app = (Window*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
 		if (app)
 		{
 			return app->ProcessMessage(hwnd, msg, wParam, lParam);
 		}
-
 		return DefWindowProc(hwnd, msg, wParam, lParam);
-		
 	}
 }

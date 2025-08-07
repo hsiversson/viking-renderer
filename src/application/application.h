@@ -46,6 +46,10 @@ namespace vkr
 		virtual void Tick(float deltaTime) {}
 		virtual void AppShutdown() {}
 
+		Window* GetMainWindow() const;
+
+		static Application* Get();
+		static void RequestQuit(ReturnCode returnCode = RETURN_OK);
 	private:
 		ReturnCode Init(const ApplicationInitDesc& desc);
 		ReturnCode MainLoop();
@@ -65,5 +69,10 @@ namespace vkr
 		Vector2u m_WindowSize;
 
 		UniquePtr<InputManager> m_InputManager;
+
+		bool m_QuitRequested = false;
+		ReturnCode m_QuitReturnCode = RETURN_OK;
+
+		static Application* g_Instance;
 	};
 }

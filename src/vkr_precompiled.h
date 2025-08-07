@@ -21,8 +21,10 @@
 #include <sstream>
 #include <functional>
 #include <format>
+#include <cmath>
 
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imguizmo.h"
 #include "nlohmann/json.hpp"
 

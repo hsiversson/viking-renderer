@@ -1,6 +1,7 @@
 #pragma once
 
 #if ENABLE_EDITOR
+#include "icons.h"
 
 namespace vkr
 {
@@ -34,6 +35,7 @@ namespace vkr::Editor
 
 		void Render();
 
+		Icons* GetIcons() const;
 		InputManager* GetInputManager() const;
 
 		static Manager* Get();
@@ -41,12 +43,17 @@ namespace vkr::Editor
 	private:
 		void Draw();
 		void DrawTitlebar();
+		void DrawTitleMenuBar();
+		void DrawWindowBorders();
 
 		void SetStyle();
 
 		UniquePtr<Renderer> m_Renderer;
+		UniquePtr<Icons> m_Icons;
 		Ref<Window> m_Window;
 		InputManager* m_InputManager;
+
+		bool m_IsTitlebarHovered = false;
 
 		////////////////////////////////////////////
 		// TODO: not here, should go in level editor layout or something

@@ -1,4 +1,6 @@
 ﻿#include "inputmanager.h"
+#include <windowsx.h>
+#include "application/application.h"
 
 namespace vkr
 {
@@ -109,13 +111,25 @@ namespace vkr
 				break;
 			}
 		}
-		break;
+		break; 
 		case WM_MOUSEMOVE:
 		{
-			uint32_t x = static_cast<uint32_t>(LOWORD(lParam));
-			uint32_t y = static_cast<uint32_t>(HIWORD(lParam));
-			m_CurrentMouseState.m_MousePosition.x = x;
-			m_CurrentMouseState.m_MousePosition.y = y;
+			POINT pt;
+			pt.x = GET_X_LPARAM(lParam);
+			pt.y = GET_Y_LPARAM(lParam);
+			m_CurrentMouseState.m_MousePosition.x = pt.x;
+			m_CurrentMouseState.m_MousePosition.y = pt.y;
+			break;
+		}
+		case WM_NCMOUSEMOVE:
+		{
+			POINT pt;
+			pt.x = GET_X_LPARAM(lParam);
+			pt.y = GET_Y_LPARAM(lParam);
+			ScreenToClient((HWND)Application::Get()->GetMainWindow()->GetNativeHandle(), &pt);
+			m_CurrentMouseState.m_MousePosition.x = pt.x;
+			m_CurrentMouseState.m_MousePosition.y = pt.y;
+			break;
 		}
 		break;
 		}
@@ -138,7 +152,7 @@ namespace vkr
 		return m_CurrentMouseState.m_KeyStates.test(mouseKey);
 	}
 
-	const Vector2u& InputManager::GetMousePosition() const
+	const Vector2i& InputManager::GetMousePosition() const
 	{
 		return m_CurrentMouseState.m_MousePosition;
 	}

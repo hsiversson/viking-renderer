@@ -87,6 +87,21 @@ namespace vkr
 	}
 
 	template<typename T>
+	Vector2<T> Lerp(const Vector2<T>& a, const Vector2<T>& b, T t)
+	{
+		return a * (T(1) - t) + b * t;
+	}
+
+	template<typename T>
+	Vector2<T> Lerp(const Vector2<T>& a, const Vector2<T>& b, const Vector2<T>& t)
+	{
+		Vector2 r;
+		r.x = a.x * (T(1) - t.x) + b.x * t.x;
+		r.y = a.y * (T(1) - t.y) + b.y * t.y;
+		return r;
+	}
+
+	template<typename T>
 	struct Vector3
 	{
 		T x, y, z;

@@ -23,7 +23,6 @@ namespace vkr::Editor
 		Vector3f newVelocity = { 0,0,0 };
 		if (inputManager->IsMouseKeyPressed(INPUT_MOUSE_KEY_RIGHT))
 		{
-			ImGuiIO& io = ImGui::GetIO();
 			Vector2f mouseMoveDelta = Vector2f(inputManager->GetMouseDelta());
 
 			m_YawDeg += mouseMoveDelta.x * m_MouseSensitivity;

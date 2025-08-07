@@ -22,7 +22,7 @@ namespace vkr
 	struct InputMouseData
 	{
 		std::bitset<INPUT_MOUSE_KEY_COUNT> m_KeyStates;
-		Vector2u m_MousePosition;
+		Vector2i m_MousePosition;
 		Vector2i m_MouseDelta;
 		float m_WheelDelta;
 	};
@@ -163,7 +163,7 @@ namespace vkr
 		bool IsKeyPressed(InputKey key) const;
 		bool IsMouseKeyPressed(InputMouseKey mouseKey) const;
 
-		const Vector2u& GetMousePosition() const;
+		const Vector2i& GetMousePosition() const;
 		const Vector2i& GetMouseDelta() const;
 		float GetMouseScrollDelta() const;
 

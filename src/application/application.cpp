@@ -22,17 +22,24 @@
 
 namespace vkr
 {
+	Application* Application::g_Instance = nullptr;
 
 	Application::Application()
 		: m_WindowSize{}
 	{
+		g_Instance = this;
 		Logger::Create();
 	}
 
 	Application::~Application()
 	{
+		m_EditorManager.reset();
+		m_Window.reset();
+
 		Logger::Destroy();
 		Window::UnregisterWindowClass();
+
+		g_Instance = nullptr;
 	}
 
 	ReturnCode Application::Launch(const ApplicationInitDesc& desc)
@@ -57,6 +64,25 @@ namespace vkr
 		m_Window->SetAssociatedSwapChain(swapChain.get());
 	}
 
+	Window* Application::GetMainWindow() const
+	{
+		return m_Window.get();
+	}
+
+	Application* Application::Get()
+	{
+		return g_Instance;
+	}
+
+	void Application::RequestQuit(ReturnCode returnCode)
+	{
+		if (Application* app = Get())
+		{
+			app->m_QuitRequested = true;
+			app->m_QuitReturnCode = returnCode;
+		}
+	}
+
 	ReturnCode Application::Init(const ApplicationInitDesc& desc)
 	{
 		CommandLine::Parse(__argc, __argv);
@@ -69,7 +95,7 @@ namespace vkr
 		windowDesc.m_ShowCmd = desc.m_ShowCmd;
 		windowDesc.m_WindowName = desc.m_WindowTitle.c_str();
 		windowDesc.m_IsResizable = true;
-		windowDesc.m_IsDecorated = true;
+		windowDesc.m_IsDecorated = false;
 		windowDesc.m_IsMaximized = false;
 
 		m_Window = MakeRef<Window>();
@@ -108,6 +134,11 @@ namespace vkr
 	{
 		while (true)
 		{
+			if (m_QuitRequested)
+			{
+				break;
+			}
+
 			if (!m_Window->PeekMessages())
 			{
 				break;
@@ -142,7 +173,7 @@ namespace vkr
 
 		m_RenderDevice->WaitForGpuIdle();
 		
-		return RETURN_OK;
+		return m_QuitReturnCode;
 	}
 
 	ReturnCode Application::Exit()
