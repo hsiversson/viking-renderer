@@ -127,6 +127,10 @@ namespace vkr
 			m_UseDLSS = false;
 			m_NvStreamline->Shutdown();
 		}
+		else
+		{
+			m_UseDLSS = m_NvStreamline->IsFeatureAvailable(Render::DLSS);
+		}
 
 		m_SwapChain = m_RenderDevice->CreateSwapChain(m_Window->GetNativeHandle(), desc.m_Resolution);
 		if (!m_SwapChain)

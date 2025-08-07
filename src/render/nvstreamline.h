@@ -5,6 +5,12 @@ namespace vkr::Render
 {
 	class Device;
 
+	enum NvStreamlineFeature
+	{
+		DLSS,
+		DLSS_RR
+	};
+
 	class NvStreamline
 	{
 	public:
@@ -12,6 +18,7 @@ namespace vkr::Render
 		~NvStreamline();
 		bool Init();
 		bool SetDevice(const Device* device);
+		bool IsFeatureAvailable(NvStreamlineFeature feature);
 		bool Shutdown();
 	private:
 		struct PImpl;

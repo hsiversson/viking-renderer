@@ -8,6 +8,20 @@
 
 namespace vkr::Render
 {
+	sl::Feature FeatureToSLFeature(NvStreamlineFeature feature)
+	{
+		switch (feature)
+		{
+		case DLSS:
+			return sl::kFeatureDLSS;
+		case DLSS_RR:
+			return sl::kFeatureDLSS_RR;
+		default:
+			checkNoEntry();
+			return 0;
+		}
+	}
+
 	struct NvStreamline::PImpl
 	{
 		~PImpl() = default;
@@ -25,6 +39,7 @@ namespace vkr::Render
 		PFun_slInit* slInit = nullptr;
 		PFun_slShutdown* slShutdown = nullptr;
 		PFun_slSetD3DDevice* slSetD3DDevice = nullptr;
+		PFun_slIsFeatureSupported* slIsFeatureSupported = nullptr;
 
 		HMODULE m_InterposerDLL = nullptr;
 	};
@@ -68,6 +83,7 @@ namespace vkr::Render
 		m_pImpl->slInit = (PFun_slInit*)GetProcAddress(m_pImpl->m_InterposerDLL, "slInit");
 		m_pImpl->slShutdown = (PFun_slShutdown*)GetProcAddress(m_pImpl->m_InterposerDLL, "slShutdown");
 		m_pImpl->slSetD3DDevice = (PFun_slSetD3DDevice*)GetProcAddress(m_pImpl->m_InterposerDLL, "slSetD3DDevice");
+		m_pImpl->slIsFeatureSupported = (PFun_slIsFeatureSupported*)GetProcAddress(m_pImpl->m_InterposerDLL, "slIsFeatureSupported");
 
 		// Proceed to initialize Streamline
 		sl::Preferences pref{};
@@ -126,6 +142,22 @@ namespace vkr::Render
 		if (SL_FAILED(result, m_pImpl->slSetD3DDevice(device->GetD3DDevice())))
 		{
 			VKR_LOG("[NvStreamline] Failed to set D3D Device.");
+			return false;
+		}
+		return true;
+	}
+
+	bool NvStreamline::IsFeatureAvailable(NvStreamlineFeature feature)
+	{
+		DXGI_ADAPTER_DESC adapterDesc = {};
+		GetDevice()->GetDXGIAdapter()->GetDesc(&adapterDesc);
+
+		sl::AdapterInfo adapterInfo{};
+		adapterInfo.deviceLUID = (uint8_t*)&adapterDesc.AdapterLuid;
+		adapterInfo.deviceLUIDSizeInBytes = sizeof(LUID);
+
+		if (SL_FAILED(result, m_pImpl->slIsFeatureSupported(FeatureToSLFeature(feature), adapterInfo)))
+		{
 			return false;
 		}
 		return true;
