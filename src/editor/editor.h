@@ -3,6 +3,8 @@
 #if ENABLE_EDITOR
 #include "icons.h"
 
+#include <future>
+
 namespace vkr
 {
 	class InputManager;
@@ -57,6 +59,7 @@ namespace vkr::Editor
 
 		////////////////////////////////////////////
 		// TODO: not here, should go in level editor layout or something
+		std::future<void> m_InitTask;
 		UniquePtr<Graphics::Scene> m_Scene;
 		Ref<ViewportPanel> m_Viewport;
 		////////////////////////////////////////////

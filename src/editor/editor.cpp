@@ -153,16 +153,17 @@ namespace vkr::Editor
 		m_Scene = MakeUnique<Graphics::Scene>();
 		m_Viewport = MakeRef<ViewportPanel>(m_Scene.get());
 
-		{
-			Graphics::ModelLoader_GLTF loader;
-			Ref<Graphics::Model> model;
-			model = loader.Load(SystemPaths::GetInContentDirectory("models/cp_noodles/scene.gltf"));
-			Ref<Graphics::ModelObject> modelinst = MakeRef<Graphics::ModelObject>();
-			modelinst->SetLocalTransform(Compose(Mat33::Identity(), Vector3f(0.0f, 0.0f, 0.0f)));
+		m_InitTask = std::async([this]()
+			{
+				Graphics::ModelLoader_GLTF loader;
+				Ref<Graphics::Model> model;
+				model = loader.Load(SystemPaths::GetInContentDirectory("models/cp_noodles/scene.gltf"));
+				Ref<Graphics::ModelObject> modelinst = MakeRef<Graphics::ModelObject>();
+				modelinst->SetLocalTransform(Compose(Mat33::Identity(), Vector3f(0.0f, 0.0f, 0.0f)));
 
-			modelinst->SetModel(model);
-			m_Scene->AddObject(modelinst);
-		}
+				modelinst->SetModel(model);
+				m_Scene->AddObject(modelinst);
+			});
 		return true;
 	}
 

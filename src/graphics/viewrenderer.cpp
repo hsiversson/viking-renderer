@@ -106,22 +106,22 @@ namespace vkr::Graphics
 		renderData.m_RaytracingTLAS = Render::GetDevice()->CreateBufferView(rtTLASDesc, rtTLAS);
 
 		//Fill in the instance data (later we can just keep this as a normal buffer instead of temp that we need to rebuild per frame)
-		auto instanceDataBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, renderData.m_InstanceData.size(), renderData.m_InstanceData.size(), renderData.m_InstanceData.data());
+		auto instanceDataBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, std::max(renderData.m_InstanceData.size(), 256ull), renderData.m_InstanceData.size(), renderData.m_InstanceData.data());
 
 		Render::BufferViewDesc instanceDataBufferDesc = {}; // Byteaddressbuffer
 		instanceDataBufferDesc.m_ElementStart = instanceDataBuffer.m_Offset;
-		instanceDataBufferDesc.m_ElementCount = renderData.m_InstanceData.size();
+		instanceDataBufferDesc.m_ElementCount = std::max(renderData.m_InstanceData.size(), 256ull);
 		instanceDataBufferDesc.m_ElementSize = 1;
 		instanceDataBufferDesc.m_Usage = Render::BUFFER_VIEW_USAGE_RAW;
 		instanceDataBufferDesc.m_Format = Render::FORMAT_UNKNOWN;
 		renderData.m_InstanceDataBufferView = Render::GetDevice()->CreateBufferView(instanceDataBufferDesc, instanceDataBuffer.m_Buffer);
 
 		//Fill in the instance data indices
-		auto instanceDataOffsetBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), renderData.m_InstanceDataOffsetBuffer.data());
+		auto instanceDataOffsetBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, std::max(renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), 256ull), renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), renderData.m_InstanceDataOffsetBuffer.data());
 
 		Render::BufferViewDesc instanceDataOffsetBufferDesc = {}; // Typed uint buffer
 		instanceDataOffsetBufferDesc.m_ElementStart = instanceDataOffsetBuffer.m_Offset / sizeof(uint32_t);
-		instanceDataOffsetBufferDesc.m_ElementCount = renderData.m_InstanceDataOffsetBuffer.size();
+		instanceDataOffsetBufferDesc.m_ElementCount = std::max(renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), 256ull);
 		instanceDataOffsetBufferDesc.m_Usage = Render::BUFFER_VIEW_USAGE_TYPED;
 		instanceDataOffsetBufferDesc.m_Format = Render::FORMAT_R32_UINT;
 		renderData.m_InstanceDataOffsetBufferView = Render::GetDevice()->CreateBufferView(instanceDataOffsetBufferDesc, instanceDataBuffer.m_Buffer);
@@ -450,6 +450,10 @@ namespace vkr::Graphics
 	void ViewRenderer::TraceRadiance(View& view)
 	{
 		const ViewRenderData& renderData = view.GetRenderData();
+
+		if (!renderData.m_TraceRaysPipelineState)
+			return;
+
 		ViewRenderTargets& renderTargets = view.GetRenderTargets();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 		SET_CONTEXT_MARKER_FUNCTION(ctx);

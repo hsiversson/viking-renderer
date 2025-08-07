@@ -105,6 +105,7 @@ namespace vkr
 		{
 			return RETURN_ERROR;
 		}
+		m_Window->Hide();
 
 		m_InputManager = MakeUnique<InputManager>();
 
@@ -153,6 +154,7 @@ namespace vkr
 
 	ReturnCode Application::MainLoop()
 	{
+		bool isFirstIteration = true;
 		while (true)
 		{
 			if (m_QuitRequested)
@@ -190,6 +192,13 @@ namespace vkr
 			Render::QueueGraphicsTask(std::bind(&Render::SwapChain::Present, m_SwapChain.get()));
 			Render::QueueGraphicsTask(std::bind(&Render::Device::EndFrame, m_RenderDevice.get()));
 			m_InputManager->EndFrame();
+
+			// TODO: we shouldn't need this, but is done because we don't want to show an empty window for one or two frames.
+			if (isFirstIteration)
+			{
+				m_Window->Show();
+				isFirstIteration = false;
+			}
 		}
 
 		m_RenderDevice->WaitForGpuIdle();

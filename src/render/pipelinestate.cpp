@@ -297,7 +297,7 @@ namespace vkr::Render
 
 		const uint32_t rayGenerationOffset = 0;
 		const uint32_t missOffset = 1 * tableSize;
-		const uint32_t hitGroupsOffset = 2 * tableSize;
+		const uint32_t hitGroupsOffset = numHitGroups > 0 ? (2 * tableSize) : missOffset;
 		const uint32_t hitGroupsSize = Align(numHitGroups * recordSize, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
 
 		BufferDesc bufferDesc = {};

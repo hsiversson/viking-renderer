@@ -75,7 +75,7 @@ namespace vkr
 		RegisterRawInputDevices(&rid, 1, sizeof(rid));
 
 		UpdateWindow((HWND)m_NativeHandle);
-		ShowWindow((HWND)m_NativeHandle, createDesc.m_ShowCmd);
+		ShowWindow((HWND)m_NativeHandle, 0);
 		Focus();
 		Maximize(m_IsMaximized);
 		return true;

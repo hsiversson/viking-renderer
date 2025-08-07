@@ -68,7 +68,6 @@ namespace vkr::Render
 		//DLL and function load
 		std::filesystem::path slInterposerPath = SystemPaths::GetExeDirectory() / "sl.interposer.dll";
 
-		//This will fail as downloaded release DLLs are not signed with the public trusted signatures recognized by Microsoft
 		if (!sl::security::verifyEmbeddedSignature(slInterposerPath.c_str()))
 		{
 			return false;

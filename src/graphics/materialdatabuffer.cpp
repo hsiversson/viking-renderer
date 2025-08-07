@@ -26,14 +26,14 @@ namespace vkr::Graphics
 		{
 			Render::BufferDesc desc = {};
 			desc.m_ElementSize = 1;
-			desc.m_ElementCount = Align(m_Data.size(), 4);
+			desc.m_ElementCount = std::max(Align(m_Data.size(), 4), 256ull);
 			m_Buffer = device->CreateBuffer(desc, m_Data.size(), m_Data.data());
 
 			// Always create a view over the whole buffer.
 			Render::BufferViewDesc viewDesc = {};
 			viewDesc.m_ElementSize = 1;
 			viewDesc.m_ElementStart = 0;
-			viewDesc.m_ElementCount = m_Data.size();
+			viewDesc.m_ElementCount = desc.m_ElementCount;
 			viewDesc.m_Usage = Render::BUFFER_VIEW_USAGE_RAW;
 			m_BufferView = device->CreateBufferView(viewDesc, m_Buffer);
 		}

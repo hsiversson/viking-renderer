@@ -87,6 +87,7 @@ namespace vkr::Render
 		Ref<CommandListPool> m_CommandListPool[CONTEXT_TYPE_COUNT];
 		UniquePtr<RenderThread> m_RenderThreads[CONTEXT_TYPE_COUNT];
 
+		std::mutex m_RaytracingBuildQueueMutex;
 		Ref<Context> m_RaytracingBuildContext;
 		Ref<CommandQueue> m_RaytracingBuildQueue;
 

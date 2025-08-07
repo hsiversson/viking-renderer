@@ -33,7 +33,8 @@ namespace vkr::Graphics
 
 		void AddObject(Ref<SceneObject> object) 
 		{
-			m_SceneObjects.push_back(object); 
+			std::unique_lock<std::mutex> lock(m_SceneObjectsToAddMutex);
+			m_SceneObjectsToAdd.push_back(object);
 			m_HasChanges = true;
 		}
 
@@ -46,6 +47,9 @@ namespace vkr::Graphics
 		// but later maybe a spatial partitioning structure of scene objects?
 		// Quadtree, Octree, Grid?
 		std::vector<Ref<SceneObject>> m_SceneObjects;
+
+		std::mutex m_SceneObjectsToAddMutex;
+		std::vector<Ref<SceneObject>> m_SceneObjectsToAdd;
 
 		UniquePtr<ViewManager> m_ViewManager;
 		UniquePtr<ViewRenderer> m_ViewRenderer;

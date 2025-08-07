@@ -321,13 +321,13 @@ namespace vkr::Render
 		buildDesc.m_Type = RaytracingAccelerationStructureBuildDesc::Type::TopLevel;
 		buildDesc.m_InstanceDescs.insert(buildDesc.m_InstanceDescs.end(), rtInstanceDescs, rtInstanceDescs + numRtInstanceDescs);
 
+		std::unique_lock<std::mutex> lock(m_RaytracingBuildQueueMutex);
 		m_RaytracingBuildContext->Begin();
 
 		Ref<Buffer> tlas = m_RaytracingBuildContext->BuildRaytracingAccelerationStructure(buildDesc);
 
 		m_RaytracingBuildContext->End();
 		Fence event = m_RaytracingBuildContext->Flush();
-
 		tlas->SetGpuPending(event);
 		return tlas;
 	}
@@ -338,13 +338,13 @@ namespace vkr::Render
 		buildDesc.m_Type = RaytracingAccelerationStructureBuildDesc::Type::BottomLevel;
 		buildDesc.m_GeometryDescs.insert(buildDesc.m_GeometryDescs.end(), rtGeometryDescs, rtGeometryDescs + numRtGeometryDescs);
 
+		std::unique_lock<std::mutex> lock(m_RaytracingBuildQueueMutex);
 		m_RaytracingBuildContext->Begin();
 
 		Ref<Buffer> blas = m_RaytracingBuildContext->BuildRaytracingAccelerationStructure(buildDesc);
 
 		m_RaytracingBuildContext->End();
 		Fence event = m_RaytracingBuildContext->Flush();
-
 		blas->SetGpuPending(event);
 		return blas;
 	}

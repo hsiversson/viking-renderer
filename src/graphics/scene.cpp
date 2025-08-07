@@ -13,7 +13,7 @@
 namespace vkr::Graphics
 {
 	Scene::Scene()
-		: m_HasChanges(false)
+		: m_HasChanges(true)
 	{
 		m_TraceRaysDynamicShaderLib = Render::GetDevice()->CreateShader(SystemPaths::GetInContentDirectory("shaders/tracerays_dynamic.hlsl"), nullptr, Render::SHADER_STAGE_RAYTRACING);
 		m_ViewManager = MakeUnique<ViewManager>(*this);
@@ -47,6 +47,11 @@ namespace vkr::Graphics
 		// main view goes last usually
 		if (m_HasChanges)
 		{
+			{
+				std::unique_lock<std::mutex> lock(m_SceneObjectsToAddMutex);
+				m_SceneObjects.insert(m_SceneObjects.end(), m_SceneObjectsToAdd.begin(), m_SceneObjectsToAdd.end());
+				m_SceneObjectsToAdd.clear();
+			}
 			// update tracing pipeline state
 
 			std::vector<Render::RaytracingHitGroupDesc> materialHitGroups;
