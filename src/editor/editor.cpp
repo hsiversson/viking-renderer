@@ -92,6 +92,7 @@ namespace vkr::Editor
 		io.DeltaTime = ElapsedTimer::DeltaTime();
 
 		m_FpsMovingAverage.Add(static_cast<uint32_t>(std::roundf(1.0f / ElapsedTimer::DeltaTime())));
+		//VKR_LOG("FPS: {}", m_FpsMovingAverage.GetAverage());
 
 		const Vector2f& windowDpi = m_Window->GetDpiScale();
 		io.DisplayFramebufferScale = ImVec2(windowDpi.x, windowDpi.y);

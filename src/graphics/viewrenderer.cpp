@@ -78,16 +78,18 @@ namespace vkr::Graphics
 	{
 		View* viewPtr = &view; 
 		viewPtr->BeginRender();
-		Render::QueueGraphicsTask([this, viewPtr]() mutable { PreRenderUpdates(*viewPtr); });
-		//UpdateParticles(view);
-		Render::QueueGraphicsTask([this, viewPtr]() mutable { DepthPrepass(*viewPtr); });
-		Render::QueueGraphicsTask([this, viewPtr]() mutable { StaticVelocity(*viewPtr); });
-		Render::QueueGraphicsTask([this, viewPtr]() mutable { TraceRadiance(*viewPtr); });
-// 		Render::QueueGraphicsTask([this, viewPtr]() mutable { ForwardPass(*viewPtr); });
-// 		Render::QueueGraphicsTask([this, viewPtr]() mutable { RenderSky(*viewPtr); });
-		Render::QueueGraphicsTask([this, viewPtr]() mutable { ApplyUpscaling(*viewPtr); });
-		//ApplyPostEffects(view);
-		Ref<Render::RenderTaskEvent> lastRenderEvent = Render::QueueGraphicsTask([this, viewPtr]() mutable { FinalizeFrame(*viewPtr); });
+
+		// no need to split into multiple tasks yet...
+		Render::QueueGraphicsTask([this, viewPtr]() mutable 
+			{ 
+				PreRenderUpdates(*viewPtr); 
+				DepthPrepass(*viewPtr);
+				StaticVelocity(*viewPtr);
+				TraceRadiance(*viewPtr);
+				ApplyUpscaling(*viewPtr);
+				FinalizeFrame(*viewPtr);
+			});
+
 		viewPtr->EndRender();
 	}
 

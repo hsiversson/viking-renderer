@@ -185,6 +185,14 @@ namespace vkr::Render
 			// when root signature changes, perform a full cache flush?
 			m_StateCache.m_RootSignature = rootSignature;
 			m_StateCache.m_RootSignatureDirty = true;
+			m_StateCache.m_LocalConstantsDirty.fill(true);
+			m_StateCache.m_GlobalConstantsDirty.fill(true);
+			m_StateCache.m_TopologyDirty = true;
+			m_StateCache.m_VertexBuffersDirty = true;
+			m_StateCache.m_IndexBufferDirty = true;
+			m_StateCache.m_RootSignatureDirty = true;
+			m_StateCache.m_PipelineStateDirty = true;
+			m_StateCache.m_RenderTargetsDirty = true;
 		}
 	}
 
@@ -341,6 +349,31 @@ namespace vkr::Render
 
 	void Context::UpdateState()
 	{
+		const PipelineStateType rootSignatureType = m_StateCache.m_RootSignature ? m_StateCache.m_RootSignature->GetType() : PIPELINE_STATE_TYPE_UNKNOWN;
+		const bool useGraphicsPipeline = rootSignatureType == PIPELINE_STATE_TYPE_DEFAULT;
+		if (m_StateCache.m_RootSignatureDirty)
+		{
+			if (m_StateCache.m_RootSignature)
+			{
+				ID3D12DescriptorHeap* descriptorHeaps[2] =
+				{
+					GetDevice()->GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SHADER_RESOURCE)->GetD3DDescriptorHeap(),
+					GetDevice()->GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SAMPLER)->GetD3DDescriptorHeap()
+				};
+				m_CurrentD3DCommandList->SetDescriptorHeaps(2, descriptorHeaps);
+
+				if (useGraphicsPipeline)
+				{
+					m_CurrentD3DCommandList->SetGraphicsRootSignature(m_StateCache.m_RootSignature->GetD3DRootSignature());
+				}
+				else
+				{
+					m_CurrentD3DCommandList->SetComputeRootSignature(m_StateCache.m_RootSignature->GetD3DRootSignature());
+				}
+			}
+			m_StateCache.m_RootSignatureDirty = false;
+		}
+
 		if (m_StateCache.m_PipelineStateDirty)
 		{
 			if (m_StateCache.m_PipelineState)
@@ -361,31 +394,7 @@ namespace vkr::Render
 			m_StateCache.m_PipelineStateDirty = false;
 		}
 
-		if (m_StateCache.m_RootSignatureDirty)
-		{
-			if (m_StateCache.m_RootSignature)
-			{
-				ID3D12DescriptorHeap* descriptorHeaps[2] =
-				{
-					GetDevice()->GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SHADER_RESOURCE)->GetD3DDescriptorHeap(),
-					GetDevice()->GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE_SAMPLER)->GetD3DDescriptorHeap()
-				};
-				m_CurrentD3DCommandList->SetDescriptorHeaps(2, descriptorHeaps);
-
-				if (m_StateCache.m_PipelineState->GetType() == PIPELINE_STATE_TYPE_COMPUTE ||
-					m_StateCache.m_PipelineState->GetType() == PIPELINE_STATE_TYPE_RAYTRACING)
-				{
-					m_CurrentD3DCommandList->SetComputeRootSignature(m_StateCache.m_RootSignature->GetD3DRootSignature());
-				}
-				else if (m_StateCache.m_PipelineState->GetMetaData().m_Type == PIPELINE_STATE_TYPE_DEFAULT)
-				{
-					m_CurrentD3DCommandList->SetGraphicsRootSignature(m_StateCache.m_RootSignature->GetD3DRootSignature());
-				}
-			}
-			m_StateCache.m_RootSignatureDirty = false;
-		}
-
-		if (m_StateCache.m_VertexBuffersDirty)
+		if (m_StateCache.m_VertexBuffersDirty && useGraphicsPipeline)
 		{
 			std::vector<D3D12_VERTEX_BUFFER_VIEW> bufferViews;
 			for (uint32_t i = 0; i < m_StateCache.m_VertexBuffers.size(); ++i)
@@ -415,7 +424,7 @@ namespace vkr::Render
 			m_StateCache.m_VertexBuffersDirty = false;
 		}
 
-		if (m_StateCache.m_IndexBufferDirty)
+		if (m_StateCache.m_IndexBufferDirty && useGraphicsPipeline)
 		{
 			const Buffer* buffer = m_StateCache.m_IndexBuffer;
 			if (buffer)
@@ -437,64 +446,64 @@ namespace vkr::Render
 			m_StateCache.m_IndexBufferDirty = false;
 		}
 
-		if (m_StateCache.m_TopologyDirty)
+		if (m_StateCache.m_TopologyDirty && useGraphicsPipeline)
 		{
 			m_CurrentD3DCommandList->IASetPrimitiveTopology(D3DConvertPrimitiveTopology(m_StateCache.m_Topology));
 			m_StateCache.m_TopologyDirty = false;
 		}
 
-		const uint32_t localConstantsParamStartIndex = m_StateCache.m_RootSignature->GetLocalConstantBufferParameterStart();
-		const uint32_t numLocalConstantsToLookFor = m_StateCache.m_RootSignature->GetNumLocalConstantBuffers();
-		for (int i = 0; i < numLocalConstantsToLookFor; i++)
+		if (m_StateCache.m_RootSignature)
 		{
-			if (m_StateCache.m_LocalConstantsDirty[i])
+			const uint32_t localConstantsParamStartIndex = m_StateCache.m_RootSignature->GetLocalConstantBufferParameterStart();
+			const uint32_t numLocalConstantsToLookFor = m_StateCache.m_RootSignature->GetNumLocalConstantBuffers();
+			for (int i = 0; i < numLocalConstantsToLookFor; i++)
 			{
-				const Buffer* buffer = m_StateCache.m_LocalConstantBuffers[i];
-				if (buffer)
+				if (m_StateCache.m_LocalConstantsDirty[i])
 				{
-					const uint64_t offset = m_StateCache.m_LocalConstantBufferOffsets[i];
-					const D3D12_GPU_VIRTUAL_ADDRESS addr = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
-					if (m_StateCache.m_PipelineState->GetType() == PIPELINE_STATE_TYPE_COMPUTE ||
-						m_StateCache.m_PipelineState->GetType() == PIPELINE_STATE_TYPE_RAYTRACING)
+					const Buffer* buffer = m_StateCache.m_LocalConstantBuffers[i];
+					if (buffer)
 					{
-						m_CurrentD3DCommandList->SetComputeRootConstantBufferView(localConstantsParamStartIndex + i, addr);
+						const uint64_t offset = m_StateCache.m_LocalConstantBufferOffsets[i];
+						const D3D12_GPU_VIRTUAL_ADDRESS addr = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
+						if (useGraphicsPipeline)
+						{
+							m_CurrentD3DCommandList->SetGraphicsRootConstantBufferView(localConstantsParamStartIndex + i, addr);
+						}
+						else
+						{
+							m_CurrentD3DCommandList->SetComputeRootConstantBufferView(localConstantsParamStartIndex + i, addr);
+						}
 					}
-					else
-					{
-						m_CurrentD3DCommandList->SetGraphicsRootConstantBufferView(localConstantsParamStartIndex + i, addr);
-					}
-				}
 
-				m_StateCache.m_LocalConstantsDirty[i] = false;
+					m_StateCache.m_LocalConstantsDirty[i] = false;
+				}
+			}
+
+			const uint32_t globalConstantsParamStartIndex = m_StateCache.m_RootSignature->GetGlobalConstantBufferParameterStart();
+			for (int i = 0; i < m_StateCache.m_GlobalConstantBuffers.size(); i++)
+			{
+				if (m_StateCache.m_GlobalConstantsDirty[i])
+				{
+					const Buffer* buffer = m_StateCache.m_GlobalConstantBuffers[i];
+					if (buffer)
+					{
+						const uint64_t offset = m_StateCache.m_GlobalConstantBufferOffsets[i];
+						const D3D12_GPU_VIRTUAL_ADDRESS addr = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
+						if (useGraphicsPipeline)
+						{
+							m_CurrentD3DCommandList->SetGraphicsRootConstantBufferView(globalConstantsParamStartIndex + i, addr);
+						}
+						else
+						{
+							m_CurrentD3DCommandList->SetComputeRootConstantBufferView(globalConstantsParamStartIndex + i, addr);
+						}
+					}
+					m_StateCache.m_GlobalConstantsDirty[i] = false;
+				}
 			}
 		}
-		
-		const uint32_t globalConstantsParamStartIndex = m_StateCache.m_RootSignature->GetGlobalConstantBufferParameterStart();
-		for (int i = 0; i < m_StateCache.m_GlobalConstantBuffers.size(); i++)
-		{
-			if (m_StateCache.m_GlobalConstantsDirty[i])
-			{
-				const Buffer* buffer = m_StateCache.m_GlobalConstantBuffers[i];
-				const uint64_t offset = m_StateCache.m_GlobalConstantBufferOffsets[i];
-				const D3D12_GPU_VIRTUAL_ADDRESS addr = buffer->GetD3DResource()->GetGPUVirtualAddress() + offset;
 
-
-				//Aditional buffer bound or different buffer bound at a previously bound slot
-				if (m_StateCache.m_PipelineState->GetType() == PIPELINE_STATE_TYPE_COMPUTE ||
-					m_StateCache.m_PipelineState->GetType() == PIPELINE_STATE_TYPE_RAYTRACING)
-				{
-					m_CurrentD3DCommandList->SetComputeRootConstantBufferView(globalConstantsParamStartIndex + i, addr);
-				}
-				else
-				{
-					m_CurrentD3DCommandList->SetGraphicsRootConstantBufferView(globalConstantsParamStartIndex + i, addr);
-				}
-
-				m_StateCache.m_GlobalConstantsDirty[i] = false;
-			}
-		}
-
-		if (m_StateCache.m_RenderTargetsDirty)
+		if (m_StateCache.m_RenderTargetsDirty && useGraphicsPipeline)
 		{
 			std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvs;
 			rtvs.reserve(MAX_NUM_RENDER_TARGETS);
