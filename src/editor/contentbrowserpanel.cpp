@@ -60,6 +60,9 @@ namespace vkr::Editor
 
 	void ContentBrowserPanel::DrawTopBar()
 	{
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
+		ImGui::BeginChild("##contentBrowserTopBar", ImVec2(0, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.243f, 0.62f, 0.047f, 1));
 		if (ImGui::Button("Import", ImVec2(256 + ImGui::GetStyle().ItemSpacing.x, 38)))
 		{
@@ -116,14 +119,7 @@ namespace vkr::Editor
 		font.Scale = 1.25f;
 		ImGui::PushFont(&font);
 
-		float fontSize = ImGui::GetFont()->FontSize;
-		float halfFontSize = fontSize * 0.5f;
-		float originalCursorPosY = ImGui::GetCursorPosY();
-		float folderButtonY = originalCursorPosY + 16 - halfFontSize;
-		float arrowPosOffset = fontSize + (ImGui::GetStyle().FramePadding.y * 2);
-		arrowPosOffset *= 0.5f;
-		arrowPosOffset -= halfFontSize;
-
+		const float originalCursorPosY = ImGui::GetCursorPosY();
 		for (int32_t i = folders.size() - 1; i >= 0; --i)
 		{
 			const DirectoryEntry& entry = *(folders[i].second);
@@ -135,27 +131,28 @@ namespace vkr::Editor
 			{
 				ImGui::SameLine();
 				ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-				ImGui::SetCursorPosY(folderButtonY + arrowPosOffset);
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 11);
 				ImGui::Image((ImTextureID)icons->GetIcon(EDITOR_ICON_PLAY_WHITE).m_Texture.get(), ImVec2(16, 16));
 				ImGui::PopItemFlag();
 				ImGui::SameLine();
 			}
 			ImGui::SetCursorPosY(originalCursorPosY);
-			if (ImGui::Button(folderName.c_str()))
+			ImVec2 textSize = ImGui::CalcTextSize(folderName.c_str());
+			if (ImGui::Button(folderName.c_str(), ImVec2(textSize.x + ImGui::GetStyle().ItemSpacing.x, 38)))
 				m_CurrentEntry = folders[i].second;
 		}
 
 		ImGui::PopFont();
 		ImGui::PopStyleColor(2);
 
-		ImGui::Separator();
-		ImGui::Separator(); // Intentionally twice.
+		ImGui::EndChild();
+		ImGui::PopStyleVar();
 	}
 
 	void ContentBrowserPanel::DrawDirectoryBrowser()
 	{
-		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
-		ImGui::BeginChild("##contentBrowserDirectoryBrowser");
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
+		ImGui::BeginChild("##contentBrowserDirectoryBrowser", ImVec2(0, 0), ImGuiChildFlags_Borders);
 		//if (ImGui::Button("Game Dir", ImVec2(128.0f, 32.0f)))
 		//{
 		//	mCurrentEntry = nullptr;
@@ -172,7 +169,7 @@ namespace vkr::Editor
 		DrawDirectoryTreeNode(m_RootDirectory);
 
 		ImGui::EndChild();
-		ImGui::PopStyleColor();
+		ImGui::PopStyleVar();
 	}
 
 	void ContentBrowserPanel::DrawDirectoryTreeNode(const DirectoryEntry& entry)
@@ -216,8 +213,8 @@ namespace vkr::Editor
 
 	void ContentBrowserPanel::DrawContentArea()
 	{
-		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
-		ImGui::BeginChild("##contentBrowserContentArea");
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
+		ImGui::BeginChild("##contentBrowserContentArea", ImVec2(0,0), ImGuiChildFlags_Borders);
 
 		Icons* icons = Editor::Manager::Get()->GetIcons();
 
@@ -257,7 +254,7 @@ namespace vkr::Editor
 		}
 
 		ImGui::EndChild();
-		ImGui::PopStyleColor();
+		ImGui::PopStyleVar();
 	}
 
 	void ContentBrowserPanel::GetEntriesForPath(DirectoryEntry& entry, const std::filesystem::path& currentEntryPath)
