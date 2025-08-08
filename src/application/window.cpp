@@ -75,7 +75,7 @@ namespace vkr
 		RegisterRawInputDevices(&rid, 1, sizeof(rid));
 
 		UpdateWindow((HWND)m_NativeHandle);
-		ShowWindow((HWND)m_NativeHandle, 0);
+		ShowWindow((HWND)m_NativeHandle, SW_HIDE);
 		Focus();
 		Maximize(m_IsMaximized);
 		return true;
@@ -151,6 +151,25 @@ namespace vkr
 
 			return HTCLIENT;
 		}
+		case WM_GETMINMAXINFO:
+		{
+			// lParam points to a MINMAXINFO struct
+			MINMAXINFO* mmi = (MINMAXINFO*)lParam;
+
+			// Get the work area (excluding taskbar)
+			RECT rcWorkArea;
+			SystemParametersInfo(SPI_GETWORKAREA, 0, &rcWorkArea, 0);
+
+			// Set the max position (top-left corner)
+			mmi->ptMaxPosition.x = rcWorkArea.left;
+			mmi->ptMaxPosition.y = rcWorkArea.top;
+
+			// Set the max size (width/height)
+			mmi->ptMaxSize.x = rcWorkArea.right - rcWorkArea.left;
+			mmi->ptMaxSize.y = rcWorkArea.bottom - rcWorkArea.top;
+
+			return 0;
+		}
 		case WM_DESTROY:
 			PostQuitMessage(0);
 			return 0;
@@ -177,7 +196,7 @@ namespace vkr
 
 	void Window::Show()
 	{
-		ShowWindow((HWND)m_NativeHandle, SW_SHOWNA);
+		ShowWindow((HWND)m_NativeHandle, SW_SHOW);
 	}
 
 	void Window::Hide()
@@ -192,12 +211,13 @@ namespace vkr
 
 	void Window::Maximize(bool aValue)
 	{
-		SendMessage((HWND)m_NativeHandle, WM_SYSCOMMAND, (aValue) ? SC_MAXIMIZE : SC_RESTORE, 0);
+		ShowWindow((HWND)m_NativeHandle, (aValue) ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL);
 		m_IsMaximized = aValue;
 	}
 
 	void Window::Minimize()
 	{
+		ShowWindow((HWND)m_NativeHandle, SW_MINIMIZE);
 	}
 
 	void Window::Restore()

@@ -124,7 +124,7 @@ namespace vkr::Graphics
 		instanceDataOffsetBufferDesc.m_ElementCount = std::max(renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), 256ull);
 		instanceDataOffsetBufferDesc.m_Usage = Render::BUFFER_VIEW_USAGE_TYPED;
 		instanceDataOffsetBufferDesc.m_Format = Render::FORMAT_R32_UINT;
-		renderData.m_InstanceDataOffsetBufferView = Render::GetDevice()->CreateBufferView(instanceDataOffsetBufferDesc, instanceDataBuffer.m_Buffer);
+		renderData.m_InstanceDataOffsetBufferView = Render::GetDevice()->CreateBufferView(instanceDataOffsetBufferDesc, instanceDataOffsetBuffer.m_Buffer);
 
 		//Construct the per scene constant buffer
 		struct alignas(16) PerSceneConstantData
