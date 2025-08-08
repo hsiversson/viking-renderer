@@ -32,7 +32,7 @@ namespace vkr::Editor
 	{
 	public:
 		ViewportPanel(Graphics::Scene* scene);
-		~ViewportPanel();
+		~ViewportPanel() override;
 
 	private:
 		void OnUpdate() override;

@@ -117,11 +117,11 @@ namespace vkr::Graphics
 		renderData.m_InstanceDataBufferView = Render::GetDevice()->CreateBufferView(instanceDataBufferDesc, instanceDataBuffer.m_Buffer);
 
 		//Fill in the instance data indices
-		auto instanceDataOffsetBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, std::max(renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), 256ull), renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), renderData.m_InstanceDataOffsetBuffer.data());
+		auto instanceDataOffsetBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, std::max(renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), 4ull), renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), renderData.m_InstanceDataOffsetBuffer.data());
 
 		Render::BufferViewDesc instanceDataOffsetBufferDesc = {}; // Typed uint buffer
 		instanceDataOffsetBufferDesc.m_ElementStart = instanceDataOffsetBuffer.m_Offset / sizeof(uint32_t);
-		instanceDataOffsetBufferDesc.m_ElementCount = std::max(renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), 256ull);
+		instanceDataOffsetBufferDesc.m_ElementCount = std::max(renderData.m_InstanceDataOffsetBuffer.size() * sizeof(uint32_t), 4ull);
 		instanceDataOffsetBufferDesc.m_Usage = Render::BUFFER_VIEW_USAGE_TYPED;
 		instanceDataOffsetBufferDesc.m_Format = Render::FORMAT_R32_UINT;
 		renderData.m_InstanceDataOffsetBufferView = Render::GetDevice()->CreateBufferView(instanceDataOffsetBufferDesc, instanceDataOffsetBuffer.m_Buffer);

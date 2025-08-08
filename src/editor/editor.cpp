@@ -5,6 +5,7 @@
 #include "renderer.h"
 #include "panel.h"
 #include "viewportpanel.h"
+#include "contentbrowserpanel.h"
 
 #include "application/window.h"
 #include "application/application.h"
@@ -152,6 +153,7 @@ namespace vkr::Editor
 
 		m_Scene = MakeUnique<Graphics::Scene>();
 		m_Viewport = MakeRef<ViewportPanel>(m_Scene.get());
+		m_ContentBrowser = MakeRef<ContentBrowserPanel>();
 
 		m_InitTask = std::async([this]()
 			{
@@ -197,6 +199,7 @@ namespace vkr::Editor
 		m_Scene->Update();
 
 		m_Viewport->Update();
+		m_ContentBrowser->Update();
 
 		Draw();
 	}
@@ -273,6 +276,7 @@ namespace vkr::Editor
 
 		// draw layout
 		m_Viewport->Draw();
+		m_ContentBrowser->Draw();
 
 		ImGui::End();
 	}

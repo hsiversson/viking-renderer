@@ -25,6 +25,7 @@ namespace vkr::Editor
 {
 	class Renderer;
 	class ViewportPanel;
+	class ContentBrowserPanel;
 	class Manager
 	{
 	public:
@@ -62,6 +63,7 @@ namespace vkr::Editor
 		std::future<void> m_InitTask;
 		UniquePtr<Graphics::Scene> m_Scene;
 		Ref<ViewportPanel> m_Viewport;
+		Ref<ContentBrowserPanel> m_ContentBrowser;
 		////////////////////////////////////////////
 
 		MovingAverage<uint32_t, 64> m_FpsMovingAverage;

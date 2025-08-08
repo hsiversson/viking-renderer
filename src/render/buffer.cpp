@@ -150,7 +150,7 @@ namespace vkr::Render
 
 	void TempBufferAllocator::EndChunk(Fence event)
 	{
-		uint64_t end = m_Head.load(std::memory_order_relaxed);
+		uint64_t end = m_Head.load(std::memory_order_acquire);
 		m_Chunks.push_back({ m_ChunkStart, end, event });
 		m_ChunkStart = UINT64_MAX;
 
