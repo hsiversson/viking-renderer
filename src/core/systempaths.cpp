@@ -15,23 +15,20 @@ namespace vkr::SystemPaths
 		static std::filesystem::path g_ExeDirectory;
 		static std::filesystem::path g_ExePath;
 
-		bool Init()
+		bool Init(const std::filesystem::path& exePath, const std::filesystem::path& projectContentDirectory)
 		{
 #if IS_WINDOWS_PLATFORM
-			wchar_t exePath[MAX_PATH];
-			GetModuleFileNameW(nullptr, exePath, MAX_PATH);
-
 			wchar_t documentsPath[MAX_PATH];
 			SHGetFolderPathW(NULL, CSIDL_PERSONAL, NULL, 0, documentsPath);
 #else
 #	error Platform not supported!
 #endif
 
-			g_ExePath = std::filesystem::weakly_canonical(exePath);
-			g_ExeDirectory = g_ExePath.parent_path();
+			g_ExePath = exePath;
+			g_ExeDirectory = exePath.parent_path();
 
 			g_EngineContentDirectory = std::filesystem::weakly_canonical(g_ExeDirectory / ".." / ".." / "content");
-			g_ProjectContentDirectory = std::filesystem::weakly_canonical(g_ExeDirectory / ".." / ".." / "samples" / "raytracer" / "content");
+			g_ProjectContentDirectory = projectContentDirectory;
 			g_UserDirectory = std::filesystem::weakly_canonical(documentsPath);
 
 			return true;

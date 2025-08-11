@@ -10,7 +10,7 @@ namespace vkr
 
 	namespace SystemPaths
 	{
-		bool Init();
+		bool Init(const std::filesystem::path& exePath, const std::filesystem::path& projectContentDirectory);
 
 		const std::filesystem::path& GetContentDirectory(ContentDirectory contentDirectory);
 		std::filesystem::path GetInContentDirectory(ContentDirectory contentDirectory, const std::filesystem::path& pathToAppend);

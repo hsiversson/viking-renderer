@@ -28,6 +28,8 @@ namespace vkr
 	{
 		Vector2u m_Resolution;
 		std::string m_WindowTitle;
+		std::filesystem::path m_ExePath;
+		std::filesystem::path m_ContentDirectory;
 		int32_t m_ShowCmd;
 		ApplicationMode m_Mode;
 	};

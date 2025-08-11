@@ -29,8 +29,6 @@ namespace vkr
 		: m_WindowSize{}
 	{
 		g_Instance = this;
-		SystemPaths::Init();
-		Logger::Create();
 	}
 
 	Application::~Application()
@@ -47,6 +45,8 @@ namespace vkr
 	ReturnCode Application::Launch(const ApplicationInitDesc& desc)
 	{
 		Thread::RegisterMainThread();
+		SystemPaths::Init(desc.m_ExePath, desc.m_ContentDirectory);
+		Logger::Create();
 
 		ReturnCode result = Init(desc);
 		if (result != RETURN_OK)
