@@ -27,7 +27,7 @@ namespace vkr::Graphics
 
 		Render::Device* device = Render::GetDevice();
 		std::string shaderCode = GenerateGetMaterialParametersFunction();
-		shaderCode += ReadFileToString(SystemPaths::GetInContentDirectory("shaders/simpleforwardtestPS.hlsl"));
+		shaderCode += ReadFileToString(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/simpleforwardtestPS.hlsl"));
 		m_PixelShader = device->CreateShaderFromString(shaderCode, L"MainPS", vkr::Render::SHADER_STAGE_PIXEL);
 
 		m_BlendMode = desc.m_BlendMode;

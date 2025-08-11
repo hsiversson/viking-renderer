@@ -15,7 +15,7 @@ namespace vkr::Graphics
 	Scene::Scene()
 		: m_HasChanges(true)
 	{
-		m_TraceRaysDynamicShaderLib = Render::GetDevice()->CreateShader(SystemPaths::GetInContentDirectory("shaders/tracerays_dynamic.hlsl"), nullptr, Render::SHADER_STAGE_RAYTRACING);
+		m_TraceRaysDynamicShaderLib = Render::GetDevice()->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/tracerays_dynamic.hlsl"), nullptr, Render::SHADER_STAGE_RAYTRACING);
 		m_ViewManager = MakeUnique<ViewManager>(*this);
 		m_ViewRenderer = MakeUnique<ViewRenderer>();
 		if (!m_ViewRenderer->Init())

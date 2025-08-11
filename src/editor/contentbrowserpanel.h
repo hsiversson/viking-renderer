@@ -18,6 +18,7 @@ namespace vkr::Editor
 		struct DirectoryEntry
 		{
 			const DirectoryEntry* m_Parent;
+			ContentDirectory m_ContentDirectory;
 			std::filesystem::path m_Path;
 			std::vector<std::filesystem::path> m_Files;
 			std::vector<DirectoryEntry> m_ChildDirectories;
@@ -25,14 +26,15 @@ namespace vkr::Editor
 
 		void DrawTopBar();
 		void DrawDirectoryBrowser();
-		void DrawDirectoryTreeNode(const DirectoryEntry& entry);
+		void DrawDirectoryTreeNode(const DirectoryEntry& entry, ContentDirectory contentDirectory);
 		void DrawContentArea();
 
-		void GetEntriesForPath(DirectoryEntry& entry, const std::filesystem::path& currentEntryPath);
-		void UpdateParentsAndCurrentEntry(DirectoryEntry& entry, const std::filesystem::path& currentEntryPath);
+		void GetEntriesForPath(ContentDirectory contentDirectory, const std::filesystem::path& currentEntryPath, DirectoryEntry& entry);
+		void UpdateParentsAndCurrentEntry(const std::filesystem::path& currentEntryPath, DirectoryEntry& entry);
 
 	private:
-		DirectoryEntry m_RootDirectory;
+		DirectoryEntry m_EngineRootDirectory;
+		DirectoryEntry m_ProjectRootDirectory;
 		const DirectoryEntry* m_CurrentEntry;
 	};
 }

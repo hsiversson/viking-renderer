@@ -32,12 +32,17 @@ namespace vkr::Editor
 		}
 
 		if (!currentEntry)
-			currentEntryPath = SystemPaths::GetContentDirectory();
+			currentEntryPath = SystemPaths::GetContentDirectory(CONTENT_DIRECTORY_PROJECT);
 
-		std::filesystem::path p = SystemPaths::GetContentDirectory(); // TODO: Separate engine vs project content?
-		m_RootDirectory.m_Parent = nullptr;
-		GetEntriesForPath(m_RootDirectory, p);
-		UpdateParentsAndCurrentEntry(m_RootDirectory, currentEntryPath);
+		std::filesystem::path p = SystemPaths::GetContentDirectory(CONTENT_DIRECTORY_PROJECT);
+		m_ProjectRootDirectory.m_Parent = nullptr;
+		GetEntriesForPath(CONTENT_DIRECTORY_PROJECT, p, m_ProjectRootDirectory);
+		UpdateParentsAndCurrentEntry(currentEntryPath, m_ProjectRootDirectory);
+
+		p = SystemPaths::GetContentDirectory(CONTENT_DIRECTORY_ENGINE);
+		m_EngineRootDirectory.m_Parent = nullptr;
+		GetEntriesForPath(CONTENT_DIRECTORY_ENGINE, p, m_EngineRootDirectory);
+		UpdateParentsAndCurrentEntry(currentEntryPath, m_EngineRootDirectory);
 	}
 
 	void ContentBrowserPanel::OnDraw()
@@ -125,7 +130,8 @@ namespace vkr::Editor
 			const DirectoryEntry& entry = *(folders[i].second);
 			const std::string& entryName = folders[i].first;
 
-			const std::string& folderName = (entry.m_Parent == nullptr) ? "Project" : entryName;
+			const char* rootDirName = (entry.m_ContentDirectory == CONTENT_DIRECTORY_PROJECT) ? "Project" : "Engine";
+			const std::string& folderName = (entry.m_Parent == nullptr) ? rootDirName : entryName;
 
 			if (i != folders.size() - 1)
 			{
@@ -166,13 +172,14 @@ namespace vkr::Editor
 		//	mIsEngineBase = true;
 		//	OnUpdate();
 		//}
-		DrawDirectoryTreeNode(m_RootDirectory);
+		DrawDirectoryTreeNode(m_EngineRootDirectory, CONTENT_DIRECTORY_ENGINE);
+		DrawDirectoryTreeNode(m_ProjectRootDirectory, CONTENT_DIRECTORY_PROJECT);
 
 		ImGui::EndChild();
 		ImGui::PopStyleVar();
 	}
 
-	void ContentBrowserPanel::DrawDirectoryTreeNode(const DirectoryEntry& entry)
+	void ContentBrowserPanel::DrawDirectoryTreeNode(const DirectoryEntry& entry, ContentDirectory contentDirectory)
 	{
 		Icons* icons = Editor::Manager::Get()->GetIcons();
 		float fontSize = ImGui::GetFont()->FontSize;
@@ -183,7 +190,8 @@ namespace vkr::Editor
 		if (entry.m_ChildDirectories.empty())
 			flags |= ImGuiTreeNodeFlags_Leaf;
 
-		const std::string& folderName = (entry.m_Parent == nullptr) ? "Project" : entry.m_Path.filename().string();
+		const char* rootDirName = (contentDirectory == CONTENT_DIRECTORY_PROJECT) ? "Project" : "Engine";
+		const std::string& folderName = (entry.m_Parent == nullptr) ? rootDirName : entry.m_Path.filename().string();
 		bool isOpen = ImGui::TreeNodeEx(folderName.c_str(), flags);
 
 		if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
@@ -192,7 +200,7 @@ namespace vkr::Editor
 		if (isOpen)
 		{
 			for (uint32_t i = 0; i < entry.m_ChildDirectories.size(); ++i)
-				DrawDirectoryTreeNode(entry.m_ChildDirectories[i]);
+				DrawDirectoryTreeNode(entry.m_ChildDirectories[i], contentDirectory);
 
 			ImGui::TreePop();
 		}
@@ -257,11 +265,12 @@ namespace vkr::Editor
 		ImGui::PopStyleVar();
 	}
 
-	void ContentBrowserPanel::GetEntriesForPath(DirectoryEntry& entry, const std::filesystem::path& currentEntryPath)
+	void ContentBrowserPanel::GetEntriesForPath(ContentDirectory contentDirectory, const std::filesystem::path& currentEntryPath, DirectoryEntry& entry)
 	{
 		entry.m_Path = currentEntryPath;
 		entry.m_ChildDirectories.clear();
 		entry.m_Files.clear();
+		entry.m_ContentDirectory = contentDirectory;
 
 		std::filesystem::directory_iterator directoryIterator(currentEntryPath);
 		for (const std::filesystem::directory_entry& directoryEntry : directoryIterator)
@@ -271,7 +280,7 @@ namespace vkr::Editor
 			{
 				DirectoryEntry child;
 				child.m_Parent = &entry;
-				GetEntriesForPath(child, p);
+				GetEntriesForPath(contentDirectory, p, child);
 				entry.m_ChildDirectories.push_back(child);
 			}
 			else
@@ -279,7 +288,7 @@ namespace vkr::Editor
 		}
 	}
 
-	void ContentBrowserPanel::UpdateParentsAndCurrentEntry(DirectoryEntry& entry, const std::filesystem::path& currentEntryPath)
+	void ContentBrowserPanel::UpdateParentsAndCurrentEntry(const std::filesystem::path& currentEntryPath, DirectoryEntry& entry)
 	{
 		if (currentEntryPath == entry.m_Path)
 			m_CurrentEntry = &entry;
@@ -288,7 +297,7 @@ namespace vkr::Editor
 		{
 			DirectoryEntry& childDir = entry.m_ChildDirectories[i];
 			childDir.m_Parent = &entry;
-			UpdateParentsAndCurrentEntry(childDir, currentEntryPath);
+			UpdateParentsAndCurrentEntry(currentEntryPath, childDir);
 		}
 	}
 }

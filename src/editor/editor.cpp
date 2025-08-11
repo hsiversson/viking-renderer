@@ -129,7 +129,7 @@ namespace vkr::Editor
 		io.BackendFlags |= ImGuiBackendFlags_RendererHasViewports;
 
 		const Vector2f& windowDpi = window->GetDpiScale();
-		io.Fonts->AddFontFromFileTTF(SystemPaths::GetInContentDirectory("fonts/cascadia-code/CascadiaCode.ttf").string().c_str(), 14.0f * windowDpi.x);
+		io.Fonts->AddFontFromFileTTF(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "fonts/cascadia-code/CascadiaCode.ttf").string().c_str(), 14.0f * windowDpi.x);
 		io.FontDefault = io.Fonts->Fonts[0];
 
 		SetStyle();
@@ -159,7 +159,7 @@ namespace vkr::Editor
 			{
 				Graphics::ModelLoader_GLTF loader;
 				Ref<Graphics::Model> model;
-				model = loader.Load(SystemPaths::GetInContentDirectory("models/cp_noodles/scene.gltf"));
+				model = loader.Load(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "models/cp_noodles/scene.gltf"));
 				Ref<Graphics::ModelObject> modelinst = MakeRef<Graphics::ModelObject>();
 				modelinst->SetLocalTransform(Compose(Mat33::Identity(), Vector3f(0.0f, 0.0f, 0.0f)));
 
