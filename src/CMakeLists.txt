@@ -22,6 +22,9 @@ source_group(Utils FILES ${VKR_UTILS_SOURCES})
 file(GLOB_RECURSE VKR_EDITOR_SOURCES ${VKR_SRC_DIR}/editor/*.cpp ${VKR_SRC_DIR}/editor/*.h)
 source_group(Editor FILES ${VKR_EDITOR_SOURCES})
 
+file(GLOB_RECURSE VKR_GAME_SOURCES ${VKR_SRC_DIR}/game/*.cpp ${VKR_SRC_DIR}/game/*.h)
+source_group(Game FILES ${VKR_GAME_SOURCES})
+
 file(GLOB VKR_PRECOMPILED_HEADER ${VKR_SRC_DIR}/vkr_precompiled.h)
 source_group("Precompiled Header" FILES ${VKR_PRECOMPILED_HEADER})
 
@@ -33,6 +36,7 @@ add_library(VikingRenderer
 			${VKR_RENDER_SOURCES}
             ${VKR_UTILS_SOURCES}
             ${VKR_EDITOR_SOURCES}
+			${VKR_GAME_SOURCES}
 			${VKR_PRECOMPILED_HEADER}) 
 
 target_precompile_headers(VikingRenderer PRIVATE ${VKR_PRECOMPILED_HEADER})

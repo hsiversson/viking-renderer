@@ -20,7 +20,7 @@ namespace vkr::Graphics
 		m_ViewRenderer = MakeUnique<ViewRenderer>();
 		if (!m_ViewRenderer->Init())
 		{
-			assert(false);
+			VKR_ASSERT(false);
 		}
 	}
 

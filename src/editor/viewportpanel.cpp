@@ -16,7 +16,7 @@ namespace vkr::Editor
 	{
 	}
 
-	void EditorCameraController::Update()
+	void EditorCameraController::Update(bool /*isHovered*/)
 	{
 		InputManager* inputManager = Manager::Get()->GetInputManager();
 
@@ -110,6 +110,7 @@ namespace vkr::Editor
 		, m_CameraController(m_Camera)
         , m_View(nullptr)
         , m_Scene(scene)
+		, m_IsHovered(false)
     {
         m_View = m_Scene->CreateView();
 
@@ -143,7 +144,7 @@ namespace vkr::Editor
 		m_View->SetOutputTarget(m_ViewOutput.m_RenderTarget.get());
 		m_View->SetRenderSize(viewportSize);
 
-		m_CameraController.Update();
+		m_CameraController.Update(m_IsHovered);
 
         m_View->SetCamera(m_Camera);
     }
@@ -152,6 +153,7 @@ namespace vkr::Editor
     {
         Vector2f uvMax = { m_ContentAreaSize.x / (float)m_ViewOutput.m_Texture->m_TextureDesc.m_Size.x, m_ContentAreaSize.y / (float)m_ViewOutput.m_Texture->m_TextureDesc.m_Size.y };
         ImGui::Image((ImTextureID)m_ViewOutput.m_TextureView.get(), { m_ContentAreaSize.x, m_ContentAreaSize.y }, { 0,0 }, { uvMax.x, uvMax.y });
+		m_IsHovered = ImGui::IsItemHovered();
 
 		bool selected = true;
 		if (selected)

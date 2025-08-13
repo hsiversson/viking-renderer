@@ -21,7 +21,7 @@ namespace vkr::Render
 		case TYPE_BONE_WEIGHT:
 			return "BONE_WEIGHT";
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return nullptr;
 		}
 	}
@@ -45,7 +45,7 @@ namespace vkr::Render
 		case TYPE_BONE_WEIGHT:
 			return "BoneWeight";
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return nullptr;
 		}
 	}

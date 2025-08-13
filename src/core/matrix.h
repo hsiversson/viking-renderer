@@ -20,7 +20,7 @@ namespace vkr
 
 		constexpr Mat(std::initializer_list<float> initializerList)
 		{
-			assert(initializerList.size() == R * C && "Initializer-list length mismatch");
+			VKR_ASSERT(initializerList.size() == R * C, "Initializer-list length mismatch");
 			std::copy(initializerList.begin(), initializerList.end(), m);
 		}
 
@@ -45,27 +45,27 @@ namespace vkr
 
 		constexpr const float& operator[](uint32_t index) const
 		{
-			assert(index < (R * C));
+			VKR_ASSERT(index < (R * C));
 			return m[index];
 		}
 
 		constexpr float& operator[](uint32_t index)
 		{
-			assert(index < (R * C));
+			VKR_ASSERT(index < (R * C));
 			return m[index];
 		}
 
 		constexpr const float& At(uint32_t row, uint32_t col) const
 		{
-			assert(row < R);
-			assert(col < C);
+			VKR_ASSERT(row < R);
+			VKR_ASSERT(col < C);
 			return m[row * C + col];
 		}
 
 		constexpr float& At(uint32_t row, uint32_t col)
 		{
-			assert(row < R);
-			assert(col < C);
+			VKR_ASSERT(row < R);
+			VKR_ASSERT(col < C);
 			return m[row * C + col];
 		}
 

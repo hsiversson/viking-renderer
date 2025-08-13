@@ -68,7 +68,7 @@ namespace vkr::Graphics
 			case vkr::Graphics::MaterialParameterType::Sampler:
 				return "SamplerState";
 			default:
-				assert(false);
+				VKR_CHECK_NO_ENTRY();
 				return nullptr;
 			}
 		}
@@ -92,7 +92,7 @@ namespace vkr::Graphics
 			case vkr::Graphics::MaterialParameterType::Sampler:
 				return "uint";
 			default:
-				assert(false);
+				VKR_CHECK_NO_ENTRY();
 				return nullptr;
 			}
 		}

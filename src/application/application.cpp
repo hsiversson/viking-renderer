@@ -61,7 +61,7 @@ namespace vkr
 
 	void Application::SetCurrentSwapChain(const Ref<Render::SwapChain>& swapChain)
 	{
-		assert(Thread::IsMainThread());
+		VKR_ASSERT(Thread::IsMainThread());
 		Render::GetDevice()->SetCurrentSwapChain(swapChain);
 		m_Window->SetAssociatedSwapChain(swapChain.get());
 	}

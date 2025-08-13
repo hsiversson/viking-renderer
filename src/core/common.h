@@ -2,10 +2,6 @@
 
 #include "globaldefines.h"
 
-#include <cassert>
-
-#define checkNoEntry() assert(false && "Enclosing block should never be called")
-
 namespace vkr
 {
 	static constexpr float PI = 3.1415927410125732421875f;

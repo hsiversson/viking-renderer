@@ -1,7 +1,5 @@
 #include "camera.h"
 
-#include <cassert>
-
 namespace vkr::Graphics
 {
 	Camera::Camera()

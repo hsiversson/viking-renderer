@@ -34,7 +34,7 @@ namespace vkr::Render
 	void RenderResourceDestructionQueue::Enqueue(IDeferredDestructibleBase* obj)
 	{
 		IRenderResource* resource = static_cast<IRenderResource*>(obj);
-		assert(resource && "something is wrong, resource is nullptr...");
+		VKR_ASSERT(resource, "Something is wrong, resource is nullptr...");
 
 		PendingResourceDestruction pending = {};
 		pending.m_Resource = resource;

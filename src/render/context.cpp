@@ -128,9 +128,9 @@ namespace vkr::Render
 
 	void Context::DispatchThreads(uint32_t numThreadsX, uint32_t numThreadsY, uint32_t numThreadsZ)
 	{
-		assert(m_StateCache.m_PipelineState);
+		VKR_ASSERT(m_StateCache.m_PipelineState);
 		const PipelineStateMetaData& metaData = m_StateCache.m_PipelineState->GetMetaData();
-		assert(metaData.m_Type == PIPELINE_STATE_TYPE_COMPUTE);
+		VKR_ASSERT(metaData.m_Type == PIPELINE_STATE_TYPE_COMPUTE);
 
 		Vector3u threadGroups;
 		threadGroups.x = (numThreadsX + metaData.Compute.m_NumThreads.x - 1) / metaData.Compute.m_NumThreads.x;
@@ -147,7 +147,7 @@ namespace vkr::Render
 
 	void Context::DispatchRays(PipelineState* pipelineState, uint32_t numThreadsX, uint32_t numThreadsY, uint32_t numThreadsZ)
 	{
-		assert(pipelineState->GetType() == PIPELINE_STATE_TYPE_RAYTRACING);
+		VKR_ASSERT(pipelineState->GetType() == PIPELINE_STATE_TYPE_RAYTRACING);
 		BindPipelineState(pipelineState);
 		UpdateState();
 		D3D12_DISPATCH_RAYS_DESC dispatchRaysDesc = pipelineState->GetD3DDispatchRaysDesc();
@@ -637,7 +637,7 @@ namespace vkr::Render
 		outBufferDesc.m_IsRaytracingAccelerationStructure = true;
 
 		Ref<Buffer> outBuffer = device->CreateBuffer(outBufferDesc);
-		assert(outBuffer);
+		VKR_ASSERT(outBuffer);
 		buildDesc.DestAccelerationStructureData = outBuffer->GetD3DResource()->GetGPUVirtualAddress();
 
 		BufferBarrierDesc bufferBarrier = {};

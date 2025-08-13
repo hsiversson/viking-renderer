@@ -2,21 +2,13 @@
 
 #if ENABLE_EDITOR
 
-#include "renderer.h"
-#include "panel.h"
-#include "viewportpanel.h"
-#include "contentbrowserpanel.h"
-
 #include "application/window.h"
 #include "application/application.h"
-
 #include "core/timer.h"
 #include "core/inputmanager.h"
-
-#include "graphics/model.h"
-#include "graphics/modelloader_gltf.h"
-#include "graphics/modelobject.h"
-#include "graphics/scene.h"
+#include "layout.h"
+#include "leveleditor.h"
+#include "renderer.h"
 
 namespace vkr::Editor
 {
@@ -28,7 +20,7 @@ namespace vkr::Editor
 		/*if (!(window->Flags & ImGuiWindowFlags_MenuBar))
 			return false;*/
 
-		IM_ASSERT(!window->DC.MenuBarAppending);
+		VKR_ASSERT(!window->DC.MenuBarAppending);
 		ImGui::BeginGroup(); // Backup position on layer 0 // FIXME: Misleading to use a group for that backup/restore
 		ImGui::PushID("##menubar");
 
@@ -75,7 +67,7 @@ namespace vkr::Editor
 				// To do so we claim focus back, restore NavId and then process the movement request for yet another frame.
 				// This involve a one-frame delay which isn't very problematic in this situation. We could remove it by scoring in advance for multiple window (probably not worth bothering)
 				const ImGuiNavLayer layer = ImGuiNavLayer_Menu;
-				IM_ASSERT(window->DC.NavLayersActiveMaskNext & (1 << layer)); // Sanity check
+				VKR_ASSERT(window->DC.NavLayersActiveMaskNext & (1 << layer)); // Sanity check
 				ImGui::FocusWindow(window);
 				ImGui::SetNavID(window->NavLastIds[layer], layer, 0, window->NavRectRel[layer]);
 				g.NavCursorVisible = false; // Hide highlight for the current frame so we don't see the intermediary selection.
@@ -86,7 +78,7 @@ namespace vkr::Editor
 
 		IM_MSVC_WARNING_SUPPRESS(6011); // Static Analysis false positive "warning C6011: Dereferencing NULL pointer 'window'"
 		// IM_ASSERT(window->Flags & ImGuiWindowFlags_MenuBar);
-		IM_ASSERT(window->DC.MenuBarAppending);
+		VKR_ASSERT(window->DC.MenuBarAppending);
 		ImGui::PopClipRect();
 		ImGui::PopID();
 		window->DC.MenuBarOffset.x = window->DC.CursorPos.x - window->Pos.x; // Save horizontal position so next append can reuse it. This is kinda equivalent to a per-layer CursorPos.
@@ -102,7 +94,7 @@ namespace vkr::Editor
 	Manager::Manager()
 		: m_InputManager(nullptr)
 	{
-		assert(g_Instance == nullptr);
+		VKR_ASSERT(g_Instance == nullptr);
 		g_Instance = this;
 	}
 
@@ -151,21 +143,8 @@ namespace vkr::Editor
 
 		m_Window->SetIsTitlebarHoveredCallback([this](uint32_t, uint32_t) { return m_IsTitlebarHovered; });
 
-		m_Scene = MakeUnique<Graphics::Scene>();
-		m_Viewport = MakeRef<ViewportPanel>(m_Scene.get());
-		m_ContentBrowser = MakeRef<ContentBrowserPanel>();
+		m_CurrentLayout = std::static_pointer_cast<Layout>(MakeRef<LevelEditor>());
 
-		m_InitTask = std::async([this]()
-			{
-				Graphics::ModelLoader_GLTF loader;
-				Ref<Graphics::Model> model;
-				model = loader.Load(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "models/cp_noodles/scene.gltf"));
-				Ref<Graphics::ModelObject> modelinst = MakeRef<Graphics::ModelObject>();
-				modelinst->SetLocalTransform(Compose(Mat33::Identity(), Vector3f(0.0f, 0.0f, 0.0f)));
-
-				modelinst->SetModel(model);
-				m_Scene->AddObject(modelinst);
-			});
 		return true;
 	}
 
@@ -196,10 +175,7 @@ namespace vkr::Editor
 		ImGui::NewFrame();
 		ImGuizmo::BeginFrame();
 
-		m_Scene->Update();
-
-		m_Viewport->Update();
-		m_ContentBrowser->Update();
+		m_CurrentLayout->Update();
 
 		Draw();
 	}
@@ -275,8 +251,8 @@ namespace vkr::Editor
 		style.WindowMinSize.x = minWinSizeX;
 
 		// draw layout
-		m_Viewport->Draw();
-		m_ContentBrowser->Draw();
+		if (m_CurrentLayout)
+			m_CurrentLayout->Draw();
 
 		ImGui::End();
 	}
@@ -473,7 +449,7 @@ namespace vkr::Editor
 				{ 
 					return ImRect(windowRect.Min.x + perp_padding, windowRect.Max.y - thickness, windowRect.Max.x - perp_padding, windowRect.Max.y + thickness);
 				}
-				assert(false);
+				VKR_ASSERT(false);
 				return ImRect();
 			};
 

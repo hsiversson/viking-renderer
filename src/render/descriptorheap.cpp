@@ -29,14 +29,14 @@ namespace vkr::Render
 			desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 			break;
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return;
 		}
 
 		HRESULT hr = GetDevice()->GetD3DDevice()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_D3DHeap));
 		if (FAILED(hr))
 		{
-			assert(false);
+			VKR_ASSERT(false);
 		}
 
 		m_DescriptorSize = GetDevice()->GetD3DDevice()->GetDescriptorHandleIncrementSize(desc.Type);
@@ -71,7 +71,7 @@ namespace vkr::Render
 		}
 		else
 		{
-			assert(false && "Descriptor heap full.");
+			VKR_ASSERT(false && "Descriptor heap full.");
 			return;
 		}
 	}

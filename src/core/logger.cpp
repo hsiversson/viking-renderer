@@ -7,7 +7,7 @@ namespace vkr
 
 	void Logger::Create()
 	{
-		assert(g_Instance == nullptr);
+		VKR_ASSERT(g_Instance == nullptr);
 		g_Instance = new Logger;
 	}
 

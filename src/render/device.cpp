@@ -25,7 +25,7 @@ namespace vkr::Render
 
 	Device::Device()
 	{
-		assert(g_Instance == nullptr);
+		VKR_ASSERT(g_Instance == nullptr);
 		g_Instance = this;
 	}
 
@@ -205,7 +205,7 @@ namespace vkr::Render
 		}
 		else
 		{
-			assert(false && "invalid extension");
+			VKR_ASSERT(false, "invalid extension");
 			return nullptr;
 		}
 
@@ -213,7 +213,7 @@ namespace vkr::Render
 		TextureData textureData = {};
 		if (!loader->LoadTexture(textureDesc, textureData, filepath))
 		{
-			assert(false && "failed to load texture");
+			VKR_ASSERT(false, "failed to load texture");
 			return nullptr;
 		}
 
@@ -231,7 +231,7 @@ namespace vkr::Render
 		textureView = MakeRef<TextureView>();
 		if (!textureView->Init(desc, resource))
 		{
-			assert(false && "failed to create texture view");
+			VKR_ASSERT(false, "failed to create texture view");
 			return nullptr;
 		}
 		return textureView;
@@ -303,7 +303,7 @@ namespace vkr::Render
 			m_TempBufferAllocators[usage] = MakeUnique<TempBufferAllocator>(usage, newSize);
 			if (!m_TempBufferAllocators[usage]->Allocate(size, outTempBuffer))
 			{
-				assert(false);
+				VKR_ASSERT(false);
 				return TempBuffer();
 			}
 		}
@@ -420,7 +420,7 @@ namespace vkr::Render
 			m_RootSignatures[i] = MakeRef<RootSignature>();
 			if (!m_RootSignatures[i]->Init(desc))
 			{
-				assert(false && "failed to init root signature.");
+				VKR_ASSERT(false, "failed to init root signature.");
 				return;
 			}
 		}

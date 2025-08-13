@@ -1,7 +1,5 @@
 #include "timer.h"
 
-#include <cassert>
-
 namespace vkr
 {
 	ElapsedTimer* ElapsedTimer::g_Instance = nullptr;
@@ -17,7 +15,7 @@ namespace vkr
 		, m_FrameIndex(0)
 		, m_LastTickTime(Time::Now())
 	{
-		assert(g_Instance == nullptr);
+		VKR_ASSERT(g_Instance == nullptr);
 		g_Instance = this;
 	}
 

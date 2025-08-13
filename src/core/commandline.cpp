@@ -54,7 +54,7 @@ namespace vkr
 	int32_t CommandLine::GetIntParam(const char* arg, uint32_t paramIndex /*= 0*/)
 	{
 		const std::vector<int32_t>& intParams = g_Instance->m_IntParams.at(arg);
-		assert(intParams.size() > paramIndex);
+		VKR_ASSERT(intParams.size() > paramIndex);
 		return intParams.at(paramIndex);
 	}
 
@@ -71,7 +71,7 @@ namespace vkr
 	float CommandLine::GetFloatParam(const char* arg, uint32_t paramIndex /*= 0*/)
 	{
 		const std::vector<float>& floatParams = g_Instance->m_FloatParams.at(arg);
-		assert(floatParams.size() > paramIndex);
+		VKR_ASSERT(floatParams.size() > paramIndex);
 		return floatParams.at(paramIndex);
 	}
 
@@ -88,7 +88,7 @@ namespace vkr
 	std::string CommandLine::GetStringParam(const char* arg, uint32_t paramIndex /*= 0*/)
 	{
 		const std::vector<std::string>& stringParams = g_Instance->m_StringParams.at(arg);
-		assert(stringParams.size() > paramIndex);
+		VKR_ASSERT(stringParams.size() > paramIndex);
 		return stringParams.at(paramIndex);
 	}
 }

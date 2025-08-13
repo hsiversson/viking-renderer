@@ -8,6 +8,7 @@ namespace vkr::Editor
 		: m_Name(name)
 		, m_IsOpen(true)
 		, m_SkipUpdate(false)
+		, m_ContentAreaPosition(0, 0)
 		, m_ContentAreaSize(100, 100)
 	{
 	}

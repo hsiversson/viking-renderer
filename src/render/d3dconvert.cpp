@@ -283,7 +283,7 @@ namespace vkr::Render
 		case COMPARISON_FUNC_ALWAYS:
 			return D3D12_COMPARISON_FUNC_ALWAYS;
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return D3D12_COMPARISON_FUNC_NONE;
 		}
 	}
@@ -311,7 +311,7 @@ namespace vkr::Render
 		case D3D12_COMPARISON_FUNC_ALWAYS:
 			return COMPARISON_FUNC_ALWAYS;
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return COMPARISON_FUNC_NONE;
 		}
 	}
@@ -331,7 +331,7 @@ namespace vkr::Render
 		case BLEND_OP_MAX:
 			return D3D12_BLEND_OP_MAX;
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return D3D12_BLEND_OP_ADD;
 		}
 	}
@@ -351,7 +351,7 @@ namespace vkr::Render
 		case D3D12_BLEND_OP_MAX:
 			return BLEND_OP_MAX;
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return BLEND_OP_ADD;
 		}
 	}
@@ -399,7 +399,7 @@ namespace vkr::Render
 		case BLEND_INV_ALPHA_FACTOR:
 			return D3D12_BLEND_INV_ALPHA_FACTOR;
 		default:
-			checkNoEntry();
+			VKR_CHECK_NO_ENTRY();
 			return D3D12_BLEND_ALPHA_FACTOR;
 		}
 	}
@@ -447,7 +447,7 @@ namespace vkr::Render
 		case D3D12_BLEND_INV_ALPHA_FACTOR:
 			return BLEND_INV_ALPHA_FACTOR;
 		default:
-			checkNoEntry();
+			VKR_CHECK_NO_ENTRY();
 			return BLEND_ALPHA_FACTOR;
 		}
 	}
@@ -463,7 +463,7 @@ namespace vkr::Render
 		case PRIMITIVE_TYPE_LINE:
 			return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
 		}
 	}
@@ -479,7 +479,7 @@ namespace vkr::Render
 		case D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE:
 			return PRIMITIVE_TYPE_TRIANGLE;
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return PRIMITIVE_TYPE_TRIANGLE;
 		}
 	}
@@ -511,7 +511,7 @@ namespace vkr::Render
 		case PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ:
 			return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ;
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 		}
 	}
@@ -543,7 +543,7 @@ namespace vkr::Render
 		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ:
 			return PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ;
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return PRIMITIVE_TOPOLOGY_UNDEFINED;
 		}
 	}
@@ -579,7 +579,7 @@ namespace vkr::Render
 		case RESOURCE_STATE_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_WRITE:
 			return D3D12_BARRIER_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_WRITE;
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return D3D12_BARRIER_ACCESS_COMMON;
 		}
 	}
@@ -615,7 +615,7 @@ namespace vkr::Render
 		case D3D12_BARRIER_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_WRITE:
 			return RESOURCE_STATE_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_WRITE;
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return RESOURCE_STATE_ACCESS_COMMON;
 		}
 	}
@@ -645,7 +645,7 @@ namespace vkr::Render
 		case RESOURCE_STATE_SYNC_COPY:
 			return D3D12_BARRIER_SYNC_COPY;
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return D3D12_BARRIER_SYNC_NONE;
 		}
 	}
@@ -675,7 +675,7 @@ namespace vkr::Render
 		case D3D12_BARRIER_SYNC_COPY:
 			return RESOURCE_STATE_SYNC_COPY;
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return RESOURCE_STATE_SYNC_NONE;
 		}
 	}
@@ -705,7 +705,7 @@ namespace vkr::Render
 		case RESOURCE_STATE_LAYOUT_DEPTH_WRITE:
 			return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE;
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return D3D12_BARRIER_LAYOUT_UNDEFINED;
 		}
 	}
@@ -729,7 +729,7 @@ namespace vkr::Render
 		case D3D12_BARRIER_LAYOUT_COPY_DEST:
 			return RESOURCE_STATE_LAYOUT_COPY_TARGET;
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return RESOURCE_STATE_LAYOUT_UNDEFINED;
 		}
 	}
@@ -749,7 +749,7 @@ namespace vkr::Render
 			textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
 			break;
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return D3D12_RESOURCE_DESC1{};
 		}
 

@@ -16,7 +16,8 @@ namespace vkr::Editor
 	{
 	public:
 		EditorCameraController(Graphics::Camera& camera);
-		void Update();
+		void Update(bool isHovered);
+
 	private:
 		Graphics::Camera& m_Camera;
 
@@ -44,6 +45,7 @@ namespace vkr::Editor
 		Graphics::View* m_View;
 		Graphics::Scene* m_Scene;
 		Graphics::TextureTarget m_ViewOutput;
+		bool m_IsHovered;
 	};
 }
 

@@ -179,7 +179,7 @@ namespace vkr::Graphics
 					vertexShaderCode << "uint4 ";
 					break;
 				default:
-					assert(false);
+					VKR_CHECK_NO_ENTRY();
 					return nullptr;
 				}
 
@@ -300,8 +300,8 @@ namespace vkr::Graphics
 
 	void MaterialInstance::SetParameterValue(const std::string& identifier, const MaterialParameterValue& value)
 	{
-		assert(m_Material && "Material template is required.");
-		assert(m_Material->FindParameter(identifier) != nullptr);
+		VKR_ASSERT(m_Material, "Material template is required.");
+		VKR_ASSERT(m_Material->FindParameter(identifier) != nullptr);
 		m_ParameterOverrides[identifier] = value;
 	}
 
@@ -328,13 +328,13 @@ namespace vkr::Graphics
 
 	const std::vector<MaterialParameterDesc>& MaterialInstance::GetParameters() const
 	{
-		assert(m_Material && "Material template is required.");
+		VKR_ASSERT(m_Material, "Material template is required.");
 		return m_Material->GetParameters();
 	}
 
 	uint32_t MaterialInstance::GatherMaterialData(MaterialDataBuffer& materialDataBuffer)
 	{
-		assert(m_Material && "Material template is required.");
+		VKR_ASSERT(m_Material, "Material template is required.");
 		const std::vector<MaterialParameterDesc>& parameters = m_Material->GetParameters();
 
 		std::vector<uint8_t> materialData;
@@ -397,7 +397,7 @@ namespace vkr::Graphics
 				break;
 			}
 			default:
-				assert(false);
+				VKR_CHECK_NO_ENTRY();
 				return 0;
 			}
 		}

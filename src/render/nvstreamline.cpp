@@ -17,7 +17,7 @@ namespace vkr::Render
 		case DLSS_RR:
 			return sl::kFeatureDLSS_RR;
 		default:
-			checkNoEntry();
+			VKR_CHECK_NO_ENTRY();
 			return 0;
 		}
 	}
@@ -136,7 +136,7 @@ namespace vkr::Render
 
 	bool NvStreamline::SetDevice(const Device* device)
 	{
-		assert(m_pImpl->m_InterposerDLL);
+		VKR_ASSERT(m_pImpl->m_InterposerDLL);
 		if (SL_FAILED(result, slSetD3DDevice(device->GetD3DDevice())))
 		{
 			VKR_LOG("[NvStreamline] Failed to set D3D Device.");

@@ -5,8 +5,8 @@ namespace vkr::Graphics
 {
 	bool TextureTarget::Update(uint32_t width, uint32_t height, const char* name)
 	{
-		assert((m_IsRenderTarget && m_IsDepthStencil) == false);
-		assert((m_IsWritable && m_IsDepthStencil) == false);
+		VKR_ASSERT((m_IsRenderTarget && m_IsDepthStencil) == false);
+		VKR_ASSERT((m_IsWritable && m_IsDepthStencil) == false);
 
 		bool changed = false;
 		changed |= m_Texture == nullptr;

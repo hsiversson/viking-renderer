@@ -3,8 +3,6 @@
 #if ENABLE_EDITOR
 #include "icons.h"
 
-#include <future>
-
 namespace vkr
 {
 	class InputManager;
@@ -23,9 +21,10 @@ namespace vkr::Graphics
 
 namespace vkr::Editor
 {
+	class ContentBrowserPanel;
+	class Layout;
 	class Renderer;
 	class ViewportPanel;
-	class ContentBrowserPanel;
 	class Manager
 	{
 	public:
@@ -58,13 +57,7 @@ namespace vkr::Editor
 
 		bool m_IsTitlebarHovered = false;
 
-		////////////////////////////////////////////
-		// TODO: not here, should go in level editor layout or something
-		std::future<void> m_InitTask;
-		UniquePtr<Graphics::Scene> m_Scene;
-		Ref<ViewportPanel> m_Viewport;
-		Ref<ContentBrowserPanel> m_ContentBrowser;
-		////////////////////////////////////////////
+		Ref<Layout> m_CurrentLayout;
 
 		MovingAverage<uint32_t, 64> m_FpsMovingAverage;
 

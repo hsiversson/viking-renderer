@@ -89,7 +89,7 @@ namespace vkr
 		float c22 = m[0] * m[4] - m[1] * m[3];
 
 		float det = m[0] * c00 + m[1] * c01 + m[2] * c02;
-		assert(std::fabs(det) > 1e-7f && "Matrix is singular, no inverse.");
+		VKR_ASSERT(std::fabs(det) > 1e-7f, "Matrix is singular, no inverse.");
 
 		float invDet = 1.0f / det;
 		return Mat33{
@@ -152,7 +152,7 @@ namespace vkr
 			+ m[4] * m[2] * m[9] + m[8] * m[1] * m[6] - m[8] * m[2] * m[5];
 
 		float det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
-		assert(std::fabs(det) > 1e-7f && "Matrix not invertible");
+		VKR_ASSERT(std::fabs(det) > 1e-7f, "Matrix not invertible");
 
 		float invDet = 1.0f / det;
 

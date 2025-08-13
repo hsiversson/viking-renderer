@@ -44,7 +44,7 @@ namespace vkr::Render
 	static std::wstring GetTargetProfile(ShaderStage shaderStage, ShaderModel shaderModel)
 	{
 		if (shaderStage == SHADER_STAGE_RAYTRACING)
-			assert(shaderModel >= ShaderModel::SM_6_6);
+			VKR_ASSERT(shaderModel >= ShaderModel::SM_6_6);
 
 		std::wstring target;
 		target.reserve(8);
@@ -181,13 +181,13 @@ namespace vkr::Render
 			}
 			else
 			{
-				// assert(false)
+				VKR_ASSERT(false);
 				return false;
 			}
 		}
 		else
 		{
-			// assert(false)
+			VKR_ASSERT(false);
 			return false;
 		}
 

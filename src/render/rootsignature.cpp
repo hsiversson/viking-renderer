@@ -18,7 +18,7 @@ namespace vkr::Render
 
 	bool RootSignature::Init(const RootSignatureDesc& desc)
 	{
-		assert(desc.m_NumLocalConstantBuffers <= MAX_NUM_LOCAL_CONSTANT_BUFFERS && "Cannot have more than 4 local constant buffers");
+		VKR_ASSERT(desc.m_NumLocalConstantBuffers <= MAX_NUM_LOCAL_CONSTANT_BUFFERS, "Cannot have more than 4 local constant buffers");
 
 		std::vector<D3D12_ROOT_PARAMETER> rootParams;
 		rootParams.reserve(desc.m_NumLocalConstantBuffers + GLOBAL_CONSTANT_BUFFER_COUNT);

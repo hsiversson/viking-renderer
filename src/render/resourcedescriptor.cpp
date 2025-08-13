@@ -197,7 +197,7 @@ namespace vkr::Render
 			case BUFFER_VIEW_USAGE_RAW_RW:
 				return InitAsUav(desc);
 			default:
-				assert(false);
+				VKR_CHECK_NO_ENTRY();
 				return false;
 			};
 
@@ -218,7 +218,7 @@ namespace vkr::Render
 		switch (desc.m_Usage)
 		{
 		case BUFFER_VIEW_USAGE_TYPED:
-			assert(desc.m_Format != FORMAT_UNKNOWN && "Valid format is required");
+			VKR_ASSERT(desc.m_Format != FORMAT_UNKNOWN, "Valid format is required");
 			srvDesc.Format = D3DConvertFormat(desc.m_Format);
 			break;
 
@@ -240,7 +240,7 @@ namespace vkr::Render
 			return true;
 
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return false;
 		};
 
@@ -258,7 +258,7 @@ namespace vkr::Render
 		switch (desc.m_Usage)
 		{
 		case BUFFER_VIEW_USAGE_TYPED_RW:
-			assert(desc.m_Format != FORMAT_UNKNOWN && "Valid format is required");
+			VKR_ASSERT(desc.m_Format != FORMAT_UNKNOWN, "Valid format is required");
 			uavDesc.Format = D3DConvertFormat(desc.m_Format);
 			break;
 
@@ -274,7 +274,7 @@ namespace vkr::Render
 			break;
 
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return false;
 		};
 

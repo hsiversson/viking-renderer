@@ -207,8 +207,8 @@ namespace vkr::Render
 		std::vector<std::vector<D3D12_EXPORT_DESC>> exports;
 		exports.resize(numHitGroups + 1); // 1 array per hit group plus 1 for ray gen and miss
 
-		assert(!raytracingDesc.m_RayGenerationIdentifier.empty());
-		assert(!raytracingDesc.m_MissIdentifier.empty());
+		VKR_ASSERT(!raytracingDesc.m_RayGenerationIdentifier.empty());
+		VKR_ASSERT(!raytracingDesc.m_MissIdentifier.empty());
 
 		const std::wstring rayGenerationIdentifier = UTF8ToUTF16(raytracingDesc.m_RayGenerationIdentifier);
 		const std::wstring missIdentifier = UTF8ToUTF16(raytracingDesc.m_MissIdentifier);

@@ -269,7 +269,7 @@ namespace vkr
 
 	void Window::ResetChangeFlags()
 	{
-		assert(Thread::IsMainThread());
+		VKR_ASSERT(Thread::IsMainThread());
 		m_ChangeFlags = WINDOW_CHANGE_FLAG_NONE;
 	}
 
@@ -306,7 +306,7 @@ namespace vkr
 		if (!RegisterClassEx(&windowClass))
 		{
 			uint32_t errorCode = GetLastError();
-			assert(false && "Failed to register window class.");
+			VKR_ASSERT(false, "Failed to register window class.");
 			return false;
 		}
 
@@ -318,7 +318,7 @@ namespace vkr
 		if (!UnregisterClass(g_WindowClassName, GetModuleHandle(nullptr)))
 		{
 			uint32_t errorCode = GetLastError();
-			assert(false && "Failed to unregister window class");
+			VKR_ASSERT(false, "Failed to unregister window class");
 		}
 	}
 

@@ -11,7 +11,7 @@ namespace vkr::Graphics
 
 	View* ViewManager::CreateView()
 	{
-		assert(m_ViewIdCounter < UINT32_MAX);
+		VKR_ASSERT(m_ViewIdCounter < UINT32_MAX);
 		m_Views.push_back(new View());
 		return m_Views.back();
 	}
@@ -25,7 +25,7 @@ namespace vkr::Graphics
 		}
 		else
 		{
-			assert(false && "View was not associated with this View Manager.");
+			VKR_ASSERT(false && "View was not associated with this View Manager.");
 		}
 	}
 

@@ -107,7 +107,7 @@ namespace vkr::Render
 			const D3D12_RESOURCE_DESC1 tempDesc = D3DConvertTextureDesc(m_TextureDesc);
 			const uint32_t blockSize = GetFormatBlockSize(m_TextureDesc.m_Format);
 			const uint32_t numSubresources = m_TextureDesc.m_MipLevels * m_TextureDesc.m_ArraySize;
-			assert(data.m_Subresources.size() == numSubresources);
+			VKR_ASSERT(data.m_Subresources.size() == numSubresources);
 			
 			std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(numSubresources);
 			std::vector<uint64_t> rowSizes(numSubresources);

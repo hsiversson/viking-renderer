@@ -40,7 +40,7 @@ namespace vkr::Render
 					outDesc.m_Dimension = ResourceDimension::Texture3D;
 					break;
 				default:
-					assert(false);
+					VKR_CHECK_NO_ENTRY();
 					return false;
 				}
 

@@ -74,7 +74,7 @@ namespace vkr::Graphics
 			meshDesc.m_Topology = Render::PRIMITIVE_TOPOLOGY_TRIANGLEFAN;
 			break;
 		default:
-			assert(false);
+			VKR_CHECK_NO_ENTRY();
 			return false;
 		}
 
@@ -196,8 +196,7 @@ namespace vkr::Graphics
 				meshDesc.m_IndexFormat = Render::FORMAT_R16_UINT;
 				break;
 			default:
-				//std::cerr << "Unsupported index format\n";
-				assert(false);
+				VKR_CHECK_NO_ENTRY();
 				return false;
 			}
 
@@ -259,7 +258,7 @@ namespace vkr::Graphics
 		const bool hasMesh = node->mesh;
 		if (hasMesh)
 		{
-			assert(node->mesh->primitives_count <= 1);
+			VKR_ASSERT(node->mesh->primitives_count <= 1);
 			for (uint32_t i = 0; i < node->mesh->primitives_count; ++i)
 			{
 				const cgltf_primitive& primitive = node->mesh->primitives[i];

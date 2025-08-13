@@ -42,7 +42,7 @@ namespace vkr::Render
 		if (completedValue == UINT64_MAX)
 		{
 			// device removed
-			assert(false && "device was removed");
+			VKR_ASSERT(false, "Device was removed");
 		}
 		return value > completedValue;
 	}
