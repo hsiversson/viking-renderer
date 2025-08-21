@@ -2,12 +2,13 @@
 
 #if ENABLE_EDITOR
 #include "panel.h"
+#include "game/entity.h"
 #include "graphics/view.h"
 #include "graphics/camera.h"
 
-namespace vkr::Graphics
+namespace vkr::Game
 {
-	class Scene;
+	class World;
 }
 
 namespace vkr::Editor
@@ -32,19 +33,38 @@ namespace vkr::Editor
 	class ViewportPanel final : public Panel
 	{
 	public:
-		ViewportPanel(Graphics::Scene* scene);
+		ViewportPanel(Game::World& world);
 		~ViewportPanel() override;
+
+		void SetSelectedEntity(const Game::Entity& selected);
 
 	private:
 		void OnUpdate() override;
 		void OnDraw() override;
 
 	private:
+		Game::World& m_World;
 		Graphics::Camera m_Camera;
 		EditorCameraController m_CameraController;
 		Graphics::View* m_View;
-		Graphics::Scene* m_Scene;
-		Graphics::TextureTarget m_ViewOutput;
+		Graphics::TextureTarget m_ViewOutput; 
+
+		//Gizmo controls
+		enum class GizmoOperation
+		{
+			Translate,
+			Rotate,
+			Scale 
+		};
+		enum class GizmoSpace
+		{
+			World,
+			Local
+		};
+		Game::Entity m_SelectedEntity;
+		GizmoOperation m_SelectedGizmoOp = GizmoOperation::Translate;
+		GizmoSpace m_SelectedGizmoSpace = GizmoSpace::World;
+
 		bool m_IsHovered;
 	};
 }

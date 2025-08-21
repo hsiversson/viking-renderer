@@ -41,10 +41,15 @@ namespace vkr::Graphics
 		void AddPart(const Part& part);
 		const std::vector<Part>& GetParts() const;
 
+		void SetTransform(const Mat44& transform);
+		const Mat44& GetTransform() const;
+
 		uint32_t GetTotalNumParts() const;
 
 	private:
 		bool InitPart(const ModelDesc::PartDesc& partDesc, Part& outPart);
+
+		Mat44 m_Transform;
 
 		std::vector<Part> m_Parts;
 		uint32_t m_TotalNumParts;

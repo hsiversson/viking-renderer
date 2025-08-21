@@ -21,6 +21,9 @@ namespace vkr::Game
 
 		Graphics::Scene* GetGraphicsScene() const;
 
+		EntityRegistry& GetEntityRegistry();
+		const EntityRegistry& GetEntityRegistry() const;
+
 	private:
 		EntityRegistry m_EntityRegistry;
 		UniquePtr<Graphics::Scene> m_GraphicsScene;

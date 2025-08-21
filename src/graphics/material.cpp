@@ -52,12 +52,14 @@ namespace vkr::Graphics
 		return GetOrCreatePSO(vertexLayout, false);
 	}
 
-	void Material::GetHitGroupDesc(Render::RaytracingHitGroupDesc& hitGroupDesc) const
+	Render::RaytracingHitGroupDesc Material::GetHitGroupDesc() const
 	{
-		hitGroupDesc.m_Shader = m_HitGroupShader.get();
-		hitGroupDesc.m_Identifier = m_HitGroupIdentifier;
-		hitGroupDesc.m_ClosestHitIdentifier = m_ClosestHitIdentifier;
-		hitGroupDesc.m_AnyHitIdentifier = m_AnyHitIdentifier;
+		Render::RaytracingHitGroupDesc desc = {};
+		desc.m_Shader = m_HitGroupShader.get();
+		desc.m_Identifier = m_HitGroupIdentifier;
+		desc.m_ClosestHitIdentifier = m_ClosestHitIdentifier;
+		desc.m_AnyHitIdentifier = m_AnyHitIdentifier;
+		return desc;
 	}
 
 	void Material::AddParameter(const MaterialParameterDesc& desc, const MaterialParameterValue& defaultValue)

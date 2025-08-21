@@ -3,15 +3,17 @@
 #if ENABLE_EDITOR
 #include "layout.h"
 
-namespace vkr::Graphics
+namespace vkr::Game
 {
-	class Scene;
+	class World;
 }
 
 namespace vkr::Editor
 {
 	class ContentBrowserPanel;
+	class PropertiesPanel;
 	class ViewportPanel;
+	class WorldHierarchyPanel;
 
 	class LevelEditor final : public Layout
 	{
@@ -31,9 +33,11 @@ namespace vkr::Editor
 
 		void SetMode(Mode mode);
 
-		UniquePtr<Graphics::Scene> m_Scene;
+		UniquePtr<Game::World> m_World;
 		Ref<ViewportPanel> m_Viewport;
 		Ref<ContentBrowserPanel> m_ContentBrowser;
+		Ref<WorldHierarchyPanel> m_WorldHierarchy;
+		Ref<PropertiesPanel> m_Properties;
 
 		Mode m_Mode;
 	};

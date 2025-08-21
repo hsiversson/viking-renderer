@@ -31,4 +31,5 @@
 #include "core/assert.h"
 #include "core/common.h"
 #include "core/timer.h"
+#include "core/types.h"
 #include "core/systempaths.h"

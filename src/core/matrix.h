@@ -3,6 +3,8 @@
 
 namespace vkr
 {
+	class Quaternion;
+
 	template<uint32_t R, uint32_t C>
 	class Mat
 	{
@@ -156,6 +158,9 @@ namespace vkr
 
 	Mat44 Compose(const Vector4f& m0, const Vector4f& m1, const Vector4f& m2, const Vector4f& m3);
 	Mat44 Compose(const Mat33& rotation, const Vector4f& translation);
+
+	Mat44 Compose(const Vector3f& position, const Quaternion& rotation, const Vector3f& scale);
+	void Decompose(const Mat44& m, Vector3f& position, Quaternion& rotation, Vector3f& scale);
 
 	Mat33 CreateRotationX(float angleRadians);
 	Mat33 CreateRotationY(float angleRadians);

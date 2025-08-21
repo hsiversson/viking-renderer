@@ -55,3 +55,5 @@ namespace vkr
 
 #include "vector.h"
 #include "matrix.h"
+#include "quaternion.h"
+#include "property.h"

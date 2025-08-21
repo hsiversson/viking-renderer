@@ -88,7 +88,7 @@ namespace vkr::Graphics
 	{
 		Material* material = part.m_Material->GetMaterial();
 		Render::RaytracingHitGroupDesc hitGroupDesc = {};
-		material->GetHitGroupDesc(hitGroupDesc);
+		//material->GetHitGroupDesc(hitGroupDesc);
 		outHitGroups.push_back(hitGroupDesc);
 
 		for (const auto& part : part.m_ChildParts)

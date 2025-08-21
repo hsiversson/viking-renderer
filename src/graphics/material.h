@@ -161,7 +161,7 @@ namespace vkr::Graphics
 		Ref<Render::PipelineState> GetDepthPipelineState(const Render::VertexLayout& vertexLayout);
 		Ref<Render::PipelineState> GetDefaultPipelineState(const Render::VertexLayout& vertexLayout);
 
-		void GetHitGroupDesc(Render::RaytracingHitGroupDesc& hitGroupDesc) const;
+		Render::RaytracingHitGroupDesc GetHitGroupDesc() const;
 
 		void AddParameter(const MaterialParameterDesc& desc, const MaterialParameterValue& defaultValue);
 		const MaterialParameterDesc* FindParameter(const std::string& identifier) const;

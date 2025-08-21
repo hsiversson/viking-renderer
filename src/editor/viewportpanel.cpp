@@ -2,6 +2,8 @@
 
 #if ENABLE_EDITOR
 #include "editor.h"
+#include "game/transformcomponent.h"
+#include "game/world.h"
 #include "graphics/view.h"
 #include "graphics/scene.h"
 #include "core/inputmanager.h"
@@ -105,14 +107,14 @@ namespace vkr::Editor
 		}
 	}
 
-    ViewportPanel::ViewportPanel(Graphics::Scene* scene)
+    ViewportPanel::ViewportPanel(Game::World& world)
         : Panel("Viewport")
+        , m_World(world)
 		, m_CameraController(m_Camera)
         , m_View(nullptr)
-        , m_Scene(scene)
 		, m_IsHovered(false)
     {
-        m_View = m_Scene->CreateView();
+        m_View = m_World.GetGraphicsScene()->CreateView();
 
         m_ViewOutput.m_Format = Render::FORMAT_RGBA16_FLOAT;
         m_ViewOutput.m_IsWritable = true;
@@ -130,8 +132,13 @@ namespace vkr::Editor
 
     ViewportPanel::~ViewportPanel()
 	{
-		m_Scene->DestroyView(m_View);
+		m_World.GetGraphicsScene()->DestroyView(m_View);
     }
+
+	void ViewportPanel::SetSelectedEntity(const Game::Entity& selected)
+	{
+		m_SelectedEntity = selected;
+	}
 
     void ViewportPanel::OnUpdate()
 	{
@@ -155,12 +162,13 @@ namespace vkr::Editor
         ImGui::Image((ImTextureID)m_ViewOutput.m_TextureView.get(), { m_ContentAreaSize.x, m_ContentAreaSize.y }, { 0,0 }, { uvMax.x, uvMax.y });
 		m_IsHovered = ImGui::IsItemHovered();
 
-		bool selected = true;
-		if (selected)
+		if (m_SelectedEntity)
 		{
+			Game::TransformComponent* transformComponent = m_SelectedEntity.GetComponent<Game::TransformComponent>();
+
 			Mat44 cameraTransform = m_Camera.GetWorldTransform();
 
-			Mat44 objectTransform = Mat44::Identity();
+			Mat44 objectTransform = Compose(transformComponent->m_Position, transformComponent->m_Rotation, transformComponent->m_Scale);
 			Vector3f objectPosition = Vector3f(objectTransform.At(3, 0), objectTransform.At(3, 1), objectTransform.At(3, 2));
 
 			Vector3f cameraForward = Normalized(Vector3f(cameraTransform.At(2, 0), cameraTransform.At(2, 1), cameraTransform.At(2, 2)));
@@ -176,7 +184,13 @@ namespace vkr::Editor
 
 				Mat44 view = m_Camera.GetView();
 				Mat44 proj = m_Camera.GetProjection();
-				ImGuizmo::Manipulate(&view[0], &proj[0], IMGUIZMO_NAMESPACE::TRANSLATE, IMGUIZMO_NAMESPACE::WORLD, &objectTransform[0]);
+
+				const IMGUIZMO_NAMESPACE::OPERATION op = (m_SelectedGizmoOp == GizmoOperation::Scale) ? IMGUIZMO_NAMESPACE::SCALE : (m_SelectedGizmoOp == GizmoOperation::Rotate ? IMGUIZMO_NAMESPACE::ROTATE : IMGUIZMO_NAMESPACE::TRANSLATE);
+				const IMGUIZMO_NAMESPACE::MODE mode = m_SelectedGizmoSpace == GizmoSpace::Local ? IMGUIZMO_NAMESPACE::LOCAL : IMGUIZMO_NAMESPACE::WORLD;
+				if (ImGuizmo::Manipulate(&view[0], &proj[0], op, mode, &objectTransform[0]))
+				{
+					Decompose(objectTransform, transformComponent->m_Position, transformComponent->m_Rotation, transformComponent->m_Scale);
+				}
 				ImGui::PopClipRect();
 			}
 		}

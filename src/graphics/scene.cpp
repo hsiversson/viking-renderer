@@ -13,7 +13,6 @@
 namespace vkr::Graphics
 {
 	Scene::Scene()
-		: m_HasChanges(true)
 	{
 		m_TraceRaysDynamicShaderLib = Render::GetDevice()->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/tracerays_dynamic.hlsl"), nullptr, Render::SHADER_STAGE_RAYTRACING);
 		m_ViewManager = MakeUnique<ViewManager>(*this);
@@ -41,34 +40,84 @@ namespace vkr::Graphics
 
 	void Scene::Update()
 	{
-		// run updates
-
-		// sort views based on frame structure?
-		// main view goes last usually
-		if (m_HasChanges)
+		std::queue<PendingAction> pendingActions;
 		{
+			std::unique_lock<std::mutex> lock(m_PendingActionsMutex);
+			pendingActions.swap(m_PendingActions);
+		}
+
+		// consume all pending actions
+		bool hitGroupAdded = false;
+		PendingAction action = {};
+		while (!pendingActions.empty())
+		{
+			action = pendingActions.front();
+			pendingActions.pop();
+
+			switch (action.m_Type)
 			{
-				std::unique_lock<std::mutex> lock(m_SceneObjectsToAddMutex);
-				m_SceneObjects.insert(m_SceneObjects.end(), m_SceneObjectsToAdd.begin(), m_SceneObjectsToAdd.end());
-				m_SceneObjectsToAdd.clear();
+			case PendingAction::Type::Add:
+			{
+				switch (action.m_ObjectType)
+				{
+				case PendingAction::ObjectType::Model:
+				{
+					m_Models.push_back(action.m_Model);
+					for (const Model::Part& part : action.m_Model->GetParts())
+					{
+						Material* material = part.m_Material->GetMaterial();
+						if (!m_MaterialToHitGroupId.contains(material))
+						{
+							m_MaterialToHitGroupId[material] = m_MaterialHitGroupCounter++;
+							m_HitGroupDescs.push_back(material->GetHitGroupDesc());
+							hitGroupAdded = true;
+						}
+					}
+				}
+				break;
+				case PendingAction::ObjectType::LocalLight:
+				{
+
+				}
+				break;
+				}
 			}
+			break;
+			case PendingAction::Type::Remove:
+			{
+				switch (action.m_ObjectType)
+				{
+				case PendingAction::ObjectType::Model:
+				{
+					auto it = std::find(m_Models.begin(), m_Models.end(), action.m_Model);
+					if (it != m_Models.end())
+					{
+						std::swap(*it, m_Models.back());
+						m_Models.pop_back();
+					}
+				}
+				break;
+				case PendingAction::ObjectType::LocalLight:
+				{
+
+				}
+				break;
+				}
+			}
+			break;
+			}
+		}
+
+		if (hitGroupAdded)
+		{
 			// update tracing pipeline state
-
-			std::vector<Render::RaytracingHitGroupDesc> materialHitGroups;
-			for (size_t i = 0; i < m_SceneObjects.size(); i++)
-			{
-				m_SceneObjects[i]->CollectRaytracingHitGroups(materialHitGroups);
-			}
-
 			Render::PipelineStateDesc psoDesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_RAYTRACING);
-			psoDesc.Raytracing.m_HitGroups = materialHitGroups.data();
-			psoDesc.Raytracing.m_NumHitGroups = materialHitGroups.size();
+			psoDesc.Raytracing.m_HitGroups = m_HitGroupDescs.data();
+			psoDesc.Raytracing.m_NumHitGroups = m_HitGroupDescs.size();
 			psoDesc.Raytracing.m_MissIdentifier = "Miss";
 			psoDesc.Raytracing.m_RayGenerationIdentifier = "TraceRays";
 			psoDesc.Raytracing.m_Shader = m_TraceRaysDynamicShaderLib.get();
 			m_TraceRaysPipelineState = Render::GetDevice()->CreatePipelineState(psoDesc);
-
-			m_HasChanges = false;
 		}
 
 		for (View* view : m_ViewManager->GetViews())
@@ -76,6 +125,28 @@ namespace vkr::Graphics
 			PrepareView(*view);
 			m_ViewRenderer->RenderView(*view);
 		}
+	}
+
+	void Scene::AddModel(const Ref<Model>& model)
+	{
+		PendingAction action = {};
+		action.m_Type = PendingAction::Type::Add;
+		action.m_ObjectType = PendingAction::ObjectType::Model;
+		action.m_Model = model;
+
+		std::unique_lock<std::mutex> lock(m_PendingActionsMutex);
+		m_PendingActions.push(std::move(action));
+	}
+
+	void Scene::RemoveModel(const Ref<Model>& model)
+	{
+		PendingAction action = {};
+		action.m_Type = PendingAction::Type::Remove;
+		action.m_ObjectType = PendingAction::ObjectType::Model;
+		action.m_Model = model;
+
+		std::unique_lock<std::mutex> lock(m_PendingActionsMutex);
+		m_PendingActions.push(std::move(action));
 	}
 
 	void Scene::PrepareView(View& view)
@@ -86,9 +157,13 @@ namespace vkr::Graphics
 
 		prepareData.m_TraceRaysPipelineState = m_TraceRaysPipelineState;
 
-		for (size_t i = 0; i < m_SceneObjects.size(); i++)
+		for (size_t i = 0; i < m_Models.size(); i++)
 		{
-			m_SceneObjects[i]->CollectRenderObjects(prepareData);
+			Model* model = m_Models[i].get();
+			for (const Model::Part& part : model->GetParts())
+			{
+				CollectModelPart(prepareData, part, model->GetTransform(), model->GetTransform());
+			}
 		}
 
 		std::sort(prepareData.m_VisibleMeshes.begin(), prepareData.m_VisibleMeshes.end());
@@ -139,6 +214,48 @@ namespace vkr::Graphics
 		if (false) //(!useRaytracing)
 		{
 			CollectBatchesForPass(prepareData.m_ForwardPassData, DefaultPSOSelector);
+		}
+	}
+
+	void Scene::CollectModelPart(ViewRenderData& renderData, const Model::Part& part, const Mat44& parentWorldTransform, const Mat44& prevParentWorldTransform)
+	{
+		Graphics::RenderObject obj;
+		InstanceData data;
+		data.m_Transform = part.m_LocalTransform * parentWorldTransform;
+		data.m_PrevTransform = part.m_LocalTransform * prevParentWorldTransform;
+		data.m_MaterialID = part.m_Material->GatherMaterialData(renderData.m_MaterialDataBuffer); //TODO
+		//Fill up instance data with RT specific info
+		data.m_VertexBufferDescriptorIndex = part.m_Mesh->GetRaytraceVBView()->GetIndex();
+		data.m_VertexStride = part.m_Mesh->GetVertexLayout().GetStride();
+		data.m_VertexPositionByteOffset = part.m_Mesh->GetVertexLayout().GetByteOffset(Render::VertexAttribute::TYPE_POSITION, 0);
+		data.m_VertexNormalByteOffset = part.m_Mesh->GetVertexLayout().GetByteOffset(Render::VertexAttribute::TYPE_NORMAL, 0);
+		data.m_VertexTangentByteOffset = part.m_Mesh->GetVertexLayout().GetByteOffset(Render::VertexAttribute::TYPE_TANGENT, 0);
+		data.m_VertexUVByteOffset = part.m_Mesh->GetVertexLayout().GetByteOffset(Render::VertexAttribute::TYPE_UV, 0);
+		data.m_IndexBufferDescriptorIndex = part.m_Mesh->GetRaytraceIBView()->GetIndex();
+		data.m_IndexStride = GetFormatBytesPerPixel(part.m_Mesh->GetIndexBuffer()->GetDesc().m_Format);
+		uint8_t* genericdata = (uint8_t*)&data;
+		//Serialize instance data into byte buffer
+		obj.m_InstanceDataIndex = renderData.m_InstanceData.size();
+		renderData.m_InstanceData.insert(renderData.m_InstanceData.end(), genericdata, genericdata + sizeof(InstanceData));
+		//======================================
+		renderData.m_TotalInstanceCount++;
+		obj.m_Mesh = part.m_Mesh.get();
+		obj.m_Material = part.m_Material.get();
+		renderData.m_VisibleMeshes.push_back(obj);
+
+		if (Ref<Render::Buffer> blas = part.m_Mesh->GetBLAS())
+		{
+			Render::RaytracingInstanceDesc rtInstanceDesc = {};
+			rtInstanceDesc.m_BLAS = blas;
+			rtInstanceDesc.m_InstanceId = obj.m_InstanceDataIndex;
+			rtInstanceDesc.m_Transform = data.m_Transform;
+			rtInstanceDesc.m_HitGroupIndex = m_MaterialToHitGroupId.at(part.m_Material->GetMaterial());
+			renderData.m_RaytracingInstances.push_back(rtInstanceDesc);
+		}
+
+		for (uint32_t i = 0; i < part.m_ChildParts.size(); ++i)
+		{
+			CollectModelPart(renderData, part.m_ChildParts[i], data.m_Transform, data.m_PrevTransform);
 		}
 	}
 }

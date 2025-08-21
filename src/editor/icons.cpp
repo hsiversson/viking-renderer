@@ -29,6 +29,9 @@ namespace vkr::Editor
 
 		if (!LoadIcon(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "icons/icon_play_white.dds"), m_Icons[EDITOR_ICON_PLAY_WHITE])) return false;
 
+		if (!LoadIcon(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "icons/icon_visible_white.dds"), m_Icons[EDITOR_ICON_VISIBLE_WHITE])) return false;
+		if (!LoadIcon(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "icons/icon_not_visible_white.dds"), m_Icons[EDITOR_ICON_NOT_VISIBLE_WHITE])) return false;
+
 		return true;
 	}
 

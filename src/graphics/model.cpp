@@ -8,6 +8,7 @@ namespace vkr::Graphics
 {
 	Model::Model()
 		: m_TotalNumParts(0)
+		, m_Transform(Mat44::Identity())
 	{
 
 	}
@@ -38,6 +39,16 @@ namespace vkr::Graphics
 	const std::vector<Model::Part>& Model::GetParts() const
 	{
 		return m_Parts;
+	}
+
+	void Model::SetTransform(const Mat44& transform)
+	{
+		m_Transform = transform;
+	}
+
+	const Mat44& Model::GetTransform() const
+	{
+		return m_Transform;
 	}
 
 	uint32_t Model::GetTotalNumParts() const
@@ -77,7 +88,7 @@ namespace vkr::Graphics
 	Render::RaytracingHitGroupDesc Model::Part::GetHitGroupDesc()
 	{
 		Render::RaytracingHitGroupDesc hitGroupDesc = {};
-		m_Material->GetMaterial()->GetHitGroupDesc(/*m_Mesh->GetVertexLayout(),*/ hitGroupDesc);
+		//m_Material->GetMaterial()->GetHitGroupDesc(/*m_Mesh->GetVertexLayout(),*/ hitGroupDesc);
 		return hitGroupDesc;
 	}
 

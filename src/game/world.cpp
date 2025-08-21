@@ -1,6 +1,9 @@
 #include "world.h"
 
 #include "graphics/scene.h"
+#include "hierarchycomponent.h"
+#include "idcomponent.h"
+#include "transformcomponent.h"
 
 namespace vkr::Game
 {
@@ -24,6 +27,14 @@ namespace vkr::Game
 	Entity World::CreateEntity(const char* name /*= "Unnamed Entity"*/)
 	{
 		Entity newEntity = Entity(m_EntityRegistry.CreateEntity(), &m_EntityRegistry);
+		IdComponent& idComponent = newEntity.AddComponent<IdComponent>();
+		idComponent.m_Uid = newEntity.GetHandle();
+		idComponent.m_Name = name;
+		idComponent.m_Type = "Entity";
+
+		newEntity.AddComponent<Game::HierarchyComponent>();
+		newEntity.AddComponent<Game::TransformComponent>();
+
 		return newEntity;
 	}
 
@@ -35,6 +46,16 @@ namespace vkr::Game
 	Graphics::Scene* World::GetGraphicsScene() const
 	{
 		return m_GraphicsScene.get();
+	}
+
+	EntityRegistry& World::GetEntityRegistry()
+	{
+		return m_EntityRegistry;
+	}
+
+	const EntityRegistry& World::GetEntityRegistry() const
+	{
+		return m_EntityRegistry;
 	}
 
 }
