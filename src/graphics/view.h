@@ -97,6 +97,7 @@ namespace vkr::Graphics
 		int m_CurrentJitterIndex = 0;
 		Mat44 m_PrevCameraWorld = Mat44::Identity();
 		Mat44 m_PrevView = Mat44::Identity();
+		Mat44 m_PrevProjectionUnjittered = Mat44::Identity();
 		Mat44 m_PrevViewProjection = Mat44::Identity();
 		Mat44 m_PrevViewProjectionUnjittered = Mat44::Identity();
 		Vector2f m_PrevJitter = Vector2f(0, 0);

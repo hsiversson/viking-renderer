@@ -155,6 +155,9 @@ namespace vkr::Graphics
 		data.PrevViewProjectionMatrix = m_PrevViewProjection;
 		m_PrevViewProjection = data.ViewProjectionMatrix;
 		data.ProjectionMatrixUnjittered = ProjectionNoJitter;
+		data.PrevProjectionMatrixUnjittered = m_PrevProjectionUnjittered;
+		m_PrevProjectionUnjittered = data.ProjectionMatrixUnjittered;
+		data.InvProjectionMatrixUnjittered = Inverse(data.ProjectionMatrixUnjittered);
 		data.PrevViewMatrix = m_PrevView;
 		m_PrevView = data.ViewMatrix;
 		data.ViewProjectionMatrixUnjittered = data.ViewMatrix * data.ProjectionMatrixUnjittered;

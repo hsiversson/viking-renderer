@@ -108,8 +108,8 @@ namespace vkr::Render
 		constants.motionVectorsJittered = sl::eFalse;
 		constants.cameraPinholeOffset = { 0.0f, 0.0f };
 		
-		NvStreamline::Convert(constants.cameraViewToClip, renderCameraConstants.ViewProjectionMatrixUnjittered);
-		NvStreamline::Convert(constants.clipToCameraView, renderCameraConstants.InvViewProjectionMatrixUnjittered);
+		NvStreamline::Convert(constants.cameraViewToClip, renderCameraConstants.ProjectionMatrixUnjittered);
+		NvStreamline::Convert(constants.clipToCameraView, renderCameraConstants.InvProjectionMatrixUnjittered);
 
 		sl::float4x4 slCameraToWorldLastFrame;
 		sl::float4x4 cameraToWorld;
@@ -123,7 +123,7 @@ namespace vkr::Render
 		matrixMul(clipToPrevCameraView, constants.clipToCameraView, cameraViewToPrevCameraView);
 
 		sl::float4x4 cameraToClipLastFrame;
-		NvStreamline::Convert(cameraToClipLastFrame, renderCameraConstants.PrevViewProjectionMatrixUnjittered);
+		NvStreamline::Convert(cameraToClipLastFrame, renderCameraConstants.PrevProjectionMatrixUnjittered);
 		matrixMul(constants.clipToPrevClip, clipToPrevCameraView, cameraToClipLastFrame);
 		matrixFullInvert(constants.prevClipToClip, constants.clipToPrevClip);
 

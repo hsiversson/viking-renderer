@@ -29,11 +29,14 @@ namespace vkr::Graphics
 		Mat44 PrevCameraWorldMatrix;
 		Mat44 PrevViewMatrix;
 		Mat44 PrevViewProjectionMatrix;
-		Mat44 PrevViewProjectionMatrixUnjittered;
 		//Unjittered
 		Mat44 ProjectionMatrixUnjittered;
+		Mat44 InvProjectionMatrixUnjittered;
 		Mat44 ViewProjectionMatrixUnjittered;
 		Mat44 InvViewProjectionMatrixUnjittered;
+		//Unjittered prev frame
+		Mat44 PrevProjectionMatrixUnjittered;
+		Mat44 PrevViewProjectionMatrixUnjittered;
 
 		Vector2f CurrentJitter;
 		Vector2f PrevJitter;
