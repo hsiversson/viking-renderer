@@ -116,12 +116,13 @@ namespace vkr::Editor
     {
         m_View = m_World.GetGraphicsScene()->CreateView();
 
-        m_ViewOutput.m_Format = Render::FORMAT_RGBA16_FLOAT;
-        m_ViewOutput.m_IsWritable = true;
-        m_ViewOutput.m_IsRenderTarget = true;
-        m_ViewOutput.Update(1280, 720, "Editor Viewport Target");
+		m_ViewOutput.m_Format = Render::FORMAT_RGBA16_FLOAT;
+		m_ViewOutput.m_IsWritable = true;
+		m_ViewOutput.m_IsRenderTarget = true;
+		m_ViewOutput.Update(1280, 720, "Editor Viewport Target");
 		m_View->SetOutputTarget(m_ViewOutput.m_RenderTarget.get());
 		m_View->SetRenderSize(Vector2u(1280, 720));
+		m_View->SetOutputSize(Vector2u(1280, 720));
 
 		Mat43 camTransform = Compose(Mat33::Identity(), Vector3f(0, 2.0f, -6.0f));
 		m_Camera.SetLocalTransform(camTransform);
@@ -149,7 +150,7 @@ namespace vkr::Editor
         m_Camera.SetSize(Vector2f(viewportSize));
 		m_ViewOutput.Update(viewportSize, "Editor Viewport Target");
 		m_View->SetOutputTarget(m_ViewOutput.m_RenderTarget.get());
-		m_View->SetRenderSize(viewportSize);
+		m_View->SetOutputSize(viewportSize);
 
 		m_CameraController.Update(m_IsHovered);
 
@@ -158,6 +159,7 @@ namespace vkr::Editor
 
     void ViewportPanel::OnDraw()
     {
+		auto OutputTexture = m_View->GetRenderTargets().m_SceneBuffer_OutputSize.m_Texture;
         Vector2f uvMax = { m_ContentAreaSize.x / (float)m_ViewOutput.m_Texture->m_TextureDesc.m_Size.x, m_ContentAreaSize.y / (float)m_ViewOutput.m_Texture->m_TextureDesc.m_Size.y };
         ImGui::Image((ImTextureID)m_ViewOutput.m_TextureView.get(), { m_ContentAreaSize.x, m_ContentAreaSize.y }, { 0,0 }, { uvMax.x, uvMax.y });
 		m_IsHovered = ImGui::IsItemHovered();

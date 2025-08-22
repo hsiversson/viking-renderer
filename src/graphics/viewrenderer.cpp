@@ -1,29 +1,13 @@
 #include "viewrenderer.h"
 #include "view.h"
 
+#include "application/appsettings.h"
 #include "graphics/material.h"
 #include "graphics/mesh.h"
 #include "render/context.h"
 #include "render/device.h"
-
-static constexpr vkr::Vector2f JitterHaltonSequence[] = { 
-	{0.5,0.333333},
-	{0.25,0.666667},
-	{0.750000, 0.111111},
-	{0.125000, 0.444444},
-	{0.625000, 0.777778},
-	{0.375000, 0.222222},
-	{0.875000, 0.555556},
-	{0.062500, 0.888889},
-	{0.562500, 0.037037},
-	{0.312500, 0.370370},
-	{0.812500, 0.703704},
-	{0.187500, 0.148148},
-	{0.687500, 0.481481},
-	{0.437500, 0.814815},
-	{0.937500, 0.259259},
-	{ 0.031250, 0.592593 }
-};
+#include "render/nvdlss.h"
+#include "render/nvstreamline.h"
 
 namespace vkr::Graphics
 {
@@ -153,30 +137,20 @@ namespace vkr::Graphics
 
 		PerSceneConstantData perSceneConstantData = {};
 
-		Mat44 ProjectionNoJitter = const_cast<Camera&>(view.GetCamera()).GetProjection();
-		//Select a new jitter offset for TAA for this frame
-		int jitterIdx = m_CurrentJitterIndex++;
-		m_CurrentJitterIndex = m_CurrentJitterIndex % 16;
-		perSceneConstantData.CurrentJitter = (JitterHaltonSequence[jitterIdx] - 0.5f) / Vector2f(view.GetRenderSize()) * 2.0f;
-		Mat44 Projection = ProjectionNoJitter;
-		Projection[8] = perSceneConstantData.CurrentJitter.x;
-		Projection[9] = perSceneConstantData.CurrentJitter.y;
-		perSceneConstantData.PrevJitter = m_PrevJitter;
-		m_PrevJitter = perSceneConstantData.CurrentJitter;
-		perSceneConstantData.FrameIndex = ElapsedTimer::FrameIndex();
-		perSceneConstantData.DeltaTime = ElapsedTimer::DeltaTime();
-		perSceneConstantData.ElapsedTime = ElapsedTimer::ElapsedTime();
+		perSceneConstantData.CurrentJitter = renderData.m_CameraData.CurrentJitter;
+		perSceneConstantData.PrevJitter = renderData.m_CameraData.PrevJitter;
+		perSceneConstantData.FrameIndex = renderData.m_FrameIndex;
+		perSceneConstantData.DeltaTime = renderData.m_DeltaTime;
+		perSceneConstantData.ElapsedTime = renderData.m_ElapsedTime;
 
-		Mat43 CamWorld = const_cast<Camera&>(view.GetCamera()).GetWorldTransform();
-		perSceneConstantData.CameraWorldPosition = Vector3f(CamWorld[9], CamWorld[10], CamWorld[11]);
-		perSceneConstantData.View = const_cast<Camera&>(view.GetCamera()).GetView();
-		perSceneConstantData.InvView = Inverse(perSceneConstantData.View);
-		perSceneConstantData.Projection = Projection;
-		perSceneConstantData.InvProjection = Inverse(perSceneConstantData.Projection);
-		perSceneConstantData.ViewProjection = perSceneConstantData.View * perSceneConstantData.Projection;
-		perSceneConstantData.InvViewProjection = Inverse(perSceneConstantData.ViewProjection);
-		perSceneConstantData.PrevViewProjection = m_PrevViewProjection;
-		m_PrevViewProjection = perSceneConstantData.ViewProjection;
+		perSceneConstantData.CameraWorldPosition = Vector3f(renderData.m_CameraData.CameraWorldMatrix[9], renderData.m_CameraData.CameraWorldMatrix[10], renderData.m_CameraData.CameraWorldMatrix[11]);
+		perSceneConstantData.InvView = renderData.m_CameraData.InvViewMatrix;
+		perSceneConstantData.Projection = renderData.m_CameraData.ProjectionMatrix;
+		perSceneConstantData.InvProjection = renderData.m_CameraData.InvProjectionMatrix;
+		perSceneConstantData.ViewProjection = renderData.m_CameraData.ViewProjectionMatrix;
+		perSceneConstantData.InvViewProjection = renderData.m_CameraData.InvViewProjectionMatrix;
+		perSceneConstantData.PrevViewProjection = renderData.m_CameraData.PrevViewProjectionMatrix;
+
 		perSceneConstantData.InstanceDataBufferDescriptorIndex = renderData.m_InstanceDataBufferView->GetIndex();
 		perSceneConstantData.InstanceDataOffsetBufferDescriptorIndex = renderData.m_InstanceDataOffsetBufferView->GetIndex();
 		perSceneConstantData.MaterialDataBufferDescriptorIndex = renderData.m_MaterialDataBuffer.GetBufferView()->GetIndex();
@@ -213,7 +187,7 @@ namespace vkr::Graphics
 
 		renderTargets.m_DepthBuffer.m_IsDepthStencil = true;
 		renderTargets.m_DepthBuffer.m_Format = Render::Format::FORMAT_D32_FLOAT;
-		renderTargets.m_DepthBuffer.Update(view.GetRenderSize(), "ViewRenderTargets::DepthBuffer");
+		renderTargets.m_DepthBuffer.Update(renderData.m_RenderSize, "ViewRenderTargets::DepthBuffer");
 
 		ctx->InsertWait(renderData.m_RaytracingTLAS->GetBuffer()->GetGpuPending());
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
@@ -273,7 +247,7 @@ namespace vkr::Graphics
 		renderTargets.m_SceneBuffer_RenderSize.m_IsWritable = true;
 		renderTargets.m_SceneBuffer_RenderSize.m_IsRenderTarget = true;
 		renderTargets.m_SceneBuffer_RenderSize.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
-		renderTargets.m_SceneBuffer_RenderSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_RenderSize");
+		renderTargets.m_SceneBuffer_RenderSize.Update(renderData.m_RenderSize, "ViewRenderTargets::SceneBuffer_RenderSize");
 
 		renderTargets.m_Velocity.m_IsWritable = true;
 		renderTargets.m_Velocity.m_IsRenderTarget = true;
@@ -281,7 +255,7 @@ namespace vkr::Graphics
 		uint32_t nanBits = 0xffffffff;
 		float nanValue = *reinterpret_cast<float*>(&nanBits);
 		renderTargets.m_Velocity.m_ClearValue = { nanValue, nanValue, nanValue, nanValue };
-		renderTargets.m_Velocity.Update(view.GetRenderSize(), "ViewRenderTargets::Velocity");
+		renderTargets.m_Velocity.Update(renderData.m_RenderSize, "ViewRenderTargets::Velocity");
 
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
 
@@ -354,7 +328,7 @@ namespace vkr::Graphics
 
 			ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
-			ctx->DispatchThreads({ view.GetRenderSize().x, view.GetRenderSize().y, 1 });
+			ctx->DispatchThreads({ renderData.m_RenderSize.x, renderData.m_RenderSize.y, 1 });
 		}
 	}
 
@@ -368,18 +342,18 @@ namespace vkr::Graphics
 		renderTargets.m_SceneBuffer_RenderSize.m_IsWritable = true;
 		renderTargets.m_SceneBuffer_RenderSize.m_IsRenderTarget = true;
 		renderTargets.m_SceneBuffer_RenderSize.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
-		renderTargets.m_SceneBuffer_RenderSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_RenderSize");
+		renderTargets.m_SceneBuffer_RenderSize.Update(renderData.m_RenderSize, "ViewRenderTargets::SceneBuffer_RenderSize");
 
 		renderTargets.m_SceneBuffer_OutputSize.m_IsWritable = true;
 		renderTargets.m_SceneBuffer_OutputSize.m_IsRenderTarget = true;
 		renderTargets.m_SceneBuffer_OutputSize.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
-		renderTargets.m_SceneBuffer_OutputSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_OutputSize");
+		renderTargets.m_SceneBuffer_OutputSize.Update(renderData.m_OutputSize, "ViewRenderTargets::SceneBuffer_OutputSize");
 
 		renderTargets.m_Velocity.m_IsWritable = true;
 		renderTargets.m_Velocity.m_IsRenderTarget = true;
 		renderTargets.m_Velocity.m_Format = Render::Format::FORMAT_RG16_FLOAT;
 		renderTargets.m_Velocity.m_ClearValue = { FLT_MAX,FLT_MAX,FLT_MAX ,FLT_MAX };
-		renderTargets.m_Velocity.Update(view.GetRenderSize(), "ViewRenderTargets::Velocity");
+		renderTargets.m_Velocity.Update(renderData.m_RenderSize, "ViewRenderTargets::Velocity");
 
 		//Transition to RT the output
 		std::vector<Render::TextureBarrierDesc> barriers;
@@ -460,7 +434,7 @@ namespace vkr::Graphics
 
 		renderTargets.m_Normals.m_IsWritable = true;
 		renderTargets.m_Normals.m_Format = Render::Format::FORMAT_RGBA16_SNORM;
-		renderTargets.m_Normals.Update(view.GetRenderSize(), "ViewRenderTargets::Normals");
+		renderTargets.m_Normals.Update(renderData.m_RenderSize, "ViewRenderTargets::Normals");
 
 		//Transition to UAV the output
 		std::vector<Render::TextureBarrierDesc> barriers;
@@ -487,7 +461,7 @@ namespace vkr::Graphics
 		data.NormalsTextureDescriptor = renderTargets.m_Normals.m_TextureViewRW->GetIndex();
 		ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
-		ctx->DispatchRays(renderData.m_TraceRaysPipelineState.get() , view.GetRenderSize().x, view.GetRenderSize().y);
+		ctx->DispatchRays(renderData.m_TraceRaysPipelineState.get() , renderData.m_RenderSize.x, renderData.m_RenderSize.y);
 	}
 
 	void ViewRenderer::RenderSky(View& view)
@@ -522,7 +496,7 @@ namespace vkr::Graphics
 		data.DepthTextureDescriptor = renderTargets.m_DepthBuffer.m_TextureView->GetIndex();
 		ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
-		ctx->DispatchThreads({ view.GetRenderSize().x, view.GetRenderSize().y,1 });
+		ctx->DispatchThreads({ renderData.m_RenderSize.x, renderData.m_RenderSize.y,1 });
 	}
 
 	void ViewRenderer::ApplyUpscaling(View& view)
@@ -530,94 +504,121 @@ namespace vkr::Graphics
 		// TAA, DLSS, FSR, XeSS etc.
 		const ViewRenderData& renderData = view.GetRenderData();
 		ViewRenderTargets& renderTargets = view.GetRenderTargets();
+		Render::Context* ctx = Render::Context::GetCurrentContext();
+		SET_CONTEXT_MARKER_FUNCTION(ctx);
 
 		renderTargets.m_SceneBuffer_OutputSize.m_IsWritable = true;
 		renderTargets.m_SceneBuffer_OutputSize.m_IsRenderTarget = true;
 		renderTargets.m_SceneBuffer_OutputSize.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
-		renderTargets.m_SceneBuffer_OutputSize.Update(view.GetRenderSize(), "ViewRenderTargets::SceneBuffer_OutputSize");
+		renderTargets.m_SceneBuffer_OutputSize.Update(renderData.m_OutputSize, "ViewRenderTargets::SceneBuffer_OutputSize");
 
-		renderTargets.m_SceneHistory.m_IsWritable = true;
-		renderTargets.m_SceneHistory.m_IsRenderTarget = true;
-		renderTargets.m_SceneHistory.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
-		renderTargets.m_SceneHistory.Update(view.GetRenderSize(), "ViewRenderTargets::SceneHistory");
-
-		//TAA Resolve
-		Render::Context* ctx = Render::Context::GetCurrentContext();
-		SET_CONTEXT_MARKER_FUNCTION(ctx);
-
-		//Transition to UAV the resolve buffer
-		std::vector<Render::TextureBarrierDesc> barriers;
+		//Transitions
 		{
-			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = renderTargets.m_SceneBuffer_OutputSize.m_Texture.get();
-			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
-			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
-			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
-			barriers.push_back(barrierDesc);
+			//Transition to UAV the resolve buffer
+			std::vector<Render::TextureBarrierDesc> barriers;
+			{
+				Render::TextureBarrierDesc barrierDesc;
+				barrierDesc.m_Texture = renderTargets.m_SceneBuffer_OutputSize.m_Texture.get();
+				barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
+				barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
+				barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
+				barriers.push_back(barrierDesc);
+			}
+			//Transition to SRV the scene texture
+			{
+				Render::TextureBarrierDesc barrierDesc;
+				barrierDesc.m_Texture = renderTargets.m_SceneBuffer_RenderSize.m_Texture.get();
+				barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
+				barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_READ;
+				barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
+				barriers.push_back(barrierDesc);
+			}
+			//Transition to SRV the velocity texture
+			{
+				Render::TextureBarrierDesc barrierDesc;
+				barrierDesc.m_Texture = renderTargets.m_Velocity.m_Texture.get();
+				barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
+				barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_READ;
+				barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
+				barriers.push_back(barrierDesc);
+			}
+			ctx->TextureBarrier(barriers.size(), barriers.data());
 		}
-		//Transition to SRV the scene texture
+
+		if (AppSettings::GetAppSettings()->GetGraphicsSettings().m_AAMethod == TAA)
 		{
-			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = renderTargets.m_SceneBuffer_RenderSize.m_Texture.get();
-			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
-			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_READ;
-			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
-			barriers.push_back(barrierDesc);
+			renderTargets.m_SceneHistory.m_IsWritable = true;
+			renderTargets.m_SceneHistory.m_IsRenderTarget = true;
+			renderTargets.m_SceneHistory.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
+			renderTargets.m_SceneHistory.Update(renderData.m_RenderSize, "ViewRenderTargets::SceneHistory");
+
+			//TAA Resolve
+
+			ctx->BindPipelineState(m_TAAResolvePSO.get());
+
+			struct alignas(16) ConstantData
+			{
+				uint32_t ResolveTextureDescriptorIndex;
+				uint32_t SceneTextureDescriptorIndex;
+				uint32_t HistoryTextureDescriptorIndex;
+				uint32_t VelocityTextureDescriptorIndex;
+				uint32_t pad0;
+			};
+			ConstantData data;
+			data.ResolveTextureDescriptorIndex = renderTargets.m_SceneBuffer_OutputSize.m_TextureViewRW->GetIndex();
+			data.SceneTextureDescriptorIndex = renderTargets.m_SceneBuffer_RenderSize.m_TextureView->GetIndex();
+			data.HistoryTextureDescriptorIndex = renderTargets.m_SceneHistory.m_TextureView->GetIndex();
+			data.VelocityTextureDescriptorIndex = renderTargets.m_Velocity.m_TextureView->GetIndex();
+			ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
+
+			ctx->DispatchThreads(Vector3u(renderData.m_RenderSize.x, renderData.m_RenderSize.y, 1));
+
+			//Update history buffer 
+
+			//Transitions
+			{
+				//Transition resolve texture to copy source
+				std::vector<Render::TextureBarrierDesc> barriers;
+				{
+					Render::TextureBarrierDesc barrierDesc;
+					barrierDesc.m_Texture = renderTargets.m_SceneBuffer_OutputSize.m_Texture.get();
+					barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
+					barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_COPY_SOURCE;
+					barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COPY_SOURCE;
+					barriers.push_back(barrierDesc);
+				}
+				//Transition history texture to copy dest
+				{
+					Render::TextureBarrierDesc barrierDesc;
+					barrierDesc.m_Texture = renderTargets.m_SceneHistory.m_Texture.get();
+					barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
+					barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_COPY_TARGET;
+					barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COPY_TARGET;
+					barriers.push_back(barrierDesc);
+				}
+				ctx->TextureBarrier(barriers.size(), barriers.data());
+			}
+
+			//Perform copy operation
+			ctx->CopyTexture(renderTargets.m_SceneHistory.m_Texture.get(), renderTargets.m_SceneBuffer_OutputSize.m_Texture.get());
 		}
-		//Transition to SRV the velocity texture
+		else //Using DLSS
 		{
-			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = renderTargets.m_Velocity.m_Texture.get();
-			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
-			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_READ;
-			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
-			barriers.push_back(barrierDesc);
+			view.GetDLSS().Upscale(view, ctx);
+			{
+				std::vector<Render::TextureBarrierDesc> barriers;
+				{
+					Render::TextureBarrierDesc barrierDesc;
+					barrierDesc.m_Texture = renderTargets.m_SceneBuffer_OutputSize.m_Texture.get();
+					barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
+					barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_COPY_SOURCE;
+					barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COPY_SOURCE;
+					barriers.push_back(barrierDesc);
+				}
+				ctx->TextureBarrier(barriers.size(), barriers.data());
+			}
 		}
-		ctx->TextureBarrier(barriers.size(), barriers.data());
 
-		ctx->BindPipelineState(m_TAAResolvePSO.get());
-
-		struct alignas(16) ConstantData
-		{
-			uint32_t ResolveTextureDescriptorIndex;
-			uint32_t SceneTextureDescriptorIndex;
-			uint32_t HistoryTextureDescriptorIndex;
-			uint32_t VelocityTextureDescriptorIndex;
-			uint32_t pad0;
-		};
-		ConstantData data;
-		data.ResolveTextureDescriptorIndex = renderTargets.m_SceneBuffer_OutputSize.m_TextureViewRW->GetIndex();
-		data.SceneTextureDescriptorIndex = renderTargets.m_SceneBuffer_RenderSize.m_TextureView->GetIndex();
-		data.HistoryTextureDescriptorIndex = renderTargets.m_SceneHistory.m_TextureView->GetIndex();
-		data.VelocityTextureDescriptorIndex = renderTargets.m_Velocity.m_TextureView->GetIndex();
-		ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
-
-		ctx->DispatchThreads(Vector3u(view.GetRenderSize().x, view.GetRenderSize().y, 1));
-
-		//Update history buffer 
-		//Transition resolve texture to copy source
-		barriers.clear();
-		{
-			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = renderTargets.m_SceneBuffer_OutputSize.m_Texture.get();
-			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
-			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_COPY_SOURCE;
-			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COPY_SOURCE;
-			barriers.push_back(barrierDesc);
-		}
-		//Transition history texture to copy dest
-		{
-			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = renderTargets.m_SceneHistory.m_Texture.get();
-			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
-			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_COPY_TARGET;
-			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COPY_TARGET;
-			barriers.push_back(barrierDesc);
-		}
-		ctx->TextureBarrier(barriers.size(), barriers.data());
-
-		//Perform copy operation
-		ctx->CopyTexture(renderTargets.m_SceneHistory.m_Texture.get(), renderTargets.m_SceneBuffer_OutputSize.m_Texture.get());
 	}
 
 	void ViewRenderer::ApplyPostEffects(View& view)

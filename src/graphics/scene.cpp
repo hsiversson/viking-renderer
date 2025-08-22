@@ -155,6 +155,15 @@ namespace vkr::Graphics
 		PrepareViewContext prepareViewCtx(view);
 		ViewRenderData& prepareData = view.GetPrepareData();
 
+		prepareData.m_FrameIndex = ElapsedTimer::FrameIndex();
+		prepareData.m_DeltaTime = ElapsedTimer::DeltaTime();
+		prepareData.m_ElapsedTime = ElapsedTimer::ElapsedTime();
+
+		prepareData.m_RenderSize = view.GetRenderSize();
+		prepareData.m_OutputSize = view.GetOutputSize();
+
+		view.PrepareCameraConstants(prepareData.m_CameraData);
+
 		prepareData.m_TraceRaysPipelineState = m_TraceRaysPipelineState;
 
 		for (size_t i = 0; i < m_Models.size(); i++)

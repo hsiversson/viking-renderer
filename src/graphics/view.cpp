@@ -1,5 +1,32 @@
 #include "view.h"
+#include "application/appsettings.h"
 #include "render/device.h"
+#include "render/nvdlss.h"
+
+namespace 
+{
+	static uint32_t g_ViewIDCounter = 0;
+
+	static constexpr vkr::Vector2f JitterHaltonSequence[] = {
+	{0.5,0.333333},
+	{0.25,0.666667},
+	{0.750000, 0.111111},
+	{0.125000, 0.444444},
+	{0.625000, 0.777778},
+	{0.375000, 0.222222},
+	{0.875000, 0.555556},
+	{0.062500, 0.888889},
+	{0.562500, 0.037037},
+	{0.312500, 0.370370},
+	{0.812500, 0.703704},
+	{0.187500, 0.148148},
+	{0.687500, 0.481481},
+	{0.437500, 0.814815},
+	{0.937500, 0.259259},
+	{ 0.031250, 0.592593 }
+	};
+
+}
 
 namespace vkr::Graphics
 {
@@ -37,6 +64,7 @@ namespace vkr::Graphics
 		textureDesc.m_Format = m_Format;
 		textureDesc.m_ClearValue = m_ClearValue;
 		m_Texture = Render::GetDevice()->CreateTexture(textureDesc);
+		assert(m_Texture);
 
 		m_TextureView = Render::GetDevice()->CreateTextureView({}, m_Texture);
 
@@ -64,13 +92,14 @@ namespace vkr::Graphics
 	View::View()
 		: m_PrepareDataIndex(0)
 		, m_RenderDataIndex(1)
-		, m_MaxRenderSize{}
-		, m_CurrentRenderSize{}
+		, m_OutputSize{}
+		, m_RenderSize{}
 		, m_OutputTarget(nullptr)
 		, m_IsRendering(false)
 		, m_IsPrimary(false)
 	{
-
+		m_ViewID = g_ViewIDCounter++;
+		m_NvDLSS = MakeUnique<Render::NvDLSS>();
 	}
 
 	View::~View()
@@ -78,12 +107,11 @@ namespace vkr::Graphics
 
 	}
 
-	void View::SetRenderSize(const Vector2u& size)
+	void View::SetOutputSize(const Vector2u& size)
 	{
-		if (size != m_MaxRenderSize)
+		if (size != m_OutputSize)
 		{
-			m_MaxRenderSize = size;
-
+			m_OutputSize = size;
 		}
 	}
 
@@ -100,8 +128,57 @@ namespace vkr::Graphics
 		m_RenderDataIndex = m_PrepareDataIndex;
 	}
 
+	void View::PrepareCameraConstants(CameraData& data)
+	{
+		Camera& cam = const_cast<Camera&>(GetCamera());
+		Mat44 ProjectionNoJitter = cam.GetProjection();
+		//Select a new jitter offset for TAA for this frame
+		int jitterIdx = m_CurrentJitterIndex++;
+		m_CurrentJitterIndex = m_CurrentJitterIndex % 16;
+		data.CurrentJitter = (JitterHaltonSequence[jitterIdx] - 0.5f) / Vector2f(GetRenderSize()) * 2.0f;
+		Mat44 Projection = ProjectionNoJitter;
+		Projection[8] = data.CurrentJitter.x;
+		Projection[9] = data.CurrentJitter.y;
+		data.PrevJitter = m_PrevJitter;
+		m_PrevJitter = data.CurrentJitter;
+
+		Mat43 CamWorld = cam.GetWorldTransform();
+		data.CameraWorldMatrix = CamWorld;
+		data.PrevCameraWorldMatrix = m_PrevCameraWorld;
+		m_PrevCameraWorld = data.CameraWorldMatrix;
+		data.ViewMatrix = cam.GetView();
+		data.InvViewMatrix = Inverse(data.ViewMatrix);
+		data.ProjectionMatrix = Projection;
+		data.InvProjectionMatrix = Inverse(data.ProjectionMatrix);
+		data.ViewProjectionMatrix = data.ViewMatrix * data.ProjectionMatrix;
+		data.InvViewProjectionMatrix = Inverse(data.ViewProjectionMatrix);
+		data.PrevViewProjectionMatrix = m_PrevViewProjection;
+		m_PrevViewProjection = data.ViewProjectionMatrix;
+		data.ProjectionMatrixUnjittered = ProjectionNoJitter;
+		data.PrevViewMatrix = m_PrevView;
+		m_PrevView = data.ViewMatrix;
+		data.ViewProjectionMatrixUnjittered = data.ViewMatrix * data.ProjectionMatrixUnjittered;
+		data.InvViewProjectionMatrixUnjittered = Inverse(data.ViewProjectionMatrixUnjittered);
+		data.PrevViewProjectionMatrixUnjittered = m_PrevViewProjectionUnjittered;
+		m_PrevViewProjectionUnjittered = data.ViewProjectionMatrixUnjittered;
+		data.AspectRatio = cam.GetAspectRatio();
+		data.Near = cam.GetNearZ();
+		data.Far = cam.GetFarZ();
+		data.FOVDegrees = cam.GetFov();
+	}
+
 	void View::BeginRender()
 	{
+		if (AppSettings::GetAppSettings()->GetGraphicsSettings().m_AAMethod == DLSS)
+		{
+			//Prepare will set the correct render size based on the desired output size we have set for this view, based on the suggestion from DLSS API
+			m_NvDLSS->Prepare(*this);
+		}
+		else
+		{
+			//TAA, use same render size as output
+			m_RenderSize = m_OutputSize;
+		}
 		m_IsRendering = true;
 	}
 
@@ -154,6 +231,12 @@ namespace vkr::Graphics
 	bool View::IsSecondary() const
 	{
 		return !m_IsPrimary;
+	}
+
+	vkr::Render::NvDLSS& View::GetDLSS()
+	{
+		assert(m_NvDLSS);
+		return *m_NvDLSS;
 	}
 
 }

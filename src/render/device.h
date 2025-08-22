@@ -11,14 +11,15 @@
 
 namespace vkr::Render
 {
+	class CommandListPool;
+	class CommandQueue;
 	class DescriptorHeap;
+	class NvStreamline;
+	class RenderResourceDestructionQueue;
 	class RootSignature;
 	class ShaderCompiler;
-	class RootSignature;
 	class TextureLoader;
-	class CommandQueue;
-	class CommandListPool;
-	class RenderResourceDestructionQueue;
+	
 
 	class Device
 	{
@@ -67,10 +68,12 @@ namespace vkr::Render
 		Ref<Context> GetContext(ContextType contextType) const;
 		RenderThread* GetRenderThread(ContextType contextType) const;
 		DescriptorHeap* GetDescriptorHeap(DescriptorHeapType type) const;
+		NvStreamline* GetNvStreamline();
 
 		void FlushDeferredDestructionQueue();
 
 	private:
+		void InitNvStreamline();
 		void InitRootSignatures();
 		void InitTextureLoaders();
 		void InitCommandQueues();
@@ -107,6 +110,8 @@ namespace vkr::Render
 
 		ShaderCache m_ShaderCache;
 		TextureCache m_TextureCache;
+
+		UniquePtr<NvStreamline> m_NvStreamline = nullptr;
 
 		static Device* g_Instance;
 	};

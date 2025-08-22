@@ -1,5 +1,6 @@
 #pragma once
 
+#include "appsettings.h"
 #include "core/inputmanager.h"
 #include "core/timer.h"
 #include "core/types.h"
@@ -63,6 +64,7 @@ namespace vkr
 
 		Ref<Render::SwapChain> m_SwapChain;
 		UniquePtr<Render::Device> m_RenderDevice;
+		UniquePtr<AppSettings> m_AppSettings;
 		UniquePtr<Render::NvStreamline> m_NvStreamline;
 		Ref<Window> m_Window;
 
@@ -75,8 +77,6 @@ namespace vkr
 
 		bool m_QuitRequested = false;
 		ReturnCode m_QuitReturnCode = RETURN_OK;
-
-		bool m_UseDLSS = true;
 
 		static Application* g_Instance;
 	};

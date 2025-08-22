@@ -57,11 +57,8 @@ namespace vkr::Graphics
 		Ref<Render::PipelineState> m_RaytracePSO;
 
 		//TAA
-		int m_CurrentJitterIndex = 0;
 		Ref<Render::Shader> m_TAAResolveComputeShader;
 		Ref<Render::PipelineState> m_TAAResolvePSO;
-		Mat44 m_PrevViewProjection = Mat44::Identity();
-		Vector2f m_PrevJitter = Vector2f(0, 0);
 
 		//RT
 

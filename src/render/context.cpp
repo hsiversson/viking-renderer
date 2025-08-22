@@ -851,7 +851,13 @@ namespace vkr::Render
 		srcLocation.pResource = src->GetD3DResource();
 		srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 		srcLocation.SubresourceIndex = 0;
-		m_CurrentD3DCommandList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
+
+		D3D12_BOX srcBox = {};
+		srcBox.left = srcBox.top = 0;
+		srcBox.back = 1;
+		srcBox.right = std::min(dst->m_TextureDesc.m_Size.x, src->m_TextureDesc.m_Size.x);
+		srcBox.bottom = std::min(dst->m_TextureDesc.m_Size.y, src->m_TextureDesc.m_Size.y);
+		m_CurrentD3DCommandList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, &srcBox);
 		++m_NumRecordedCommands;
 	}
 

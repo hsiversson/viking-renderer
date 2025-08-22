@@ -161,4 +161,73 @@ namespace vkr::Render
 		return true;
 	}
 
+	const sl::FrameToken* NvStreamline::GetFrameToken(uint32_t frameIndex) const
+	{
+		sl::FrameToken* token = nullptr;
+		if (SL_FAILED(result, slGetNewFrameToken(token, &frameIndex)))
+		{
+			VKR_LOG("[NvStreamline] Failed to get frame token.");
+		}
+		return token;
+	}
+
+	void NvStreamline::Convert(sl::float2& aOut, const Vector2f& aVector)
+	{
+		aOut.x = aVector.x;
+		aOut.y = aVector.y;
+	}
+
+	void NvStreamline::Convert(sl::float3& aOut, const Vector3f& aVector)
+	{
+		aOut.x = aVector.x;
+		aOut.y = aVector.y;
+		aOut.z = aVector.z;
+	}
+
+	void NvStreamline::Convert(sl::float4& aOut, const Vector4f& aVector)
+	{
+		aOut.x = aVector.x;
+		aOut.y = aVector.y;
+		aOut.z = aVector.z;
+		aOut.w = aVector.w;
+	}
+
+	void NvStreamline::Convert(sl::float4x4& aOut, const Mat44& aMatrix)
+	{
+		Convert(aOut.row[0], Vector4f(aMatrix[0],aMatrix[1],aMatrix[2],aMatrix[3]));
+		Convert(aOut.row[1], Vector4f(aMatrix[4], aMatrix[5], aMatrix[6], aMatrix[7]));
+		Convert(aOut.row[2], Vector4f(aMatrix[8], aMatrix[9], aMatrix[10], aMatrix[11]));
+		Convert(aOut.row[3], Vector4f(aMatrix[12], aMatrix[13], aMatrix[14], aMatrix[15]));
+	}
+
+	void NvStreamline::Convert(Vector2f& aOut, const sl::float2& aVector)
+	{
+		aOut.x = aVector.x;
+		aOut.y = aVector.y;
+	}
+
+	void NvStreamline::Convert(Vector3f& aOut, const sl::float3& aVector)
+	{
+		aOut.x = aVector.x;
+		aOut.y = aVector.y;
+		aOut.z = aVector.z;
+	}
+
+	void NvStreamline::Convert(Vector4f& aOut, const sl::float4& aVector)
+	{
+		aOut.x = aVector.x;
+		aOut.y = aVector.y;
+		aOut.z = aVector.z;
+		aOut.w = aVector.w;
+	}
+
+	void NvStreamline::Convert(Mat44& aOut, const sl::float4x4& aMatrix)
+	{
+		aOut[0] = aMatrix.row[0].x; aOut[1] = aMatrix.row[0].y; aOut[2] = aMatrix.row[0].z; aOut[3] = aMatrix.row[0].w;
+		aOut[4] = aMatrix.row[1].x; aOut[5] = aMatrix.row[1].y; aOut[6] = aMatrix.row[1].z; aOut[7] = aMatrix.row[1].w;
+		aOut[8] = aMatrix.row[2].x; aOut[9] = aMatrix.row[2].y; aOut[10] = aMatrix.row[2].z; aOut[11] = aMatrix.row[2].w;
+		aOut[12] = aMatrix.row[3].x; aOut[13] = aMatrix.row[3].y; aOut[14] = aMatrix.row[3].z; aOut[15] = aMatrix.row[3].w;
+	}
+
+
 }

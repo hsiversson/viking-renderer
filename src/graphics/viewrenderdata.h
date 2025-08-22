@@ -16,6 +16,34 @@ namespace vkr::Graphics
 	class MaterialInstance;
 	class PipelineState;
 
+	struct CameraData
+	{
+		Mat43 CameraWorldMatrix;
+		Mat44 ViewMatrix;
+		Mat44 ProjectionMatrix;
+		Mat44 InvViewMatrix;
+		Mat44 InvProjectionMatrix;
+		Mat44 ViewProjectionMatrix;
+		Mat44 InvViewProjectionMatrix;
+		//Prev frame
+		Mat44 PrevCameraWorldMatrix;
+		Mat44 PrevViewMatrix;
+		Mat44 PrevViewProjectionMatrix;
+		Mat44 PrevViewProjectionMatrixUnjittered;
+		//Unjittered
+		Mat44 ProjectionMatrixUnjittered;
+		Mat44 ViewProjectionMatrixUnjittered;
+		Mat44 InvViewProjectionMatrixUnjittered;
+
+		Vector2f CurrentJitter;
+		Vector2f PrevJitter;
+
+		float AspectRatio;
+		float Near;
+		float Far;
+		float FOVDegrees;
+	};
+
 	struct InstanceData
 	{
 		Mat44 m_Transform;
@@ -68,6 +96,14 @@ namespace vkr::Graphics
 	struct ViewRenderData
 	{
 		void Clear();
+
+		Vector2u m_RenderSize;
+		Vector2u m_OutputSize;
+
+		CameraData m_CameraData;
+		uint32_t m_FrameIndex;
+		float m_DeltaTime;
+		float m_ElapsedTime;
 
 		Ref<Render::BufferView> m_RaytracingTLAS;
 		std::vector<Render::RaytracingInstanceDesc> m_RaytracingInstances;

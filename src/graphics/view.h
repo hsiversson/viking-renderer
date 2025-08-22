@@ -5,6 +5,7 @@
 namespace vkr::Render
 {
 	class DepthStencilView;
+	class NvDLSS;
 	class RenderTargetView;
 	class Texture;
 	class TextureView;
@@ -49,8 +50,11 @@ namespace vkr::Graphics
 		View();
 		~View();
 
-		void SetRenderSize(const Vector2u& size);
-		Vector2u GetRenderSize() { return m_MaxRenderSize; }
+		void SetOutputSize(const Vector2u& size);
+		Vector2u GetOutputSize() const { return m_OutputSize; }
+
+		void SetRenderSize(const Vector2u& size) { m_RenderSize = size; }
+		Vector2u GetRenderSize() const { return m_RenderSize; }
 
 		void BeginPrepare();
 		void EndPrepare();
@@ -63,6 +67,7 @@ namespace vkr::Graphics
 
 		// We fill the render data in the preparation stage.
 		ViewRenderData& GetPrepareData();
+		void PrepareCameraConstants(CameraData& data);
 
 		// We consume the render data at render stage.
 		const ViewRenderData& GetRenderData() const;
@@ -72,25 +77,32 @@ namespace vkr::Graphics
 		Render::RenderTargetView* GetOutputTarget() const { return m_OutputTarget; }
 
 		ViewRenderTargets& GetRenderTargets();
+		Render::NvDLSS& GetDLSS();
 
 		void SetPrimary(bool value);
 
 		bool IsPrimary() const;
 		bool IsSecondary() const;
 
-	private:
-		bool InitTargets();
+		uint32_t GetViewID() const { return m_ViewID; }
 
 	private:
 		std::array<ViewRenderData, 2> m_ViewRenderData;
 		uint32_t m_PrepareDataIndex;
 		uint32_t m_RenderDataIndex;
 		Ref<Render::RenderTaskEvent> m_EndRenderEvent;
+		UniquePtr<Render::NvDLSS> m_NvDLSS;
 
 		Camera m_Camera;
+		int m_CurrentJitterIndex = 0;
+		Mat44 m_PrevCameraWorld = Mat44::Identity();
+		Mat44 m_PrevView = Mat44::Identity();
+		Mat44 m_PrevViewProjection = Mat44::Identity();
+		Mat44 m_PrevViewProjectionUnjittered = Mat44::Identity();
+		Vector2f m_PrevJitter = Vector2f(0, 0);
 
-		Vector2u m_MaxRenderSize;
-		Vector2u m_CurrentRenderSize;
+		Vector2u m_OutputSize;
+		Vector2u m_RenderSize;
 
 		Render::RenderTargetView* m_OutputTarget;
 		ViewRenderTargets m_RenderTargets;
@@ -99,6 +111,8 @@ namespace vkr::Graphics
 
 		bool m_IsRendering;
 		bool m_IsPrimary;
+
+		uint32_t m_ViewID;
 	};
 
 	struct PrepareViewContext

@@ -89,6 +89,8 @@ namespace vkr
 	{
 		CommandLine::Parse(__argc, __argv);
 
+		m_AppSettings = MakeUnique<AppSettings>();
+
 		Window::RegisterWindowClass(nullptr);
 
 		CreateWindowDesc windowDesc = {};
@@ -111,27 +113,10 @@ namespace vkr
 
 		m_Window->AddMessageHandler(m_InputManager.get());
 
-		m_NvStreamline = MakeUnique<Render::NvStreamline>();
-		if (!m_NvStreamline->Init())
-		{
-			m_UseDLSS = false;
-		}
-
 		m_RenderDevice = MakeUnique<Render::Device>();
 		if (!m_RenderDevice->Init())
 		{
-			m_NvStreamline->Shutdown();
 			return RETURN_ERROR;
-		}
-		
-		if (m_UseDLSS && !m_NvStreamline->SetDevice(m_RenderDevice.get()))
-		{
-			m_UseDLSS = false;
-			m_NvStreamline->Shutdown();
-		}
-		else
-		{
-			m_UseDLSS = m_NvStreamline->IsFeatureAvailable(Render::DLSS);
 		}
 
 		m_SwapChain = m_RenderDevice->CreateSwapChain(m_Window->GetNativeHandle(), desc.m_Resolution);
@@ -202,9 +187,6 @@ namespace vkr
 		}
 
 		m_RenderDevice->WaitForGpuIdle();
-
-		if(m_UseDLSS)
-			m_NvStreamline->Shutdown();
 		
 		return m_QuitReturnCode;
 	}

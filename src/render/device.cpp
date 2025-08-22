@@ -1,8 +1,10 @@
 #include "device.h"
 
+#include "application/appsettings.h"
 #include "commandlist.h"
 #include "commandqueue.h"
 #include "descriptorheap.h"
+#include "nvstreamline.h"
 #include "rootsignature.h"
 #include "shadercompiler.h"
 #include "textureloader_dds.h"
@@ -31,6 +33,8 @@ namespace vkr::Render
 
 	Device::~Device()
 	{
+		m_NvStreamline->Shutdown();
+
 		g_Instance = nullptr;
 
 		for (uint32_t i = 0; i < CONTEXT_TYPE_COUNT; ++i)
@@ -43,6 +47,8 @@ namespace vkr::Render
 	bool Device::Init()
 	{
 		const bool enableDebugLayer = CommandLine::Has("debug_device");
+
+		InitNvStreamline();
 
 		uint32_t createFactoryFlags = (enableDebugLayer) ? DXGI_CREATE_FACTORY_DEBUG : 0;
 		CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&m_Factory));
@@ -106,6 +112,16 @@ namespace vkr::Render
 		m_ShaderCompiler = MakeUnique<ShaderCompiler>();
 		m_RenderResourceDestructionQueue = MakeUnique<RenderResourceDestructionQueue>();
 		m_RenderResourceDestructionQueue->Start();
+
+		if (m_NvStreamline && !m_NvStreamline->SetDevice(this))
+		{
+			m_NvStreamline->Shutdown();
+			m_NvStreamline.reset();
+		}
+		else if(!m_NvStreamline->IsFeatureAvailable(Render::DLSS))
+		{
+			vkr::AppSettings::GetAppSettings()->GetGraphicsSettings().m_AAMethod = vkr::TAA;
+		}
 		return true;
 	}
 
@@ -455,6 +471,20 @@ namespace vkr::Render
 		m_DescriptorHeaps[DESCRIPTOR_HEAP_TYPE_SAMPLER] = MakeUnique<DescriptorHeap>(DESCRIPTOR_HEAP_TYPE_SAMPLER, 128);
 		m_DescriptorHeaps[DESCRIPTOR_HEAP_TYPE_RENDER_TARGET] = MakeUnique<DescriptorHeap>(DESCRIPTOR_HEAP_TYPE_RENDER_TARGET, 512);
 		m_DescriptorHeaps[DESCRIPTOR_HEAP_TYPE_DEPTH_STENCIL] = MakeUnique<DescriptorHeap>(DESCRIPTOR_HEAP_TYPE_DEPTH_STENCIL, 16);
+	}
+
+	void Device::InitNvStreamline()
+	{
+		m_NvStreamline = MakeUnique<Render::NvStreamline>();
+		if (!m_NvStreamline->Init())
+		{
+			m_NvStreamline.reset();
+		}
+	}
+
+	vkr::Render::NvStreamline* Device::GetNvStreamline()
+	{
+		return m_NvStreamline.get();
 	}
 
 	Ref<RenderTaskEvent> QueueRenderTask(ContextType type, RenderTaskFn task, RenderTaskFlags flags)
