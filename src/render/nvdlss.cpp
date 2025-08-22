@@ -32,7 +32,7 @@ namespace vkr::Render
 
 	void NvDLSS::Prepare(Graphics::View& view)
 	{
-		Vector2u dstSize = view.GetOutputSize();
+		Vector2u dstSize = view.GetRenderData().m_OutputSize;
 
 		sl::DLSSOptions options = {};
 		options.outputWidth = dstSize.x;
@@ -88,8 +88,8 @@ namespace vkr::Render
 		const Graphics::ViewRenderData& renderData =  view.GetRenderData();
 		Graphics::ViewRenderTargets& renderTargets = view.GetRenderTargets();
 		const Graphics::CameraData& renderCameraConstants = renderData.m_CameraData;
-		const Vector2u srcSize = view.GetRenderSize();
-		const Vector2u dstSize = view.GetOutputSize();
+		const Vector2u srcSize = renderData.m_RenderSize;
+		const Vector2u dstSize = renderData.m_OutputSize;
 		sl::ViewportHandle viewportHandle = view.GetViewID();
 
 		const NvStreamline* streamline = GetDevice()->GetNvStreamline();
