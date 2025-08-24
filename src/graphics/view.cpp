@@ -172,7 +172,7 @@ namespace vkr::Graphics
 
 	void View::BeginRender()
 	{
-		if (AppSettings::GetAppSettings()->GetGraphicsSettings().m_AAMethod == DLSS)
+		if (ElapsedTimer::FrameIndex() > 10 && AppSettings::GetAppSettings()->GetGraphicsSettings().m_AAMethod == DLSS)
 		{
 			//Prepare will set the correct render size based on the desired output size we have set for this view, based on the suggestion from DLSS API
 			m_NvDLSS->Prepare(*this);

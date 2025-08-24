@@ -432,9 +432,17 @@ namespace vkr::Graphics
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
 
-		renderTargets.m_Normals.m_IsWritable = true;
-		renderTargets.m_Normals.m_Format = Render::Format::FORMAT_RGBA16_SNORM;
-		renderTargets.m_Normals.Update(renderData.m_RenderSize, "ViewRenderTargets::Normals");
+		renderTargets.m_DiffuseAlbedo.m_IsWritable = true;
+		renderTargets.m_DiffuseAlbedo.m_Format = Render::Format::FORMAT_RGBA8_UNORM;
+		renderTargets.m_DiffuseAlbedo.Update(renderData.m_RenderSize, "ViewRenderTargets::DiffuseAlbedo");
+
+		renderTargets.m_SpecularAlbedo.m_IsWritable = true;
+		renderTargets.m_SpecularAlbedo.m_Format = Render::Format::FORMAT_RGBA8_UNORM;
+		renderTargets.m_SpecularAlbedo.Update(renderData.m_RenderSize, "ViewRenderTargets::SpecularAlbedo");
+
+		renderTargets.m_NormalRoughness.m_IsWritable = true;
+		renderTargets.m_NormalRoughness.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
+		renderTargets.m_NormalRoughness.Update(renderData.m_RenderSize, "ViewRenderTargets::NormalRoughness");
 
 		//Transition to UAV the output
 		std::vector<Render::TextureBarrierDesc> barriers;
@@ -453,12 +461,16 @@ namespace vkr::Graphics
 
 		struct alignas(16) ConstantData
 		{
-			uint32_t SceneTextureDescriptor;
+			uint32_t TargetTextureDescriptorIndex;
+			uint32_t DiffuseAlbedoTextureDescriptor;
+			uint32_t SpecularAlbedoTextureDescriptor;
 			uint32_t NormalsTextureDescriptor;
 		};
 		ConstantData data;
-		data.SceneTextureDescriptor = renderTargets.m_SceneBuffer_RenderSize.m_TextureViewRW->GetIndex();
-		data.NormalsTextureDescriptor = renderTargets.m_Normals.m_TextureViewRW->GetIndex();
+		data.TargetTextureDescriptorIndex = renderTargets.m_SceneBuffer_RenderSize.m_TextureViewRW->GetIndex();
+		data.DiffuseAlbedoTextureDescriptor = renderTargets.m_DiffuseAlbedo.m_TextureViewRW->GetIndex();
+		data.SpecularAlbedoTextureDescriptor = renderTargets.m_SpecularAlbedo.m_TextureViewRW->GetIndex();
+		data.NormalsTextureDescriptor = renderTargets.m_NormalRoughness.m_TextureViewRW->GetIndex();
 		ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
 		ctx->DispatchRays(renderData.m_TraceRaysPipelineState.get() , renderData.m_RenderSize.x, renderData.m_RenderSize.y);
@@ -545,7 +557,23 @@ namespace vkr::Graphics
 			ctx->TextureBarrier(barriers.size(), barriers.data());
 		}
 
-		if (AppSettings::GetAppSettings()->GetGraphicsSettings().m_AAMethod == TAA)
+		if (ElapsedTimer::FrameIndex() > 10 && AppSettings::GetAppSettings()->GetGraphicsSettings().m_AAMethod == DLSS)
+		{
+			view.GetDLSS().Upscale(view, ctx);
+			{
+				std::vector<Render::TextureBarrierDesc> barriers;
+				{
+					Render::TextureBarrierDesc barrierDesc;
+					barrierDesc.m_Texture = renderTargets.m_SceneBuffer_OutputSize.m_Texture.get();
+					barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
+					barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_COPY_SOURCE;
+					barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COPY_SOURCE;
+					barriers.push_back(barrierDesc);
+				}
+				ctx->TextureBarrier(barriers.size(), barriers.data());
+			}
+		}
+		else // Use TAA
 		{
 			renderTargets.m_SceneHistory.m_IsWritable = true;
 			renderTargets.m_SceneHistory.m_IsRenderTarget = true;
@@ -601,22 +629,6 @@ namespace vkr::Graphics
 
 			//Perform copy operation
 			ctx->CopyTexture(renderTargets.m_SceneHistory.m_Texture.get(), renderTargets.m_SceneBuffer_OutputSize.m_Texture.get());
-		}
-		else //Using DLSS
-		{
-			view.GetDLSS().Upscale(view, ctx);
-			{
-				std::vector<Render::TextureBarrierDesc> barriers;
-				{
-					Render::TextureBarrierDesc barrierDesc;
-					barrierDesc.m_Texture = renderTargets.m_SceneBuffer_OutputSize.m_Texture.get();
-					barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
-					barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_COPY_SOURCE;
-					barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COPY_SOURCE;
-					barriers.push_back(barrierDesc);
-				}
-				ctx->TextureBarrier(barriers.size(), barriers.data());
-			}
 		}
 
 	}

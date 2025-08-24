@@ -79,6 +79,9 @@ void $CLOSESTHIT_IDENTIFIER$(inout RaytracingPayload payload, in BuiltInTriangle
     resolvedMaterial.Roughness = max(resolvedMaterial.Roughness, 0.05f); // Clamp roughness such that ggx evals doesn't explode.
     
     payload.worldNormal = resolvedMaterial.WorldNormal;
+    payload.roughness = resolvedMaterial.Roughness;
+    payload.diffuseAlbedo = resolvedMaterial.Albedo * (1.0f - resolvedMaterial.Metallic);
+    payload.specularAlbedo = lerp(float3(0.04, 0.04, 0.04), resolvedMaterial.Albedo, resolvedMaterial.Metallic);
     payload.irradiance = ApplyLighting(resolvedMaterial, -WorldRayDirection(), payload.rngState) + resolvedMaterial.Emission;
     
     if(payload.recursionDepth < 1)

@@ -9,6 +9,7 @@
 #include "render/rendercommon.h"
 #include "sl.h"
 #include "sl_dlss.h"
+#include "sl_dlss_d.h"
 #include "sl_matrix_helpers.h"
 
 namespace vkr::Render
@@ -22,7 +23,7 @@ namespace vkr::Render
 		Vector2u m_OptimalRenderSize;
 		float m_OptimalSharpness;
 		bool m_ResetDLSS = false;
-		sl::DLSSOptions m_DLSSOptions = {};
+		sl::DLSSDOptions m_DLSSOptions = {};
 	};
 
 	NvDLSS::NvDLSS()
@@ -34,22 +35,24 @@ namespace vkr::Render
 	{
 		Vector2u dstSize = view.GetRenderData().m_OutputSize;
 
-		sl::DLSSOptions options = {};
+		sl::DLSSDOptions options = {};
 		options.outputWidth = dstSize.x;
 		options.outputHeight = dstSize.y;
 		options.sharpness = 0.5f;
 		options.colorBuffersHDR = sl::eTrue;
-		options.useAutoExposure = sl::eTrue;
+		//options.useAutoExposure = sl::eTrue;
+		options.normalRoughnessMode = sl::DLSSDNormalRoughnessMode::ePacked;
+		options.alphaUpscalingEnabled = sl::Boolean::eFalse;
 
 		// Preset F is recommended by Nvidia for DLAA and Ultra Performance
-		options.dlaaPreset = sl::DLSSPreset::ePresetF;
-		options.ultraPerformancePreset = sl::DLSSPreset::ePresetF;
+		options.dlaaPreset = sl::DLSSDPreset::ePresetD;
+		options.ultraPerformancePreset = sl::DLSSDPreset::ePresetD;
 
 		// Preset E is recommended by Nvidia for Quality, Balanced and Performance
-		options.qualityPreset = sl::DLSSPreset::ePresetE;
-		options.balancedPreset = sl::DLSSPreset::ePresetE;
-		options.performancePreset = sl::DLSSPreset::ePresetE;
-		options.ultraQualityPreset = sl::DLSSPreset::ePresetE; // Ultra Quality is not really a setting to be used.
+		options.qualityPreset = sl::DLSSDPreset::ePresetD;
+		options.balancedPreset = sl::DLSSDPreset::ePresetD;
+		options.performancePreset = sl::DLSSDPreset::ePresetD;
+		options.ultraQualityPreset = sl::DLSSDPreset::ePresetD; // Ultra Quality is not really a setting to be used.
 
 		//Must match the DLSSModes in appsettings.h
 		static constexpr sl::DLSSMode modes[] = { sl::DLSSMode::eUltraPerformance, sl::DLSSMode::eMaxPerformance, sl::DLSSMode::eBalanced, sl::DLSSMode::eMaxQuality, sl::DLSSMode::eDLAA };
@@ -60,10 +63,10 @@ namespace vkr::Render
 			m_pImpl->m_DLSSOptions.outputWidth != options.outputWidth ||
 			m_pImpl->m_DLSSOptions.outputHeight != options.outputHeight)
 		{
-			slDLSSSetOptions(view.GetViewID(), options);
+			slDLSSDSetOptions(view.GetViewID(), options);
 
-			sl::DLSSOptimalSettings optimalSettings = {};
-			slDLSSGetOptimalSettings(options, optimalSettings);
+			sl::DLSSDOptimalSettings optimalSettings = {};
+			slDLSSDGetOptimalSettings(options, optimalSettings);
 			m_pImpl->m_MinRenderSize = Vector2u(optimalSettings.renderWidthMin, optimalSettings.renderHeightMin);
 			m_pImpl->m_MaxRenderSize = Vector2u(optimalSettings.renderWidthMax, optimalSettings.renderHeightMax);
 			m_pImpl->m_OptimalRenderSize = Vector2u(optimalSettings.optimalRenderWidth, optimalSettings.optimalRenderHeight);
@@ -129,8 +132,8 @@ namespace vkr::Render
 
 		recalculateCameraMatrices(constants);
 
-		constants.mvecScale.x = 0.5f;
-		constants.mvecScale.y = -0.5f;
+		constants.mvecScale.x = 1.0f;
+		constants.mvecScale.y = 1.0f;
 		constants.jitterOffset.x = renderCameraConstants.CurrentJitter.x;
 		constants.jitterOffset.y = renderCameraConstants.CurrentJitter.y;
 
@@ -147,6 +150,12 @@ namespace vkr::Render
 		sl::Resource colorOut = { sl::ResourceType::eTex2d, renderTargets.m_SceneBuffer_OutputSize.m_Texture->GetD3DResource(), writeState };
 		sl::Resource depth = { sl::ResourceType::eTex2d, renderTargets.m_DepthBuffer.m_Texture->GetD3DResource(), readState };
 		sl::Resource mvec = { sl::ResourceType::eTex2d, renderTargets.m_Velocity.m_Texture->GetD3DResource(), readState };
+
+		sl::Resource diffuseAlbedo = { sl::ResourceType::eTex2d, renderTargets.m_DiffuseAlbedo.m_Texture->GetD3DResource(), readState };
+		sl::Resource specularAlbedo = { sl::ResourceType::eTex2d, renderTargets.m_SpecularAlbedo.m_Texture->GetD3DResource(), readState };
+		sl::Resource normalRoughness = { sl::ResourceType::eTex2d, renderTargets.m_NormalRoughness.m_Texture->GetD3DResource(), readState };
+		sl::Resource specularMvec = { sl::ResourceType::eTex2d, renderTargets.m_Velocity.m_Texture->GetD3DResource(), readState };
+
 		//sl::Resource exposure	= { sl::ResourceType::eTex2d, renderTargets.mAverageExposure.mResource ? renderTargets.mAverageExposure.mResource->mD3D12Resource : nullptr, readState };
 		//sl::Resource bias		= { sl::ResourceType::eTex2d, nullptr,													readState };
 
@@ -154,10 +163,16 @@ namespace vkr::Render
 		const sl::Extent targetVp = { 0, 0, dstSize.x, dstSize.y };
 		//const sl::Extent onePxVp = { 0, 0, 1, 1 };
 
-		sl::ResourceTag colorInTag = sl::ResourceTag{ &colorIn,	sl::kBufferTypeScalingInputColor,	 sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
-		sl::ResourceTag colorOutTag = sl::ResourceTag{ &colorOut,	sl::kBufferTypeScalingOutputColor,	 sl::ResourceLifecycle::eValidUntilEvaluate, &targetVp };
-		sl::ResourceTag depthTag = sl::ResourceTag{ &depth,		sl::kBufferTypeDepth,				 sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
-		sl::ResourceTag mvTag = sl::ResourceTag{ &mvec,		sl::kBufferTypeMotionVectors,		 sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
+		sl::ResourceTag colorInTag = sl::ResourceTag{ &colorIn, sl::kBufferTypeScalingInputColor, sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
+		sl::ResourceTag colorOutTag = sl::ResourceTag{ &colorOut, sl::kBufferTypeScalingOutputColor, sl::ResourceLifecycle::eValidUntilEvaluate, &targetVp };
+		sl::ResourceTag depthTag = sl::ResourceTag{ &depth, sl::kBufferTypeDepth, sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
+		sl::ResourceTag mvTag = sl::ResourceTag{ &mvec, sl::kBufferTypeMotionVectors, sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
+
+		sl::ResourceTag diffuseAlbedoTag = sl::ResourceTag{ &diffuseAlbedo, sl::kBufferTypeAlbedo, sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
+		sl::ResourceTag specularAlbedoTag = sl::ResourceTag{ &specularAlbedo, sl::kBufferTypeSpecularAlbedo, sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
+		sl::ResourceTag normalRoughnessTag = sl::ResourceTag{ &normalRoughness, sl::kBufferTypeNormalRoughness, sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
+		sl::ResourceTag specularMvecTag = sl::ResourceTag{ &specularMvec, sl::kBufferTypeSpecularMotionVectors, sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
+
 		//sl::ResourceTag exposureTag = sl::ResourceTag{ &exposure,	sl::kBufferTypeExposure,			 sl::ResourceLifecycle::eValidUntilEvaluate, &onePxVp  };
 		//sl::ResourceTag biasTag		= sl::ResourceTag{ &bias,		sl::kBufferTypeBiasCurrentColorHint, sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
 
@@ -177,10 +192,14 @@ namespace vkr::Render
 		evalInputs.push_back(&colorOutTag);
 		evalInputs.push_back(&depthTag);
 		evalInputs.push_back(&mvTag);
+		evalInputs.push_back(&diffuseAlbedoTag);
+		evalInputs.push_back(&specularAlbedoTag);
+		evalInputs.push_back(&normalRoughnessTag);
+		//evalInputs.push_back(&specularMvec);
 		//evalInputs.Add(&exposureTag);
 		//evalInputs.Add(&biasTag);
 		
-		if (SL_FAILED(result, slEvaluateFeature(sl::kFeatureDLSS, frameToken, evalInputs.data(), evalInputs.size(), ctx->GetCommandList()->GetD3DCommandList())))
+		if (SL_FAILED(result, slEvaluateFeature(sl::kFeatureDLSS_RR, frameToken, evalInputs.data(), evalInputs.size(), ctx->GetCommandList()->GetD3DCommandList())))
 		{
 			VKR_ERROR("[DLSS] slEvaluateFeature failed.");
 		}

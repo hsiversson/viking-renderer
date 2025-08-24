@@ -65,7 +65,6 @@ namespace vkr
 		Ref<Render::SwapChain> m_SwapChain;
 		UniquePtr<Render::Device> m_RenderDevice;
 		UniquePtr<AppSettings> m_AppSettings;
-		UniquePtr<Render::NvStreamline> m_NvStreamline;
 		Ref<Window> m_Window;
 
 //#if !BUILD_CONFIG_SHIPPING

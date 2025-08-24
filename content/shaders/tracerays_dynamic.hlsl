@@ -5,8 +5,9 @@
 struct ConstantsStruct
 {
     uint TargetTextureDescriptorIndex;
-    uint NormalsTargetTextureDescriptorIndex;
-    uint2 pad;
+    uint DiffuseAlbedoTextureDescriptor;
+    uint SpecularAlbedoTextureDescriptor;
+    uint NormalRoughnessTextureDescriptor;
 };
 ConstantBuffer<ConstantsStruct> Constants : register(b0);
 
@@ -49,8 +50,14 @@ void TraceRays()
     target[pixel] = float4(payload.irradiance, 1.0f);
     
     // write normals for denoising
-    RWTexture2D<float4> normalsTarget = ResourceDescriptorHeap[Constants.NormalsTargetTextureDescriptorIndex];
-    normalsTarget[pixel] = float4(payload.worldNormal, 0.0f);
+    RWTexture2D<float4> normalRoughnessTarget = ResourceDescriptorHeap[Constants.NormalRoughnessTextureDescriptor];
+    normalRoughnessTarget[pixel] = float4(payload.worldNormal, payload.roughness);
+    
+    RWTexture2D<float4> diffuseAlbedoTarget = ResourceDescriptorHeap[Constants.DiffuseAlbedoTextureDescriptor];
+    diffuseAlbedoTarget[pixel] = float4(payload.diffuseAlbedo, 0.0f);
+    
+    RWTexture2D<float4> specularAlbedoTarget = ResourceDescriptorHeap[Constants.SpecularAlbedoTextureDescriptor];
+    specularAlbedoTarget[pixel] = float4(payload.specularAlbedo, 0.0f);
 }
 
 [shader("miss")]

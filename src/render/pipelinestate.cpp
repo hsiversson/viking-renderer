@@ -195,7 +195,7 @@ namespace vkr::Render
 
 		D3D12_RAYTRACING_SHADER_CONFIG shaderConfig = {};
 		shaderConfig.MaxAttributeSizeInBytes = D3D12_RAYTRACING_MAX_ATTRIBUTE_SIZE_IN_BYTES;
-		shaderConfig.MaxPayloadSizeInBytes = 32;
+		shaderConfig.MaxPayloadSizeInBytes = 64;
 		subObjects.push_back({ D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG, &shaderConfig });
 
 		D3D12_RAYTRACING_PIPELINE_CONFIG pipelineConfig = {};

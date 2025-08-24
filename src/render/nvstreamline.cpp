@@ -40,8 +40,6 @@ namespace vkr::Render
 		//PFun_slShutdown* slShutdown = nullptr;
 		//PFun_slSetD3DDevice* slSetD3DDevice = nullptr;
 		//PFun_slIsFeatureSupported* slIsFeatureSupported = nullptr;
-
-		HMODULE m_InterposerDLL = nullptr;
 	};
 
 	void StreamlineLoggingCallback(sl::LogType type, const char* msg)
@@ -72,16 +70,6 @@ namespace vkr::Render
 		{
 			return false;
  		}
-		m_pImpl->m_InterposerDLL = LoadLibraryW(slInterposerPath.c_str());
-		if (!m_pImpl->m_InterposerDLL)
-		{
-			return false;
-		}
-
-		//m_pImpl->slInit = (PFun_slInit*)GetProcAddress(m_pImpl->m_InterposerDLL, "slInit");
-		//m_pImpl->slShutdown = (PFun_slShutdown*)GetProcAddress(m_pImpl->m_InterposerDLL, "slShutdown");
-		//m_pImpl->slSetD3DDevice = (PFun_slSetD3DDevice*)GetProcAddress(m_pImpl->m_InterposerDLL, "slSetD3DDevice");
-		//m_pImpl->slIsFeatureSupported = (PFun_slIsFeatureSupported*)GetProcAddress(m_pImpl->m_InterposerDLL, "slIsFeatureSupported");
 
 		// Proceed to initialize Streamline
 		sl::Preferences pref{};
@@ -89,27 +77,28 @@ namespace vkr::Render
 		pref.logLevel = isDebugging ? sl::LogLevel::eDefault : sl::LogLevel::eOff;
 		pref.logMessageCallback = StreamlineLoggingCallback;
 		pref.applicationId = 100000000; // For development, although NGX may require a valid ID
-		pref.engine = sl::EngineType::eCustom;
+		pref.engine = sl::EngineType::eUnreal; // Not really but makes RR work
 		pref.engineVersion = "1.0.0";
 		pref.renderAPI = sl::RenderAPI::eD3D12;
 		pref.projectId = 0;
 		
 		sl::Feature featuresToLoad[] = { 
-			sl::kFeatureDLSS ,
+			sl::kFeatureDLSS,
 			sl::kFeatureDLSS_RR
 		};
 		pref.featuresToLoad = featuresToLoad;
 		pref.numFeaturesToLoad = _countof(featuresToLoad);
 		
-		pref.flags = {};
+		pref.flags = static_cast<sl::PreferenceFlags>(0);
 		pref.flags |= sl::PreferenceFlags::eDisableCLStateTracking;
  		pref.flags |= sl::PreferenceFlags::eUseDXGIFactoryProxy;
+		//pref.flags |= sl::PreferenceFlags::eAllowOTA;
+		//pref.flags |= sl::PreferenceFlags::eLoadDownloadedPlugins;
 
 		sl::Result res = slInit(pref, sl::kSDKVersion);
 		if (res != sl::Result::eOk) 
 		{
 			VKR_LOG("[NvStreamline] Init failed");
-			FreeLibrary(m_pImpl->m_InterposerDLL);
 			return false;
 		}
 
@@ -121,22 +110,17 @@ namespace vkr::Render
 
 	bool NvStreamline::Shutdown()
 	{
-		if (!m_pImpl->m_InterposerDLL)
-			return false;
-
 		if (SL_FAILED(result, slShutdown()))
 		{
 			VKR_LOG("[NvStreamline] Failed to shutdown");
 			return false;
 		}
 
-		FreeLibrary(m_pImpl->m_InterposerDLL);
 		return true;
 	}
 
 	bool NvStreamline::SetDevice(const Device* device)
 	{
-		VKR_ASSERT(m_pImpl->m_InterposerDLL);
 		if (SL_FAILED(result, slSetD3DDevice(device->GetD3DDevice())))
 		{
 			VKR_LOG("[NvStreamline] Failed to set D3D Device.");
@@ -158,6 +142,7 @@ namespace vkr::Render
 		{
 			return false;
 		}
+
 		return true;
 	}
 

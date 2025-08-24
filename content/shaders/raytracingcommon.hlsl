@@ -56,6 +56,9 @@ struct [raypayload] RaytracingPayload
 {
     float3 irradiance : read(caller, closesthit, miss) : write(caller, closesthit, miss);
     float3 worldNormal : read(caller, closesthit, miss) : write(caller, closesthit, miss);
+    float roughness : read(caller, closesthit, miss) : write(caller, closesthit, miss);
+    float3 diffuseAlbedo : read(caller, closesthit, miss) : write(caller, closesthit, miss);
+    float3 specularAlbedo : read(caller, closesthit, miss) : write(caller, closesthit, miss);
     uint recursionDepth : read(caller, closesthit, miss) : write(caller, closesthit, miss);
     uint rngState : read(caller, closesthit, miss) : write(caller, closesthit, miss);
 };

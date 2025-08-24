@@ -36,7 +36,10 @@ namespace vkr::Graphics
 		TextureTarget m_DepthBuffer;
 		TextureTarget m_DepthBuffer_Linear;
 		TextureTarget m_Velocity;
-		TextureTarget m_Normals;
+		TextureTarget m_NormalRoughness; // RGB: Normals, A: Roughness
+
+		TextureTarget m_DiffuseAlbedo;
+		TextureTarget m_SpecularAlbedo;
 
 		TextureTarget m_SceneBuffer_RenderSize;
 		TextureTarget m_SceneBuffer_OutputSize;

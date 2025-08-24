@@ -98,6 +98,11 @@ namespace vkr::Render
 		D3D12CreateDevice(m_Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_Device));
 		m_Device.As(&m_Device10);
 
+		if (m_NvStreamline && !m_NvStreamline->SetDevice(this))
+		{
+			m_NvStreamline->Shutdown();
+			m_NvStreamline.reset();
+		}
 
 		InitDescriptorHeaps();
 		InitRootSignatures();
@@ -113,15 +118,11 @@ namespace vkr::Render
 		m_RenderResourceDestructionQueue = MakeUnique<RenderResourceDestructionQueue>();
 		m_RenderResourceDestructionQueue->Start();
 
-		if (m_NvStreamline && !m_NvStreamline->SetDevice(this))
-		{
-			m_NvStreamline->Shutdown();
-			m_NvStreamline.reset();
-		}
-		else if(!m_NvStreamline->IsFeatureAvailable(Render::DLSS))
+		if(m_NvStreamline && !m_NvStreamline->IsFeatureAvailable(Render::DLSS_RR))
 		{
 			vkr::AppSettings::GetAppSettings()->GetGraphicsSettings().m_AAMethod = vkr::TAA;
 		}
+
 		return true;
 	}
 
