@@ -9,7 +9,7 @@ source_group(Application FILES ${VKR_APPLICATION_SOURCES})
 file(GLOB_RECURSE VKR_GRAPHICS_SOURCES ${VKR_SRC_DIR}/graphics/*.cpp ${VKR_SRC_DIR}/graphics/*.h)
 source_group(Graphics FILES ${VKR_GRAPHICS_SOURCES})
 
-file(GLOB_RECURSE VKR_SHADER_SOURCES ${VKR_SRC_DIR}/../content/shaders/*.hlsl)
+file(GLOB_RECURSE VKR_SHADER_SOURCES ${VKR_SRC_DIR}/../content/shaders/*.hlsl ${VKR_SRC_DIR}/../content/shaders/*.hlsli)
 source_group(Shaders FILES ${VKR_SHADER_SOURCES})
 set_source_files_properties(${VKR_SHADER_SOURCES} PROPERTIES HEADER_FILE_ONLY 1)
 

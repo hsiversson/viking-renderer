@@ -1,7 +1,7 @@
-#ifndef PBR_UTILS_HLSL
-#define PBR_UTILS_HLSL
+#ifndef PBR_UTILS_HLSLI
+#define PBR_UTILS_HLSLI
 
-#include "materialcommon.hlsl"
+#include "materialcommon.hlsli"
 
 bool SampleGGXSpecular(float2 xi, float3 N, float3 V, float roughness, out float3 L, out float pdf)
 {

@@ -95,7 +95,7 @@ namespace vkr::Graphics
 	{
 		std::ostringstream ss;
 
-		ss << "#include \"sceneconstants.hlsl\"\n";
+		ss << "#include \"sceneconstants.hlsli\"\n";
 
 		ss << "struct MaterialParameters\n";
 		ss << "{\n";
@@ -148,8 +148,8 @@ namespace vkr::Graphics
 			// Create vertex shader
 			std::stringstream vertexShaderCode;
 			vertexShaderCode <<
-				"#include \"sceneconstants.hlsl\"\n"
-				"#include \"instancing.hlsl\"\n"
+				"#include \"sceneconstants.hlsli\"\n"
+				"#include \"instancing.hlsli\"\n"
 				"struct VSInput\n"
 				"{\n";
 			for (const Render::VertexAttribute& attr : vertexLayout.GetAttributes())

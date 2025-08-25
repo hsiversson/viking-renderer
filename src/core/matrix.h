@@ -153,6 +153,45 @@ namespace vkr
 		return r;
 	}
 
+	constexpr Vector4f operator*(const Mat<4, 4>& lhs, const Vector4f& rhs)
+	{
+		Vector4f r{};
+		r.x = lhs.At(0, 0) * rhs.x + lhs.At(0, 1) * rhs.y + lhs.At(0, 2) * rhs.z + lhs.At(0, 3) * rhs.w;
+		r.y = lhs.At(1, 0) * rhs.x + lhs.At(1, 1) * rhs.y + lhs.At(1, 2) * rhs.z + lhs.At(1, 3) * rhs.w;
+		r.z = lhs.At(2, 0) * rhs.x + lhs.At(2, 1) * rhs.y + lhs.At(2, 2) * rhs.z + lhs.At(2, 3) * rhs.w;
+		r.w = lhs.At(3, 0) * rhs.x + lhs.At(3, 1) * rhs.y + lhs.At(3, 2) * rhs.z + lhs.At(3, 3) * rhs.w;
+		return r;
+	}
+
+	constexpr Vector3f operator*(const Mat<4, 4>& lhs, const Vector3f& rhs)
+	{
+		Vector3f r{};
+		float w = 1.0f; // assume affine transform with implicit w=1
+		r.x = lhs.At(0, 0) * rhs.x + lhs.At(0, 1) * rhs.y + lhs.At(0, 2) * rhs.z + lhs.At(0, 3) * w;
+		r.y = lhs.At(1, 0) * rhs.x + lhs.At(1, 1) * rhs.y + lhs.At(1, 2) * rhs.z + lhs.At(1, 3) * w;
+		r.z = lhs.At(2, 0) * rhs.x + lhs.At(2, 1) * rhs.y + lhs.At(2, 2) * rhs.z + lhs.At(2, 3) * w;
+		return r;
+	}
+
+	constexpr Vector3f operator*(const Mat<4, 3>& lhs, const Vector3f& rhs)
+	{
+		Vector3f r{};
+		r.x = lhs.At(0, 0) * rhs.x + lhs.At(0, 1) * rhs.y + lhs.At(0, 2) * rhs.z;
+		r.y = lhs.At(1, 0) * rhs.x + lhs.At(1, 1) * rhs.y + lhs.At(1, 2) * rhs.z;
+		r.z = lhs.At(2, 0) * rhs.x + lhs.At(2, 1) * rhs.y + lhs.At(2, 2) * rhs.z;
+		// note: row 3 (lhs(3,*)) is ignored because result is only 3D
+		return r;
+	}
+
+	constexpr Vector3f operator*(const Mat<3, 3>& lhs, const Vector3f& rhs)
+	{
+		Vector3f r{};
+		r.x = lhs.At(0, 0) * rhs.x + lhs.At(0, 1) * rhs.y + lhs.At(0, 2) * rhs.z;
+		r.y = lhs.At(1, 0) * rhs.x + lhs.At(1, 1) * rhs.y + lhs.At(1, 2) * rhs.z;
+		r.z = lhs.At(2, 0) * rhs.x + lhs.At(2, 1) * rhs.y + lhs.At(2, 2) * rhs.z;
+		return r;
+	}
+
 	Mat43 Compose(const Vector3f& m0, const Vector3f& m1, const Vector3f& m2, const Vector3f& m3);
 	Mat43 Compose(const Mat33& rotation, const Vector3f& translation);
 

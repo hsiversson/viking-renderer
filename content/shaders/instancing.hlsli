@@ -1,7 +1,7 @@
-#ifndef INSTANCING_HLSL
-#define INSTANCING_HLSL
+#ifndef INSTANCING_HLSLI
+#define INSTANCING_HLSLI
 
-#include "sceneconstants.hlsl"
+#include "sceneconstants.hlsli"
 
 //For now InstanceData is common. This is because the RT shader needs to access instance data from any object and we use inline raytracing. If we change to RT with subobjects we can start 
 //separating the isntancedata definition. The instancebuffer at least accepts any combination of structs as its a byteaddressbuffer

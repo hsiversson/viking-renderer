@@ -1,7 +1,7 @@
-#ifndef BXDF_COMMON_HLSL
-#define BXDF_COMMON_HLSL
+#ifndef BXDF_COMMON_HLSLI
+#define BXDF_COMMON_HLSLI
 
-#include "common.hlsl"
+#include "common.hlsli"
 
 float D_GGX(float3 N, float3 H, float roughness)
 {

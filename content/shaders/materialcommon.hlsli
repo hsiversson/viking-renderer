@@ -1,7 +1,7 @@
-#ifndef MATERIAL_COMMON_HLSL
-#define MATERIAL_COMMON_HLSL
+#ifndef MATERIAL_COMMON_HLSLI
+#define MATERIAL_COMMON_HLSLI
 
-#include "common.hlsl"
+#include "common.hlsli"
 
 struct ResolvedMaterial
 {

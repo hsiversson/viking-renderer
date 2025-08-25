@@ -1,6 +1,6 @@
-#include "common.hlsl"
-#include "raytracingcommon.hlsl"
-#include "sceneconstants.hlsl"
+#include "common.hlsli"
+#include "raytracingcommon.hlsli"
+#include "sceneconstants.hlsli"
 
 struct ConstantsStruct
 {

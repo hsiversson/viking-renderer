@@ -1,5 +1,5 @@
-#ifndef COMMON_HLSL
-#define COMMON_HLSL
+#ifndef COMMON_HLSLI
+#define COMMON_HLSLI
 
 static const float PI = 3.1415927410125732421875;
 

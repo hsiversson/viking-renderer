@@ -1,7 +1,7 @@
-#include "sceneconstants.hlsl"
-#include "instancing.hlsl"
-#include "pbrutils.hlsl"
-#include "velocity.hlsl"
+#include "sceneconstants.hlsli"
+#include "instancing.hlsli"
+#include "pbrutils.hlsli"
+#include "velocity.hlsli"
 
 cbuffer PerBatchConstantBuffer : register(b0)
 {

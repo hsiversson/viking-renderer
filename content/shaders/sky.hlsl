@@ -1,5 +1,5 @@
 // Valhalla awaits!!
-#include "sceneconstants.hlsl"
+#include "sceneconstants.hlsli"
 
 cbuffer PerBatchConstantBuffer : register(b0)
 {

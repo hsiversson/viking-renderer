@@ -1,5 +1,5 @@
-#include "sceneconstants.hlsl"
-#include "velocity.hlsl"
+#include "sceneconstants.hlsli"
+#include "velocity.hlsli"
 
 cbuffer ConstantBuffer : register(b0)
 {

@@ -1,5 +1,5 @@
-#ifndef SCENECONSTANTS_HLSL
-#define SCENECONSTANTS_HLSL
+#ifndef SCENECONSTANTS_HLSLI
+#define SCENECONSTANTS_HLSLI
 
 struct DirectionalLightData
 {

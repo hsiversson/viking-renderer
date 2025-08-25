@@ -1,6 +1,6 @@
-#include "sceneconstants.hlsl"
-#include "instancing.hlsl"
-#include "pbrutils.hlsl"
+#include "sceneconstants.hlsli"
+#include "instancing.hlsli"
+#include "pbrutils.hlsli"
 
 struct ConstantsStruct
 {

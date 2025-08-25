@@ -1,5 +1,5 @@
-#ifndef RANDOM_HLSL
-#define RANDOM_HLSL
+#ifndef RANDOM_HLSLI
+#define RANDOM_HLSLI
 
 float InterleavedGradientNoise(float2 uv, uint frameIndex)
 {

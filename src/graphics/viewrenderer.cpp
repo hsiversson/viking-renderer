@@ -55,6 +55,14 @@ namespace vkr::Graphics
 		raytracePSODesc.Compute.m_ComputeShader = m_RaytraceShader.get();
 		m_RaytracePSO = device->CreatePipelineState(raytracePSODesc);
 
+		// Tonemap
+		{
+			Ref<Render::Shader> tonemapShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/tonemap.hlsl"), L"Main", vkr::Render::SHADER_STAGE_COMPUTE);
+			Render::PipelineStateDesc psoDesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
+			psoDesc.Compute.m_ComputeShader = tonemapShader.get();
+			m_TonemapPSO = device->CreatePipelineState(psoDesc);
+		}
+
 		return true;
 	}
 
@@ -71,6 +79,7 @@ namespace vkr::Graphics
 				StaticVelocity(*viewPtr);
 				TraceRadiance(*viewPtr);
 				ApplyUpscaling(*viewPtr);
+				//ApplyPostEffects(*viewPtr);
 				FinalizeFrame(*viewPtr);
 			});
 
@@ -635,10 +644,34 @@ namespace vkr::Graphics
 
 	void ViewRenderer::ApplyPostEffects(View& view)
 	{
+		Render::Context* ctx = Render::Context::GetCurrentContext();
+		ViewRenderTargets& renderTargets = view.GetRenderTargets();
+		const ViewRenderData& renderData = view.GetRenderData();
+		SET_CONTEXT_MARKER_FUNCTION(ctx);
+
 		// DoF
 		// Bloom
 		// Color grading
 		// Tonemap + display encoding
+
+		{
+			// Tonemapping
+			struct Constants
+			{
+				uint32_t TargetDescriptorIndex;
+				uint32_t TonemapType; // 0: Reinhard, 1: ACES-approx 2: Agx-approx 3: Hable 4: GT
+				uint32_t EncodingType; // vkr::DisplayEncoding
+				uint32_t TargetColorSpace; // vkr::ColorSpace
+			};
+			Constants constants;
+			constants.TargetDescriptorIndex = renderTargets.m_SceneBuffer_OutputSize.m_TextureViewRW->GetIndex();
+			constants.TonemapType = 0;
+			constants.EncodingType = 0;
+			constants.TargetColorSpace = 0;
+			ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
+
+			ctx->DispatchThreads(m_TonemapPSO.get(), renderData.m_RenderSize.x, renderData.m_RenderSize.y);
+		}
 	}
 
 	void ViewRenderer::FinalizeFrame(View& view)

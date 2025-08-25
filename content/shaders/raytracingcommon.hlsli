@@ -1,7 +1,7 @@
-#ifndef RAYTRACING_COMMON_HLSL
-#define RAYTRACING_COMMON_HLSL
+#ifndef RAYTRACING_COMMON_HLSLI
+#define RAYTRACING_COMMON_HLSLI
 
-#include "random.hlsl"
+#include "random.hlsli"
 
 uint UnpackIndex(ByteAddressBuffer indexBuffer, uint offset, uint stride)
 {

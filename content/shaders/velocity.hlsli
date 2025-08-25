@@ -1,7 +1,7 @@
-#ifndef VELOCITY_HLSL
-#define VELOCITY_HLSL
+#ifndef VELOCITY_HLSLI
+#define VELOCITY_HLSLI
 
-#include "sceneconstants.hlsl"
+#include "sceneconstants.hlsli"
 
 float2 CalcVelocity(float4 newPos, float4 oldPos)
 {

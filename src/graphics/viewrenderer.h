@@ -48,7 +48,7 @@ namespace vkr::Graphics
 		// UniquePtr<VegetationSystem> m_VegetationSystem;
 		// UniquePtr<VfxSimulator> m_VfxSimulator;
 
-		//Global shader cache??
+		// Global shader cache??
 		Ref<Render::Shader> m_StaticVelShader;
 		Ref<Render::PipelineState> m_StaticVelPSO;
 		Ref<Render::Shader> m_SkyComputeShader;
@@ -56,11 +56,12 @@ namespace vkr::Graphics
 		Ref<Render::Shader> m_RaytraceShader;
 		Ref<Render::PipelineState> m_RaytracePSO;
 
-		//TAA
+		// TAA
 		Ref<Render::Shader> m_TAAResolveComputeShader;
 		Ref<Render::PipelineState> m_TAAResolvePSO;
 
-		//RT
+		// Post-processing
+		Ref<Render::PipelineState> m_TonemapPSO;
 
 	};
 }

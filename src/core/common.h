@@ -13,6 +13,9 @@ namespace vkr
 	inline constexpr uint16_t Align(uint16_t value, uint16_t alignment) { return (value + alignment - 1) & ~(alignment - 1); }
 	inline constexpr uint32_t Align(uint32_t value, uint32_t alignment) { return (value + alignment - 1) & ~(alignment - 1); }
 	inline constexpr uint64_t Align(uint64_t value, uint64_t alignment) { return (value + alignment - 1) & ~(alignment - 1); }
+
+	template<typename T>
+	inline constexpr T Saturate(const T& v) { return std::clamp(v, T(0), T(1)); }
 }
 
 #include "types.h"

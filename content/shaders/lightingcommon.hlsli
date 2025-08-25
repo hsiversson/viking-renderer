@@ -1,10 +1,10 @@
-#ifndef LIGHTING_COMMON_HLSL
-#define LIGHTING_COMMON_HLSL
+#ifndef LIGHTING_COMMON_HLSLI
+#define LIGHTING_COMMON_HLSLI
 
-#include "common.hlsl"
-#include "random.hlsl"
-#include "pbrutils.hlsl"
-#include "sceneconstants.hlsl"
+#include "common.hlsli"
+#include "random.hlsli"
+#include "pbrutils.hlsli"
+#include "sceneconstants.hlsli"
 
 float3 ApplyDirectionalLighting(in ResolvedMaterial material, in float3 V, inout uint rngState, RaytracingAccelerationStructure RaytracingScene)
 {    
