@@ -103,5 +103,5 @@ void Miss(inout RaytracingPayload payload)
         skyColor += sunDiskColor;
     }
         
-    payload.irradiance = skyColor;
+    payload.irradiance = skyColor; // TODO: Make sky dependent on dir light intensity as well. Will be done automatically if moving to physically based sky.
 }

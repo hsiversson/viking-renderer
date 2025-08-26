@@ -26,14 +26,16 @@ namespace vkr
 		Chromaticity::sRGB,
 		Vector3f(0.2126390059f, 0.7151686788f, 0.0721923154f),
 		BT709_TO_XYZ,
-		XYZ_TO_BT709
+		XYZ_TO_BT709,
+		COLOR_GAMUT_TYPE_SRGB
 	};
 	const ColorGamut ColorGamut::Bt709 =
 	{
 		Chromaticity::Bt709,
 		Vector3f(0.2126390059f, 0.7151686788f, 0.0721923154f),
 		BT709_TO_XYZ,
-		XYZ_TO_BT709
+		XYZ_TO_BT709,
+		COLOR_GAMUT_TYPE_BT709
 	};
 
 	static constexpr Mat33 XYZ_TO_BT2020 =
@@ -53,7 +55,8 @@ namespace vkr
 		Chromaticity::Bt2020,
 		Vector3f(0.2627066f, 0.6779996f, 0.0592938f),
 		BT2020_TO_XYZ,
-		XYZ_TO_BT2020
+		XYZ_TO_BT2020,
+		COLOR_GAMUT_TYPE_BT2020
 	};
 
 	static constexpr Mat33 XYZ_D60_TO_D65 =
@@ -85,7 +88,8 @@ namespace vkr
 		Chromaticity::ACEScg,
 		Vector3f(0.2722287168f, 0.6740817658f, 0.0536895174f),
 		AP1_TO_XYZ * XYZ_D60_TO_D65,
-		XYZ_D65_TO_D60 * XYZ_TO_AP1
+		XYZ_D65_TO_D60 * XYZ_TO_AP1,
+		COLOR_GAMUT_TYPE_ACESCG
 	};
 
 	// sRGB transfer functions
@@ -152,17 +156,17 @@ namespace vkr
 		return (V <= 0.5f) ? (V * V) / 3.0f : (std::exp((V - HLG_c) / HLG_a) + HLG_b) / 12.0f;
 	}
 
-	const TransferFunction TransferFunction::Linear = { [](float x) { return x; }, [](float x) { return x; } };
-	const TransferFunction TransferFunction::sRGB	= { locEncodeSRGB, locDecodeSRGB };
-	const TransferFunction TransferFunction::Bt709	= { locEncodeBt709, locDecodeBt709 };
-	const TransferFunction TransferFunction::St2048 = { locEncodeSt2048, locDecodeSt2048 };
-	const TransferFunction TransferFunction::HLG	= { locEncodeHLG, locDecodeHLG };
+	const TransferFunction TransferFunction::Linear = { [](float x) { return x; }, [](float x) { return x; }, DISPLAY_ENCODING_TYPE_LINEAR };
+	const TransferFunction TransferFunction::sRGB	= { locEncodeSRGB, locDecodeSRGB, DISPLAY_ENCODING_TYPE_SRGB };
+	const TransferFunction TransferFunction::Bt709	= { locEncodeBt709, locDecodeBt709, DISPLAY_ENCODING_TYPE_BT709 };
+	const TransferFunction TransferFunction::St2048 = { locEncodeSt2048, locDecodeSt2048, DISPLAY_ENCODING_TYPE_ST2048 };
+	const TransferFunction TransferFunction::HLG	= { locEncodeHLG, locDecodeHLG, DISPLAY_ENCODING_TYPE_HLG };
 
-	const ColorSpace ColorSpace::sRGB = { "sRGB", ColorGamut::sRGB, TransferFunction::sRGB };
+	const ColorSpace ColorSpace::sRGB = { "sRGB", ColorGamut::sRGB, TransferFunction::sRGB, COLOR_SPACE_TYPE_SRGB };
 	//const ColorSpace ColorSpace::scRGB = { "scRGB", ColorGamut::scRGB, TransferFunction::scRGB };
-	const ColorSpace ColorSpace::Bt709 = { "Bt709", ColorGamut::Bt709, TransferFunction::Bt709 };
-	const ColorSpace ColorSpace::Bt2020 = { "Bt2020", ColorGamut::Bt2020, TransferFunction::St2048 };
-	const ColorSpace ColorSpace::ACEScg = { "ACEScg", ColorGamut::ACEScg, TransferFunction::Linear };
+	const ColorSpace ColorSpace::Bt709 = { "Bt709", ColorGamut::Bt709, TransferFunction::Bt709, COLOR_SPACE_TYPE_BT709 };
+	const ColorSpace ColorSpace::Bt2020 = { "Bt2020", ColorGamut::Bt2020, TransferFunction::St2048, COLOR_SPACE_TYPE_BT2020 };
+	const ColorSpace ColorSpace::ACEScg = { "ACEScg", ColorGamut::ACEScg, TransferFunction::Linear, COLOR_SPACE_TYPE_ACESCG };
 
 	Vector3f EncodeColor(const Vector3f& linearRgb, const TransferFunction& transferFunction)
 	{

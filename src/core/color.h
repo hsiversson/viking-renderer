@@ -25,12 +25,22 @@ namespace vkr
 		static const Chromaticity ACEScg;
 	};
 
+	enum ColorGamutType
+	{
+		COLOR_GAMUT_TYPE_UNKNOWN,
+		COLOR_GAMUT_TYPE_SRGB,
+		COLOR_GAMUT_TYPE_BT709,
+		COLOR_GAMUT_TYPE_BT2020,
+		COLOR_GAMUT_TYPE_ACESCG,
+	};
+
 	struct ColorGamut
 	{
 		const Chromaticity& m_Chromaticity;
 		const Vector3f m_Primaries;
 		const Mat33 m_RGBToXYZ;
 		const Mat33 m_XYZToRGB;
+		const ColorGamutType m_Type;
 
 		static const ColorGamut sRGB;
 		static const ColorGamut Bt709;
@@ -38,10 +48,21 @@ namespace vkr
 		static const ColorGamut ACEScg;
 	};
 
+	enum DisplayEncodingType
+	{
+		DISPLAY_ENCODING_TYPE_UNKNOWN,
+		DISPLAY_ENCODING_TYPE_LINEAR,
+		DISPLAY_ENCODING_TYPE_SRGB,
+		DISPLAY_ENCODING_TYPE_BT709,
+		DISPLAY_ENCODING_TYPE_ST2048,
+		DISPLAY_ENCODING_TYPE_HLG,
+	};
+
 	struct TransferFunction
 	{
 		float (*Encode)(float linearRgb);
 		float (*Decode)(float encodedRgb);
+		const DisplayEncodingType m_Type;
 
 		static const TransferFunction Linear;
 		static const TransferFunction sRGB;
@@ -50,11 +71,21 @@ namespace vkr
 		static const TransferFunction HLG;
 	};
 
+	enum ColorSpaceType
+	{
+		COLOR_SPACE_TYPE_UNKNOWN,
+		COLOR_SPACE_TYPE_SRGB,
+		COLOR_SPACE_TYPE_BT709,
+		COLOR_SPACE_TYPE_BT2020,
+		COLOR_SPACE_TYPE_ACESCG,
+	};
+
 	struct ColorSpace
 	{
 		const char* m_DisplayName;
 		const ColorGamut m_Gamut;
 		const TransferFunction m_TransferFunction;
+		const ColorSpaceType m_Type;
 
 		static const ColorSpace sRGB;
 		//static const ColorSpace scRGB;

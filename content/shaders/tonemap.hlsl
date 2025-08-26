@@ -4,7 +4,7 @@ struct ConstantsStruct
 {
     uint TargetDescriptorIndex;
     uint TonemapType;
-    uint EncodingType;
+    uint SourceColorSpace;
     uint TargetColorSpace;
 };
 ConstantBuffer<ConstantsStruct> Constants : register(b0);
@@ -17,6 +17,8 @@ static const uint TONEMAP_TYPE_GRAN_TURISMO = 4;
 
 float3 Tonemap(float3 linearRgb)
 {
+    // TODO: Make sure to handle HDR vs SDR compression correctly.
+    
     float3 tonemapped;
     
     if (Constants.TonemapType == TONEMAP_TYPE_REINHARD)
@@ -56,27 +58,19 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
     
     RWTexture2D<float4> target = ResourceDescriptorHeap[Constants.TargetDescriptorIndex];
     
-    float3 linearRgb = target[pixel].rgb; // in working color space (ACEScg)
+    float exposure = 0.25f; // TODO: use calculated exposure instead.
+    float3 linearRgb = target[pixel].rgb * exposure;
+    
+    const ColorSpace sourceColorSpace = COLOR_SPACES[Constants.SourceColorSpace];
+    const ColorSpace targetColorSpace = COLOR_SPACES[Constants.TargetColorSpace];
     
     // transform to target color space
-    
+    linearRgb = TransformColor(linearRgb, sourceColorSpace, targetColorSpace);
     
     // perform tonemap
     float3 tonemapped = Tonemap(linearRgb);
     
-    float3 encoded;
-    if (Constants.EncodingType == DISPLAY_ENCODING_TYPE_SRGB)
-    {
-        encoded = EncodeSRGB(tonemapped);
-    }
-    else if (Constants.EncodingType == DISPLAY_ENCODING_TYPE_ST2048)
-    {
-        encoded = EncodeSt2048(tonemapped);
-    }
-    else if (Constants.EncodingType == DISPLAY_ENCODING_TYPE_HLG)
-    {
-        encoded = EncodeHLG(tonemapped);
-    }
+    float3 encoded = EncodeColor(saturate(tonemapped), targetColorSpace);
     
-    target[pixel] = float4(encoded, 0.0f);
+    target[pixel] = float4(saturate(encoded), 1.0f);
 }

@@ -79,7 +79,7 @@ namespace vkr::Graphics
 				StaticVelocity(*viewPtr);
 				TraceRadiance(*viewPtr);
 				ApplyUpscaling(*viewPtr);
-				//ApplyPostEffects(*viewPtr);
+				ApplyPostEffects(*viewPtr);
 				FinalizeFrame(*viewPtr);
 			});
 
@@ -660,17 +660,17 @@ namespace vkr::Graphics
 			{
 				uint32_t TargetDescriptorIndex;
 				uint32_t TonemapType; // 0: Reinhard, 1: ACES-approx 2: Agx-approx 3: Hable 4: GT
-				uint32_t EncodingType; // vkr::DisplayEncoding
-				uint32_t TargetColorSpace; // vkr::ColorSpace
+				uint32_t SourceColorSpace; // vkr::ColorSpaceType
+				uint32_t TargetColorSpace; // vkr::ColorSpaceType
 			};
 			Constants constants;
 			constants.TargetDescriptorIndex = renderTargets.m_SceneBuffer_OutputSize.m_TextureViewRW->GetIndex();
-			constants.TonemapType = 0;
-			constants.EncodingType = 0;
-			constants.TargetColorSpace = 0;
+			constants.TonemapType = 1;
+			constants.SourceColorSpace = COLOR_SPACE_TYPE_ACESCG;
+			constants.TargetColorSpace = COLOR_SPACE_TYPE_SRGB;
 			ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
 
-			ctx->DispatchThreads(m_TonemapPSO.get(), renderData.m_RenderSize.x, renderData.m_RenderSize.y);
+			ctx->DispatchThreads(m_TonemapPSO.get(), renderData.m_OutputSize.x, renderData.m_OutputSize.y);
 		}
 	}
 
