@@ -7,7 +7,7 @@ namespace vkr
 	const Chromaticity Chromaticity::sRGB	= { Vector2f(0.640f, 0.330f), Vector2f(0.300f, 0.600f), Vector2f(0.150f, 0.060f), WhitePoint::D65 };
 	const Chromaticity Chromaticity::Bt709	= Chromaticity::sRGB;
 	const Chromaticity Chromaticity::Bt2020	= { Vector2f(0.708f, 0.292f), Vector2f(0.170f, 0.797f), Vector2f(0.131f, 0.046f), WhitePoint::D65 };
-	const Chromaticity Chromaticity::ACEScg	= { Vector2f(0.713f, 0.293f), Vector2f(0.165f, 0.830f), Vector2f(0.128f, 0.044f), WhitePoint::D65 };
+	const Chromaticity Chromaticity::ACEScg	= { Vector2f(0.713f, 0.293f), Vector2f(0.165f, 0.830f), Vector2f(0.128f, 0.044f), WhitePoint::D60 };
 
 	static constexpr Mat33 XYZ_TO_BT709 =
 	{
