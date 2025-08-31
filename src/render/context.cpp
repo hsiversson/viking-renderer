@@ -695,6 +695,7 @@ namespace vkr::Render
 
 		m_LocalConstantBuffers.fill(nullptr);
 		m_LocalConstantBufferOffsets.fill(0);
+		m_GlobalConstantBuffers.fill(nullptr);
 
 		m_RenderTargets.fill(nullptr);
 		m_DepthStencil = nullptr;
@@ -702,6 +703,7 @@ namespace vkr::Render
 		m_RootSignatureDirty = false;
 		m_PipelineStateDirty = false;
 		m_LocalConstantsDirty.fill(false);
+		m_GlobalConstantsDirty.fill(false);
 		m_VertexBuffersDirty = false;
 		m_IndexBufferDirty = false;
 		m_TopologyDirty = false;
@@ -866,4 +868,8 @@ namespace vkr::Render
 		m_FencesToWaitFor.push_back(fence);
 	}
 
+	void Context::InsertWait(const RenderTaskEvent& taskEvent)
+	{
+		m_FencesToWaitFor.push_back(taskEvent.GetFence());
+	}
 }

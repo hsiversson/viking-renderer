@@ -162,6 +162,16 @@ namespace vkr::Graphics
 		prepareData.m_RenderSize = view.GetRenderSize();
 		prepareData.m_OutputSize = view.GetOutputSize();
 
+		//Sun
+		prepareData.m_DirectionalLights[0].Emission = Vector3f(6.0, 6.0, 6.0);
+		prepareData.m_DirectionalLights[0].Direction = Vector3f(0.4, -0.5, 0.6);
+		prepareData.m_DirectionalLights[0].Radius = tanf(DegToRad(0.53f));
+
+		//Moon
+		prepareData.m_DirectionalLights[1].Emission = Vector3f(8.0, 2.0, 2.0);
+		prepareData.m_DirectionalLights[1].Direction = Vector3f(-0.4, -0.5, 0.6);
+		prepareData.m_DirectionalLights[1].Radius = 0.02f;
+
 		view.PrepareCameraConstants(prepareData.m_CameraData);
 
 		prepareData.m_TraceRaysPipelineState = m_TraceRaysPipelineState;

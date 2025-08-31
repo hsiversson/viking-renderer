@@ -36,7 +36,11 @@ namespace vkr::Graphics
 		m_StaticVelPSO = device->CreatePipelineState(staticVelPSODesc);
 
 		//Sky
-		
+		m_SkyTransmittanceLUTComputeShader = device->CreateShader("../../../content/shaders/skytransmittancelut.hlsl", L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
+		Render::PipelineStateDesc skyTransmittanceLUTPSODesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
+		skyTransmittanceLUTPSODesc.Compute.m_ComputeShader = m_SkyTransmittanceLUTComputeShader.get();
+		m_SkyTransmittanceLUTPSO = device->CreatePipelineState(skyTransmittanceLUTPSODesc);
+
 		m_SkyComputeShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/sky.hlsl"), L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
 		Render::PipelineStateDesc skyPSODesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
 		skyPSODesc.Compute.m_ComputeShader = m_SkyComputeShader.get();
@@ -70,7 +74,12 @@ namespace vkr::Graphics
 	{
 		View* viewPtr = &view; 
 		viewPtr->BeginRender();
-
+		if (m_UpdateSkyLUTS)
+		{
+			//Precalculate LUTs for sky rendering (Brute force it into a single stage. Do we need to divide between multiple frames?)
+			m_SkyLUTTaskEvent = Render::QueueComputeTask([this, viewPtr]() mutable { SkyLUTCompute(*viewPtr); });
+			m_UpdateSkyLUTS = false;
+		}
 		// no need to split into multiple tasks yet...
 		Render::QueueGraphicsTask([this, viewPtr]() mutable 
 			{ 
@@ -167,13 +176,8 @@ namespace vkr::Graphics
 
 		perSceneConstantData.NumDirectionalLightsInUse = 1;
 
-		perSceneConstantData.DirectionalLights[0].Emission = Vector3f(6.0, 6.0, 6.0);
-		perSceneConstantData.DirectionalLights[0].Direction = Vector3f(0.4, -0.5, 0.6);
-		perSceneConstantData.DirectionalLights[0].Radius = tanf(DegToRad(0.53f));
-
-		perSceneConstantData.DirectionalLights[1].Emission = Vector3f(8.0, 2.0, 2.0);
-		perSceneConstantData.DirectionalLights[1].Direction = Vector3f(-0.4, -0.5, 0.6);
-		perSceneConstantData.DirectionalLights[1].Radius = 0.02f;
+		perSceneConstantData.DirectionalLights[0] = renderData.m_DirectionalLights[0];
+		perSceneConstantData.DirectionalLights[1] = renderData.m_DirectionalLights[1];
 
 		renderData.m_PerSceneConstantBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(PerSceneConstantData), sizeof(PerSceneConstantData), &perSceneConstantData);
 
@@ -441,6 +445,7 @@ namespace vkr::Graphics
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
 
+		
 		renderTargets.m_DiffuseAlbedo.m_IsWritable = true;
 		renderTargets.m_DiffuseAlbedo.m_Format = Render::Format::FORMAT_RGBA8_UNORM;
 		renderTargets.m_DiffuseAlbedo.Update(renderData.m_RenderSize, "ViewRenderTargets::DiffuseAlbedo");
@@ -452,6 +457,12 @@ namespace vkr::Graphics
 		renderTargets.m_NormalRoughness.m_IsWritable = true;
 		renderTargets.m_NormalRoughness.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
 		renderTargets.m_NormalRoughness.Update(renderData.m_RenderSize, "ViewRenderTargets::NormalRoughness");
+
+		if (m_SkyLUTTaskEvent) //Did we need to recompute sky LUTs? Wait until sky is ready
+		{
+			m_SkyLUTTaskEvent->WaitForEvent(true);
+			ctx->InsertWait(*m_SkyLUTTaskEvent);
+		}
 
 		//Transition to UAV the output
 		std::vector<Render::TextureBarrierDesc> barriers;
@@ -708,5 +719,7 @@ namespace vkr::Graphics
 			ctx->TextureBarrier(barrierDesc);
 		}
 	}
+
+	
 
 }

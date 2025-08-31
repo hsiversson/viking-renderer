@@ -45,6 +45,11 @@ namespace vkr::Graphics
 		TextureTarget m_SceneBuffer_OutputSize;
 
 		TextureTarget m_SceneHistory;
+
+		//Sky
+		TextureTarget m_TransmittanceLUT;
+		TextureTarget m_IrradianceLUT;
+		TextureTarget m_ScatteringLUT;
 	};
 
 	class View
