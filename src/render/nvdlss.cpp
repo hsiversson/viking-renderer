@@ -150,6 +150,7 @@ namespace vkr::Render
 		sl::Resource colorOut = { sl::ResourceType::eTex2d, renderTargets.m_SceneBuffer_OutputSize.m_Texture->GetD3DResource(), writeState };
 		sl::Resource depth = { sl::ResourceType::eTex2d, renderTargets.m_DepthBuffer.m_Texture->GetD3DResource(), readState };
 		sl::Resource mvec = { sl::ResourceType::eTex2d, renderTargets.m_Velocity.m_Texture->GetD3DResource(), readState };
+		sl::Resource exposure = { sl::ResourceType::eTex2d, renderTargets.m_Exposure.m_Texture->GetD3DResource(), readState };
 
 		sl::Resource diffuseAlbedo = { sl::ResourceType::eTex2d, renderTargets.m_DiffuseAlbedo.m_Texture->GetD3DResource(), readState };
 		sl::Resource specularAlbedo = { sl::ResourceType::eTex2d, renderTargets.m_SpecularAlbedo.m_Texture->GetD3DResource(), readState };
@@ -161,12 +162,13 @@ namespace vkr::Render
 
 		const sl::Extent renderVp = { 0, 0, srcSize.x, srcSize.y }; //Do we have viewport offsets?
 		const sl::Extent targetVp = { 0, 0, dstSize.x, dstSize.y };
-		//const sl::Extent onePxVp = { 0, 0, 1, 1 };
+		const sl::Extent onePxVp = { 0, 0, 1, 1 };
 
 		sl::ResourceTag colorInTag = sl::ResourceTag{ &colorIn, sl::kBufferTypeScalingInputColor, sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
 		sl::ResourceTag colorOutTag = sl::ResourceTag{ &colorOut, sl::kBufferTypeScalingOutputColor, sl::ResourceLifecycle::eValidUntilEvaluate, &targetVp };
 		sl::ResourceTag depthTag = sl::ResourceTag{ &depth, sl::kBufferTypeDepth, sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
 		sl::ResourceTag mvTag = sl::ResourceTag{ &mvec, sl::kBufferTypeMotionVectors, sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
+		sl::ResourceTag exposureTag = sl::ResourceTag{ &exposure, sl::kBufferTypeExposure, sl::ResourceLifecycle::eValidUntilEvaluate, &onePxVp };
 
 		sl::ResourceTag diffuseAlbedoTag = sl::ResourceTag{ &diffuseAlbedo, sl::kBufferTypeAlbedo, sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
 		sl::ResourceTag specularAlbedoTag = sl::ResourceTag{ &specularAlbedo, sl::kBufferTypeSpecularAlbedo, sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
@@ -192,6 +194,7 @@ namespace vkr::Render
 		evalInputs.push_back(&colorOutTag);
 		evalInputs.push_back(&depthTag);
 		evalInputs.push_back(&mvTag);
+		evalInputs.push_back(&exposureTag);
 		evalInputs.push_back(&diffuseAlbedoTag);
 		evalInputs.push_back(&specularAlbedoTag);
 		evalInputs.push_back(&normalRoughnessTag);

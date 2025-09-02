@@ -6,6 +6,9 @@ struct ConstantsStruct
     uint TonemapType;
     uint SourceColorSpace;
     uint TargetColorSpace;
+    
+    uint ExposureDescriptorIndex;
+    uint3 unused;
 };
 ConstantBuffer<ConstantsStruct> Constants : register(b0);
 
@@ -57,8 +60,9 @@ void Main(uint3 dispatchThreadId : SV_DispatchThreadID)
     uint2 pixel = dispatchThreadId.xy;
     
     RWTexture2D<float4> target = ResourceDescriptorHeap[Constants.TargetDescriptorIndex];
+    Texture2D<float> exposureTexture = ResourceDescriptorHeap[Constants.ExposureDescriptorIndex];
     
-    float exposure = 0.25f; // TODO: use calculated exposure instead.
+    float exposure = exposureTexture.Load(int3(0,0,0));
     float3 linearRgb = target[pixel].rgb * exposure;
     
     const ColorSpace sourceColorSpace = COLOR_SPACES[Constants.SourceColorSpace];

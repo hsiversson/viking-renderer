@@ -45,6 +45,9 @@ namespace vkr::Graphics
 		TextureTarget m_SceneBuffer_OutputSize;
 
 		TextureTarget m_SceneHistory;
+
+		TextureTarget m_Exposure; // 1x1 with adapted exposure value
+		Ref<Render::BufferView> m_ExposureHistogram;
 	};
 
 	class View

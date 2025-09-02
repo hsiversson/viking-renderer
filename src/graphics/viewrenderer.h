@@ -61,6 +61,9 @@ namespace vkr::Graphics
 		Ref<Render::PipelineState> m_TAAResolvePSO;
 
 		// Post-processing
+		Ref<Render::PipelineState> m_ClearHistogramPSO;
+		Ref<Render::PipelineState> m_BuildHistogramPSO;
+		Ref<Render::PipelineState> m_ComputeExposurePSO;
 		Ref<Render::PipelineState> m_TonemapPSO;
 
 	};

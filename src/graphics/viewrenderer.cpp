@@ -55,6 +55,20 @@ namespace vkr::Graphics
 		raytracePSODesc.Compute.m_ComputeShader = m_RaytraceShader.get();
 		m_RaytracePSO = device->CreatePipelineState(raytracePSODesc);
 
+		// Exposure
+		{
+			Ref<Render::Shader> clearHistogramShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/exposure.hlsl"), L"ClearHistogram", vkr::Render::SHADER_STAGE_COMPUTE);
+			Ref<Render::Shader> buildHistogramShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/exposure.hlsl"), L"BuildHistogram", vkr::Render::SHADER_STAGE_COMPUTE);
+			Ref<Render::Shader> computeExposureShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/exposure.hlsl"), L"ComputeExposure", vkr::Render::SHADER_STAGE_COMPUTE);
+			Render::PipelineStateDesc psoDesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
+			psoDesc.Compute.m_ComputeShader = clearHistogramShader.get();
+			m_ClearHistogramPSO = device->CreatePipelineState(psoDesc);
+			psoDesc.Compute.m_ComputeShader = buildHistogramShader.get();
+			m_BuildHistogramPSO = device->CreatePipelineState(psoDesc);
+			psoDesc.Compute.m_ComputeShader = computeExposureShader.get();
+			m_ComputeExposurePSO = device->CreatePipelineState(psoDesc);
+		}
+
 		// Tonemap
 		{
 			Ref<Render::Shader> tonemapShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/tonemap.hlsl"), L"Main", vkr::Render::SHADER_STAGE_COMPUTE);
@@ -654,6 +668,92 @@ namespace vkr::Graphics
 		// Color grading
 		// Tonemap + display encoding
 
+		// Exposure
+		{
+			renderTargets.m_Exposure.m_Format = Render::FORMAT_R32_FLOAT;
+			renderTargets.m_Exposure.m_IsWritable = true;
+			if (renderTargets.m_Exposure.Update(Vector2u(1, 1), "Exposure"))
+			{
+				Render::BufferDesc histogramBufferDesc = {};
+				histogramBufferDesc.m_ElementCount = 256;
+				histogramBufferDesc.m_ElementSize = sizeof(uint32_t);
+				histogramBufferDesc.m_Writable = true;
+				histogramBufferDesc.m_Name = "Exposure Histogram";
+
+				Ref<Render::Buffer> histogramBuffer = Render::GetDevice()->CreateBuffer(histogramBufferDesc);
+
+				Render::BufferViewDesc histogramViewDesc = {};
+				histogramViewDesc.m_ElementCount = 256;
+				histogramViewDesc.m_ElementSize = sizeof(uint32_t);
+				histogramViewDesc.m_Usage = Render::BUFFER_VIEW_USAGE_STRUCTURED_RW;
+
+				renderTargets.m_ExposureHistogram = Render::GetDevice()->CreateBufferView(histogramViewDesc, histogramBuffer);
+			}
+
+			struct Constants
+			{
+				Vector2u RenderSize;
+				uint32_t ExposureTargetDescriptorIndex;
+				uint32_t HistogramDescriptorIndex;
+
+				float DeltaTime;
+				float MinLog; // -12 - Lowest f-Stop
+				float MaxLog; // 20 - Highest f-Stop
+				uint32_t SceneColorDescriptorIndex;
+
+				uint32_t SceneColorSpace;
+				uint32_t unused[3];
+			};
+			Constants constants;
+			constants.RenderSize = renderData.m_OutputSize;
+			constants.ExposureTargetDescriptorIndex = renderTargets.m_Exposure.m_TextureViewRW->GetIndex();
+			constants.HistogramDescriptorIndex = renderTargets.m_ExposureHistogram->GetIndex();
+			constants.DeltaTime = renderData.m_DeltaTime;
+			constants.MinLog = -12.0f;
+			constants.MaxLog = 20.0f;
+			constants.SceneColorDescriptorIndex = renderTargets.m_SceneBuffer_OutputSize.m_TextureView->GetIndex();
+			constants.SceneColorSpace = ColorSpace::DefaultSpace().m_Type;
+			ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
+
+			Render::TextureBarrierDesc barriers[2];
+			barriers[0].m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
+			barriers[0].m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_READ;
+			barriers[0].m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
+			barriers[0].m_Texture = renderTargets.m_SceneBuffer_OutputSize.m_Texture.get();
+			barriers[1].m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
+			barriers[1].m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
+			barriers[1].m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
+			barriers[1].m_Texture = renderTargets.m_Exposure.m_Texture.get();
+			ctx->TextureBarrier(2, barriers);
+
+			Render::BufferBarrierDesc histogramBarrier;
+			histogramBarrier.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
+			histogramBarrier.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
+			histogramBarrier.m_Buffer = renderTargets.m_ExposureHistogram->GetBuffer();
+			ctx->BufferBarrier(histogramBarrier);
+
+			ctx->BindPipelineState(m_ClearHistogramPSO.get());
+			ctx->Dispatch(1, 1, 1);
+
+			ctx->BufferBarrier(histogramBarrier);
+
+			ctx->DispatchThreads(m_BuildHistogramPSO.get(), constants.RenderSize.x, constants.RenderSize.y);
+
+			ctx->BufferBarrier(histogramBarrier);
+
+			ctx->BindPipelineState(m_ComputeExposurePSO.get());
+			ctx->Dispatch(1, 1, 1);
+
+			barriers[0].m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
+			barriers[0].m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
+			barriers[0].m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
+			barriers[0].m_Texture = renderTargets.m_SceneBuffer_OutputSize.m_Texture.get();
+			barriers[1].m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
+			barriers[1].m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_READ;
+			barriers[1].m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
+			barriers[1].m_Texture = renderTargets.m_Exposure.m_Texture.get();
+			ctx->TextureBarrier(2, barriers);
+		}
 		{
 			// Tonemapping
 			struct Constants
@@ -662,15 +762,26 @@ namespace vkr::Graphics
 				uint32_t TonemapType; // 0: Reinhard, 1: ACES-approx 2: Agx-approx 3: Hable 4: GT
 				uint32_t SourceColorSpace; // vkr::ColorSpaceType
 				uint32_t TargetColorSpace; // vkr::ColorSpaceType
+
+				uint32_t ExposureDescriptorIndex;
+				uint32_t unused[3];
 			};
 			Constants constants;
 			constants.TargetDescriptorIndex = renderTargets.m_SceneBuffer_OutputSize.m_TextureViewRW->GetIndex();
 			constants.TonemapType = 1;
 			constants.SourceColorSpace = COLOR_SPACE_TYPE_ACESCG;
 			constants.TargetColorSpace = COLOR_SPACE_TYPE_SRGB;
+			constants.ExposureDescriptorIndex = renderTargets.m_Exposure.m_TextureView->GetIndex();
 			ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
 
 			ctx->DispatchThreads(m_TonemapPSO.get(), renderData.m_OutputSize.x, renderData.m_OutputSize.y);
+
+			Render::TextureBarrierDesc barrierDesc;
+			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
+			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_READ;
+			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
+			barrierDesc.m_Texture = renderTargets.m_SceneBuffer_OutputSize.m_Texture.get();
+			ctx->TextureBarrier(barrierDesc);
 		}
 	}
 
