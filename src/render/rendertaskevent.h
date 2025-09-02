@@ -17,6 +17,7 @@ namespace vkr::Render
 		bool WaitForFence(bool block = true);
 
 		bool IsPending() const;
+		const Fence& GetFence() const { return m_Fence; }
 
 	private:
 		Fence m_Fence;

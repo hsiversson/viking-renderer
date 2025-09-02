@@ -46,6 +46,11 @@ namespace vkr::Graphics
 
 		TextureTarget m_SceneHistory;
 
+		//Sky
+		TextureTarget m_TransmittanceLUT;
+		TextureTarget m_IrradianceLUT;
+		TextureTarget m_ScatteringLUT;
+		
 		TextureTarget m_Exposure; // 1x1 with adapted exposure value
 		Ref<Render::BufferView> m_ExposureHistogram;
 	};

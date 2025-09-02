@@ -8,6 +8,7 @@ namespace vkr::Render
 	class Shader;
 	class PipelineState;
 	class RenderTargetView;
+	class RenderTaskEvent;
 	class Texture;
 	class TextureView;
 }
@@ -26,14 +27,14 @@ namespace vkr::Graphics
 		void RenderView(View& view);
 
 	private:
-		void ForwardPass(View& view);
+		
 		void PreRenderUpdates(View& view);
-
+		void SkyLUTCompute(View& view);
 		void UpdateParticles(View& view);
 
 		void DepthPrepass(View& view);
 		void StaticVelocity(View& view);
-
+		void ForwardPass(View& view);
 		void TraceRadiance(View& view);
 
 		void RenderSky(View& view);
@@ -51,6 +52,9 @@ namespace vkr::Graphics
 		// Global shader cache??
 		Ref<Render::Shader> m_StaticVelShader;
 		Ref<Render::PipelineState> m_StaticVelPSO;
+		Ref<Render::Shader> m_SkyTransmittanceLUTComputeShader;
+		Ref<Render::PipelineState> m_SkyTransmittanceLUTPSO;
+		Ref<Render::PipelineState> m_SkyIrradianceLUTPSO;
 		Ref<Render::Shader> m_SkyComputeShader;
 		Ref<Render::PipelineState> m_SkyPSO;
 		Ref<Render::Shader> m_RaytraceShader;
@@ -60,6 +64,11 @@ namespace vkr::Graphics
 		Ref<Render::Shader> m_TAAResolveComputeShader;
 		Ref<Render::PipelineState> m_TAAResolvePSO;
 
+		//RT
+
+		//Sky
+		Ref<Render::RenderTaskEvent> m_SkyLUTTaskEvent;
+		bool m_UpdateSkyLUTS = true;
 		// Post-processing
 		Ref<Render::PipelineState> m_ClearHistogramPSO;
 		Ref<Render::PipelineState> m_BuildHistogramPSO;
