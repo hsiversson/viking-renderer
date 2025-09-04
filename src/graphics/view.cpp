@@ -238,7 +238,7 @@ namespace vkr::Graphics
 
 	vkr::Render::NvDLSS& View::GetDLSS()
 	{
-		assert(m_NvDLSS);
+		VKR_ASSERT(m_NvDLSS);
 		return *m_NvDLSS;
 	}
 
