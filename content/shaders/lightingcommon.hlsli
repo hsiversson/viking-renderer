@@ -12,6 +12,9 @@ float3 ApplyDirectionalLighting(in ResolvedMaterial material, in float3 V, inout
     for (uint i = 0; i < SceneConstants.NumDirectionalLightsInUse; ++i)
     {
         const DirectionalLightData dirLight = SceneConstants.DirectionalLights[i];
+        if (all(dirLight.Emission < 1e-6f))
+            continue;
+
         const float3 L = normalize(-dirLight.Direction);
             
         const float3 up = abs(L.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0);

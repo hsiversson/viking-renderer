@@ -163,7 +163,7 @@ namespace vkr::Graphics
 		prepareData.m_OutputSize = view.GetOutputSize();
 
 		//Sun
-		prepareData.m_DirectionalLights[0].Emission = Vector3f(6.0, 6.0, 6.0);
+		prepareData.m_DirectionalLights[0].Emission = Vector3f(3.0, 3.0, 3.0);
 		prepareData.m_DirectionalLights[0].Direction = Vector3f(0.4, -0.5, 0.6);
 		prepareData.m_DirectionalLights[0].Radius = tanf(DegToRad(0.53f));
 

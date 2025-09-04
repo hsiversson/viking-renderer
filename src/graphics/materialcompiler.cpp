@@ -155,6 +155,7 @@ namespace vkr::Graphics
 		std::ostringstream ss;
 		ss << "    resolvedMaterial.WorldPosition = mul(instanceData.localToWorld, float4(hitInfo.Position, 1.0f)).xyz;\n";
 		ss << "    resolvedMaterial.Albedo = materialParameters.albedoTexture.SampleLevel(g_SamplerBilinearClamp, hitInfo.UV, hitInfo.mipLevel).rgb;\n";
+		ss << "    resolvedMaterial.Albedo = TransformColor(resolvedMaterial.Albedo, COLOR_SPACE_SRGB, COLOR_SPACE_DEFAULT);\n";
 		ss << "    resolvedMaterial.Emission = materialParameters.emissiveTexture.SampleLevel(g_SamplerBilinearClamp, hitInfo.UV, hitInfo.mipLevel).rgb;\n";
 		ss << "    float2 encodedNormal = materialParameters.normalTexture.SampleLevel(g_SamplerBilinearClamp, hitInfo.UV, hitInfo.mipLevel).rg * 2.0f - 1.0f;\n";
 		ss << "    float nx = encodedNormal.x;\n";

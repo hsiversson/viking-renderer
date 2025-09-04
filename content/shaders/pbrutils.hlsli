@@ -152,12 +152,9 @@ float3 ComputeLuminance(in const ResolvedMaterial mat, float3 V, float3 L, float
     float3 kD = float3(1.0, 1.0, 1.0) - kS;
     kD *= 1.0 - mat.Metallic;
     
-    float3 Lo = (kD * mat.Albedo / (PI + specular + FLT_EPSILON_VALUE)) * LightColor * NdotL;
-    
-    float3 ambient = float3(0.03, 0.03, 0.03) * mat.Albedo * mat.AO;
-    Result = ambient + Lo;
-    
-    return Result;
+    float3 Lo = (kD * mat.Albedo / (PI + specular + FLT_EPSILON_VALUE))  * NdotL;
+        
+    return Lo * LightColor;
 }
 
 #endif

@@ -1,6 +1,7 @@
 #include "lightingcommon.hlsli"
 #include "pbrutils.hlsli"
 #include "raytracingcommon.hlsli"
+#include "colorcommon.hlsli"
 
 SamplerState g_SamplerPointClamp : register(s0);
 SamplerState g_SamplerBilinearClamp : register(s1);

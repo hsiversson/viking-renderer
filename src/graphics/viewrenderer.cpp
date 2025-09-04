@@ -713,7 +713,8 @@ namespace vkr::Graphics
 				uint32_t SceneColorDescriptorIndex;
 
 				uint32_t SceneColorSpace;
-				uint32_t unused[3];
+				uint32_t Reset;
+				uint32_t unused[2];
 			};
 			Constants constants;
 			constants.RenderSize = renderData.m_OutputSize;
@@ -724,6 +725,7 @@ namespace vkr::Graphics
 			constants.MaxLog = 20.0f;
 			constants.SceneColorDescriptorIndex = renderTargets.m_SceneBuffer_OutputSize.m_TextureView->GetIndex();
 			constants.SceneColorSpace = ColorSpace::DefaultSpace().m_Type;
+			constants.Reset = renderData.m_FrameIndex < 10;
 			ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
 
 			Render::TextureBarrierDesc barriers[2];
@@ -780,7 +782,7 @@ namespace vkr::Graphics
 			Constants constants;
 			constants.TargetDescriptorIndex = renderTargets.m_SceneBuffer_OutputSize.m_TextureViewRW->GetIndex();
 			constants.TonemapType = 1;
-			constants.SourceColorSpace = COLOR_SPACE_TYPE_ACESCG;
+			constants.SourceColorSpace = ColorSpace::DefaultSpace().m_Type;
 			constants.TargetColorSpace = COLOR_SPACE_TYPE_SRGB;
 			constants.ExposureDescriptorIndex = renderTargets.m_Exposure.m_TextureView->GetIndex();
 			ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);

@@ -15,7 +15,8 @@ struct ConstantsStruct
     uint SceneColorDescriptorIndex;
     
     uint SceneColorSpace;
-    uint3 unused;
+    uint Reset;
+    uint2 unused;
 };
 ConstantBuffer<ConstantsStruct> Constants : register(b0);
 
@@ -100,6 +101,7 @@ void ComputeExposure(uint groupIndex : SV_GroupIndex)
         RWTexture2D<float> exposureTarget = ResourceDescriptorHeap[Constants.ExposureTargetDescriptorIndex];
         float prevExposure = exposureTarget[int2(0, 0)];
         float adaptedExposure = prevExposure + (targetExposure - prevExposure) * (1.0f - exp(-Constants.DeltaTime * 1.5));
+        adaptedExposure = Constants.Reset ? targetExposure : adaptedExposure;
         exposureTarget[int2(0, 0)] = adaptedExposure;
     }
 }
