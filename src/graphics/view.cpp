@@ -64,7 +64,7 @@ namespace vkr::Graphics
 		textureDesc.m_Format = m_Format;
 		textureDesc.m_ClearValue = m_ClearValue;
 		m_Texture = Render::GetDevice()->CreateTexture(textureDesc);
-		assert(m_Texture);
+		VKR_ASSERT(m_Texture);
 
 		m_TextureView = Render::GetDevice()->CreateTextureView({}, m_Texture);
 

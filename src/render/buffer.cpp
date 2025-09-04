@@ -97,6 +97,7 @@ namespace vkr::Render
 		: m_Capacity(bufferSizeBytes)
 		, m_Alignment(alignment)
 		, m_ChunkStart(UINT64_MAX)
+		, m_HasActiveChunk(false)
 		, m_Head(0)
 		, m_Tail(0)
 		, m_Usage(usage)
@@ -112,8 +113,14 @@ namespace vkr::Render
 
 	void TempBufferAllocator::StartChunk()
 	{
+		if (m_HasActiveChunk)
+		{
+			return;
+		}
+
 		// Capture where the chunk will start.
 		m_ChunkStart = m_Head.load(std::memory_order_relaxed);
+		m_HasActiveChunk.store(true, std::memory_order_release);
 	}
 
 	bool TempBufferAllocator::Allocate(uint64_t size, TempBuffer& outBuf)
@@ -150,9 +157,12 @@ namespace vkr::Render
 
 	void TempBufferAllocator::EndChunk(Fence event)
 	{
-		uint64_t end = m_Head.load(std::memory_order_acquire);
-		m_Chunks.push_back({ m_ChunkStart, end, event });
-		m_ChunkStart = UINT64_MAX;
+		if (m_HasActiveChunk.load(std::memory_order_acquire))
+		{
+			uint64_t end = m_Head.load(std::memory_order_acquire);
+			m_Chunks.push_back({ m_ChunkStart, end, event });
+			m_ChunkStart = UINT64_MAX;
+		}
 
 		GarbageCollect();
 	}

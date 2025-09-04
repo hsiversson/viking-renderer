@@ -80,6 +80,7 @@ namespace vkr::Render
 		const uint64_t m_Capacity;
 		const uint64_t m_Alignment;
 		uint64_t m_ChunkStart;
+		std::atomic<bool> m_HasActiveChunk;
 
 		std::atomic<uint64_t> m_Head;   // producer – many threads
 		std::atomic<uint64_t> m_Tail;   // consumer – 1 thread

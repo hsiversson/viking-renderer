@@ -10,7 +10,6 @@ namespace vkr
 	namespace Render
 	{
 		class Device;
-		class NvStreamline;
 		class SwapChain;
 	}
 

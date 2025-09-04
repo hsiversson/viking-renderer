@@ -111,7 +111,7 @@ namespace vkr::Render
 		ShaderCache m_ShaderCache;
 		TextureCache m_TextureCache;
 
-		UniquePtr<NvStreamline> m_NvStreamline = nullptr;
+		UniquePtr<NvStreamline> m_NvStreamline;
 
 		static Device* g_Instance;
 	};
