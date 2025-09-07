@@ -38,4 +38,5 @@ namespace vkr::Render
 
 	D3D12_HEAP_PROPERTIES D3DGetDefaultHeapProperties();
 	D3D12_HEAP_PROPERTIES D3DGetUploadHeapProperties();
+	D3D12_HEAP_PROPERTIES D3DGetReadbackHeapProperties();
 }

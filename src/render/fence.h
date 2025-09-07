@@ -29,6 +29,10 @@ namespace vkr::Render
 
 		Fence();
 		Fence(FenceResource* fence, uint64_t value);
+
+		Fence operator+(uint64_t v) const;
+		Fence& operator+=(uint64_t v);
+
 		bool Wait(bool block = true);
 		bool IsPending() const;
 	};

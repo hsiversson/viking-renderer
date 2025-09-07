@@ -1,6 +1,7 @@
 #include "viewrenderer.h"
 
 #include "core/common.h"
+#include "render/profiler.h"
 #include "view.h"
 #include "viewrenderdata.h"
 
@@ -200,6 +201,7 @@ namespace vkr::Graphics
 		renderTargets.m_ScatteringLUT.Update(Vector2u(SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT), "ScatteringLUT");
 
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
+		VKR_PROFILE_GPU_FUNCTION(ctx);
 
 		{
 			std::vector<Render::TextureBarrierDesc> barriers;

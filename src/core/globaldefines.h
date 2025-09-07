@@ -13,7 +13,7 @@
 #	define ENABLE_EDITOR		0
 #else
 #	define ENABLE_LOGGING		1
-#	define ENABLE_PROFILING		1
+#	define ENABLE_PROFILING		0
 #	define ENABLE_CONSOLE		1
 #	define ENABLE_EDITOR		1
 #endif

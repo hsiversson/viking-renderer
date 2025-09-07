@@ -11,6 +11,7 @@ namespace vkr::Render
 		uint32_t m_ElementCount = 0;
 		bool m_Writable = false;
 		bool m_CpuWritable = false;
+		bool m_IsReadback = false;
 		bool m_IsRaytracingAccelerationStructure = false;
 
 		const char* m_Name = nullptr;

@@ -5,6 +5,7 @@
 #include "commandqueue.h"
 #include "descriptorheap.h"
 #include "nvstreamline.h"
+#include "profiler.h"
 #include "rootsignature.h"
 #include "shadercompiler.h"
 #include "textureloader_dds.h"
@@ -123,26 +124,69 @@ namespace vkr::Render
 			vkr::AppSettings::GetAppSettings()->GetGraphicsSettings().m_AAMethod = vkr::TAA;
 		}
 
+#if ENABLE_PROFILING
+		m_Profiler = MakeUnique<Profiler>();
+		if (!m_Profiler->Init())
+		{
+			VKR_CHECK_NO_ENTRY();
+			return false;
+		}
+#endif //ENABLE_PROFILING
+
 		return true;
 	}
 
-	void Device::BeginFrame()
+	void Device::BeginFrame(uint64_t frameIndex)
 	{
-		for (uint32_t i = 0; i < TEMP_BUFFER_USAGE_COUNT; ++i)
-		{
-			m_TempBufferAllocators[i]->StartChunk();
-		}
+		Ref<RenderTaskEvent> event = QueueGraphicsTask([this, frameIndex]() {
+			SET_CONTEXT_MARKER(Context::GetCurrentContext(), "BeginFrame");
+			for (uint32_t i = 0; i < TEMP_BUFFER_USAGE_COUNT; ++i)
+			{
+				m_TempBufferAllocators[i]->StartChunk();
+			}
+
+#if ENABLE_PROFILING
+			m_Profiler->BeginFrame(Context::GetCurrentContext(), frameIndex);
+#endif //ENABLE_PROFILING
+
+			});
+
+		QueueComputeTask([this, frameIndex, event]() {
+			SET_CONTEXT_MARKER(Context::GetCurrentContext(), "BeginFrame");
+			if (event)
+			{
+				event->WaitForEvent();
+				Context::GetCurrentContext()->InsertWait(*event);
+			}
+
+#if ENABLE_PROFILING
+			m_Profiler->BeginFrame(Context::GetCurrentContext(), frameIndex);
+#endif //ENABLE_PROFILING
+			});
 	}
 
 	void Device::EndFrame()
 	{
-		for (uint32_t i = 0; i < TEMP_BUFFER_USAGE_COUNT; ++i)
-		{
-			m_TempBufferAllocators[i]->EndChunk(GetCommandQueue(CONTEXT_TYPE_PRESENT)->Signal());
-		}
+		QueueComputeTask([this]() {
+			SET_CONTEXT_MARKER(Context::GetCurrentContext(), "EndFrame");
 
-		// TODO: add end chunk to all temp buffers pending delete
-		// TODO: garbage collect temp buffers pending delete
+#if ENABLE_PROFILING
+			m_Profiler->EndFrame(Context::GetCurrentContext());
+#endif //ENABLE_PROFILING
+			});
+
+		QueueGraphicsTask([this]() {
+			SET_CONTEXT_MARKER(Context::GetCurrentContext(), "EndFrame");
+			for (uint32_t i = 0; i < TEMP_BUFFER_USAGE_COUNT; ++i)
+			{
+				m_TempBufferAllocators[i]->EndChunk(GetCommandQueue(CONTEXT_TYPE_PRESENT)->Signal());
+			}
+
+#if ENABLE_PROFILING
+			m_Profiler->EndFrame(Context::GetCurrentContext());
+#endif //ENABLE_PROFILING
+
+			});
 	}
 
 	void Device::WaitForGpuIdle()
@@ -487,6 +531,13 @@ namespace vkr::Render
 	{
 		return m_NvStreamline.get();
 	}
+
+#if ENABLE_PROFILING
+	Profiler* Device::GetProfiler() const
+	{
+		return m_Profiler.get();
+	}
+#endif //ENABLE_PROFILING
 
 	Ref<RenderTaskEvent> QueueRenderTask(ContextType type, RenderTaskFn task, RenderTaskFlags flags)
 	{

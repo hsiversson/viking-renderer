@@ -4,15 +4,16 @@
 
 namespace vkr::Render
 {
-	class Texture;
 	class Buffer;
+	class CommandList;
+	class CommandQueue;
 	class DepthStencilView;
 	class PipelineState;
+	class QueryHeap;
 	class RenderTargetView;
 	class ResourceDescriptor;
 	class RootSignature;
-	class CommandList;
-	class CommandQueue;
+	class Texture;
 
 	enum ContextType : uint8_t
 	{
@@ -91,6 +92,10 @@ namespace vkr::Render
 		void BeginMarker(const char* label, uint32_t color);
 		void EndMarker();
 
+		// Queries
+		void TimestampQuery(QueryHeap* queryHeap, uint32_t index);
+		void ResolveQueries(QueryHeap* queryHeap);
+
 		// Compute
 		void Dispatch(uint32_t numGroupsX, uint32_t numGroupsY = 1, uint32_t numGroupsZ = 1);
 		void Dispatch(const Vector3u& Groups);
@@ -154,6 +159,7 @@ namespace vkr::Render
 
 		ContextType GetType() const;
 		CommandList* GetCommandList() const;
+		CommandQueue* GetCommandQueue() const;
 
 		const Fence& GetLastFence() const;
 

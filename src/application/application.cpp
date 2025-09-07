@@ -163,7 +163,7 @@ namespace vkr
 			m_ElapsedTimer.Tick();
 			//VKR_LOG("FPS: {}", m_FpsMovingAverage.GetAverage());
 
-			Render::QueueGraphicsTask(std::bind(&Render::Device::BeginFrame, m_RenderDevice.get()));
+			Render::QueueGraphicsTask(std::bind(&Render::Device::BeginFrame, m_RenderDevice.get(), m_ElapsedTimer.FrameIndex()));
 
 			if (m_EditorManager)
 				m_EditorManager->Update();

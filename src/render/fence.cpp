@@ -74,6 +74,17 @@ namespace vkr::Render
 	{
 	}
 
+	Fence Fence::operator+(uint64_t v) const
+	{
+		return Fence(m_FenceResource, m_Value + v);
+	}
+
+	Fence& Fence::operator+=(uint64_t v)
+	{
+		m_Value += v;
+		return *this;
+	}
+
 	bool Fence::Wait(bool block)
 	{
 		if (m_FenceResource)

@@ -813,8 +813,6 @@ namespace vkr::Render
 		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
 		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-		heapProps.CreationNodeMask = 1;
-		heapProps.VisibleNodeMask = 1;
 		return heapProps;
 	}
 
@@ -824,8 +822,15 @@ namespace vkr::Render
 		heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
 		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-		heapProps.CreationNodeMask = 1;
-		heapProps.VisibleNodeMask = 1;
+		return heapProps;
+	}
+
+	D3D12_HEAP_PROPERTIES D3DGetReadbackHeapProperties()
+	{
+		D3D12_HEAP_PROPERTIES heapProps = {};
+		heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 		return heapProps;
 	}
 

@@ -6,6 +6,7 @@
 #include "device.h"
 #include "commandlist.h"
 #include "commandqueue.h"
+#include "queryheap.h"
 #include "d3dconvert.h"
 
 #define USE_PIX
@@ -112,6 +113,30 @@ namespace vkr::Render
 	void Context::EndMarker()
 	{
 		PIXEndEvent(m_CurrentD3DCommandList);
+	}
+
+	void Context::TimestampQuery(QueryHeap* queryHeap, uint32_t index)
+	{
+		m_CurrentD3DCommandList->EndQuery(queryHeap->GetD3DQueryHeap(), D3D12_QUERY_TYPE_TIMESTAMP, index);
+		++m_NumRecordedCommands;
+	}
+
+	void Context::ResolveQueries(QueryHeap* queryHeap)
+	{
+		D3D12_QUERY_TYPE type;
+		switch (queryHeap->GetType())
+		{
+		case QUERY_HEAP_TYPE_TIMESTAMP:
+		case QUERY_HEAP_TYPE_COPY_TIMESTAMP:
+			type = D3D12_QUERY_TYPE_TIMESTAMP;
+			break;
+		default:
+			VKR_CHECK_NO_ENTRY();
+			return;
+		}
+
+		m_CurrentD3DCommandList->ResolveQueryData(queryHeap->GetD3DQueryHeap(), type, 0, queryHeap->GetQueryCount(), queryHeap->GetBuffer()->GetD3DResource(), 0);
+		++m_NumRecordedCommands;
 	}
 
 	void Context::Dispatch(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ)
@@ -666,6 +691,11 @@ namespace vkr::Render
 		return m_CommandList.get();
 	}
 
+	CommandQueue* Context::GetCommandQueue() const
+	{
+		return m_CommandQueue.get();
+	}
+
 	const Fence& Context::GetLastFence() const
 	{
 		return m_LastFlushEvent;
@@ -865,11 +895,12 @@ namespace vkr::Render
 
 	void Context::InsertWait(const Fence& fence)
 	{
-		m_FencesToWaitFor.push_back(fence);
+		if (fence.m_FenceResource)
+			m_FencesToWaitFor.push_back(fence);
 	}
 
 	void Context::InsertWait(const RenderTaskEvent& taskEvent)
 	{
-		m_FencesToWaitFor.push_back(taskEvent.GetFence());
+		InsertWait(taskEvent.GetFence());
 	}
 }

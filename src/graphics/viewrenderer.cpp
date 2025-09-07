@@ -8,6 +8,7 @@
 #include "render/device.h"
 #include "render/nvdlss.h"
 #include "render/nvstreamline.h"
+#include "render/profiler.h"
 
 namespace vkr::Graphics
 {
@@ -218,6 +219,7 @@ namespace vkr::Graphics
 
 		ctx->InsertWait(renderData.m_RaytracingTLAS->GetBuffer()->GetGpuPending());
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
+		VKR_PROFILE_GPU_FUNCTION(ctx);
 		//Depth prepass Transitions
 		{
 			//Transition DS to write
@@ -285,6 +287,7 @@ namespace vkr::Graphics
 		renderTargets.m_Velocity.Update(renderData.m_RenderSize, "ViewRenderTargets::Velocity");
 
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
+		VKR_PROFILE_GPU_FUNCTION(ctx);
 
 		// At this point dynamic objects should have velocity (computed in PS in depth prepass)
 		// Add a small compute pass to add velocity to all static geometry (existing depth but no velocity written)
@@ -365,6 +368,7 @@ namespace vkr::Graphics
 		ViewRenderTargets& renderTargets = view.GetRenderTargets();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
+		VKR_PROFILE_GPU_FUNCTION(ctx);
 
 		renderTargets.m_SceneBuffer_RenderSize.m_IsWritable = true;
 		renderTargets.m_SceneBuffer_RenderSize.m_IsRenderTarget = true;
@@ -458,8 +462,8 @@ namespace vkr::Graphics
 		ViewRenderTargets& renderTargets = view.GetRenderTargets();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
+		VKR_PROFILE_GPU_FUNCTION(ctx);
 
-		
 		renderTargets.m_DiffuseAlbedo.m_IsWritable = true;
 		renderTargets.m_DiffuseAlbedo.m_Format = Render::Format::FORMAT_RGBA8_UNORM;
 		renderTargets.m_DiffuseAlbedo.Update(renderData.m_RenderSize, "ViewRenderTargets::DiffuseAlbedo");
@@ -516,6 +520,7 @@ namespace vkr::Graphics
 		ViewRenderTargets& renderTargets = view.GetRenderTargets();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
+		VKR_PROFILE_GPU_FUNCTION(ctx);
 
 		//Transition to UAV the output
 		std::vector<Render::TextureBarrierDesc> barriers;
@@ -552,6 +557,7 @@ namespace vkr::Graphics
 		ViewRenderTargets& renderTargets = view.GetRenderTargets();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
+		VKR_PROFILE_GPU_FUNCTION(ctx);
 
 		renderTargets.m_SceneBuffer_OutputSize.m_IsWritable = true;
 		renderTargets.m_SceneBuffer_OutputSize.m_IsRenderTarget = true;
@@ -673,6 +679,7 @@ namespace vkr::Graphics
 		ViewRenderTargets& renderTargets = view.GetRenderTargets();
 		const ViewRenderData& renderData = view.GetRenderData();
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
+		VKR_PROFILE_GPU_FUNCTION(ctx);
 
 		// DoF
 		// Bloom
@@ -805,6 +812,7 @@ namespace vkr::Graphics
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 		ViewRenderTargets& renderTargets = view.GetRenderTargets();
 		SET_CONTEXT_MARKER_FUNCTION(ctx);
+		VKR_PROFILE_GPU_FUNCTION(ctx);
 		// Copy scene texture to view output resource
 		// for main view, that would probably be the swapchain backbuffer
 

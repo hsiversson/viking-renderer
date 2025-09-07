@@ -15,11 +15,11 @@ namespace vkr::Render
 	class CommandQueue;
 	class DescriptorHeap;
 	class NvStreamline;
+	class Profiler;
 	class RenderResourceDestructionQueue;
 	class RootSignature;
 	class ShaderCompiler;
 	class TextureLoader;
-	
 
 	class Device
 	{
@@ -30,7 +30,7 @@ namespace vkr::Render
 
 		bool Init();
 
-		void BeginFrame();
+		void BeginFrame(uint64_t frameIndex);
 		void EndFrame();
 
 		void WaitForGpuIdle();
@@ -69,6 +69,10 @@ namespace vkr::Render
 		RenderThread* GetRenderThread(ContextType contextType) const;
 		DescriptorHeap* GetDescriptorHeap(DescriptorHeapType type) const;
 		NvStreamline* GetNvStreamline();
+
+#if ENABLE_PROFILING
+		Profiler* GetProfiler() const;
+#endif
 
 		void FlushDeferredDestructionQueue();
 
@@ -112,6 +116,10 @@ namespace vkr::Render
 		TextureCache m_TextureCache;
 
 		UniquePtr<NvStreamline> m_NvStreamline;
+
+#if ENABLE_PROFILING
+		UniquePtr<Profiler> m_Profiler;
+#endif
 
 		static Device* g_Instance;
 	};

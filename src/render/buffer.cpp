@@ -23,7 +23,21 @@ namespace vkr::Render
 		//For now allocate resource in place. Later well see how we do pooling
 
 		const D3D12_RESOURCE_DESC1 bufferDesc = D3DConvertBufferDesc(desc);
-		const D3D12_HEAP_PROPERTIES& heapProps = desc.m_CpuWritable ? D3DGetUploadHeapProperties() : D3DGetDefaultHeapProperties();
+
+		D3D12_HEAP_PROPERTIES heapProps;
+		if (desc.m_IsReadback)
+		{
+			heapProps = D3DGetReadbackHeapProperties();
+		}
+		else if (desc.m_CpuWritable)
+		{
+			heapProps = D3DGetUploadHeapProperties();
+		}
+		else
+		{
+			heapProps = D3DGetDefaultHeapProperties();
+		}
+			
 		HRESULT hr = GetDevice()->GetD3DDevice10()->CreateCommittedResource3(&heapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc, D3D12_BARRIER_LAYOUT_UNDEFINED, nullptr, nullptr, 0, nullptr, IID_PPV_ARGS(&m_Resource));
 		if (FAILED(hr))
 		{
@@ -34,7 +48,11 @@ namespace vkr::Render
 		m_StateTracking.m_CurrentSync = RESOURCE_STATE_SYNC_ALL;
 		m_StateTracking.m_CurrentLayout = RESOURCE_STATE_LAYOUT_UNDEFINED;
 
-		if (desc.m_CpuWritable)
+		if (desc.m_IsReadback)
+		{
+			m_Resource->Map(0, nullptr, (void**)&m_DataPtr);
+		}
+		else if (desc.m_CpuWritable)
 		{
 			// Always keep buffers on the upload heap mapped for write.
 			static constexpr D3D12_RANGE readRange = { 0 };
