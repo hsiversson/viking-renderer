@@ -163,7 +163,7 @@ namespace vkr
 			m_ElapsedTimer.Tick();
 			//VKR_LOG("FPS: {}", m_FpsMovingAverage.GetAverage());
 
-			Render::QueueGraphicsTask(std::bind(&Render::Device::BeginFrame, m_RenderDevice.get(), m_ElapsedTimer.FrameIndex()));
+			Render::GetDevice()->BeginFrame(m_ElapsedTimer.FrameIndex());
 
 			if (m_EditorManager)
 				m_EditorManager->Update();
@@ -175,7 +175,7 @@ namespace vkr
 				m_EditorManager->Render();
 
 			Render::QueueGraphicsTask(std::bind(&Render::SwapChain::Present, m_SwapChain.get()));
-			Render::QueueGraphicsTask(std::bind(&Render::Device::EndFrame, m_RenderDevice.get()));
+			Render::GetDevice()->EndFrame();
 			m_InputManager->EndFrame();
 
 			// TODO: we shouldn't need this, but is done because we don't want to show an empty window for one or two frames.

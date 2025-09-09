@@ -98,11 +98,37 @@ float3 fresnelSchlick(float cosTheta, float3 F0)
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
+float3x3 GetToLocalBasis(float3 N)
+{
+    float3 ref = abs(N.z) < 0.9999f ? float3(0, 0, 1) : float3(1, 0, 0);
+    float3 T = normalize(cross(ref, N));
+    float3 B = normalize(cross(N, T));
+    return float3x3(T, B, N);
+}
+
 float2 SampleUniformDisk(float2 xi)
 {
     float r = sqrt(xi.x);
     float theta = 2.0 * PI * xi.y;
     return float2(r * cos(theta), r * sin(theta));
+}
+
+float3 SampleUniformCone(float2 xi, float cosThetaMax)
+{
+    float phi = 2.0f * PI * xi.x;
+    float cosTheta = lerp(cosThetaMax, 1.0f, xi.y);
+    float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
+
+    float3 L;
+    L.x = sinTheta * cos(phi);
+    L.y = sinTheta * sin(phi);
+    L.z = cosTheta;
+
+    return L;
+    
+    //float PDF = 1.0f / (2.0f * PI * (1.0f - cosThetaMax));
+
+    //return float4(L, PDF);
 }
 
 float3 SampleHemisphereCosine(float2 xi, float3 N)

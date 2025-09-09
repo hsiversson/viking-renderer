@@ -31,9 +31,13 @@ namespace vkr::Render
 		m_pImpl = MakeUnique<PImpl>();
 	}
 
-	void NvDLSS::Prepare(Graphics::View& view)
+	void NvDLSS::Prepare(Graphics::View* view)
 	{
-		Vector2u dstSize = view.GetRenderData().m_OutputSize;
+		Graphics::ViewRenderTargets& renderTargets = view->GetRenderTargets();
+		const Graphics::ViewRenderData& prepareData = view->GetPrepareData();
+		const Graphics::CameraData& cameraConstants = prepareData.m_CameraData;
+
+		Vector2u dstSize = prepareData.m_OutputSize;
 
 		sl::DLSSDOptions options = {};
 		options.outputWidth = dstSize.x;
@@ -43,6 +47,9 @@ namespace vkr::Render
 		//options.useAutoExposure = sl::eTrue;
 		options.normalRoughnessMode = sl::DLSSDNormalRoughnessMode::ePacked;
 		options.alphaUpscalingEnabled = sl::Boolean::eFalse;
+
+		NvStreamline::Convert(options.cameraViewToWorld, cameraConstants.ViewMatrix);
+		NvStreamline::Convert(options.worldToCameraView, cameraConstants.InvViewMatrix);
 
 		// Preset F is recommended by Nvidia for DLAA and Ultra Performance
 		options.dlaaPreset = sl::DLSSDPreset::ePresetD;
@@ -63,7 +70,7 @@ namespace vkr::Render
 			m_pImpl->m_DLSSOptions.outputWidth != options.outputWidth ||
 			m_pImpl->m_DLSSOptions.outputHeight != options.outputHeight)
 		{
-			slDLSSDSetOptions(view.GetViewID(), options);
+			slDLSSDSetOptions(view->GetViewID(), options);
 
 			sl::DLSSDOptimalSettings optimalSettings = {};
 			slDLSSDGetOptimalSettings(options, optimalSettings);
@@ -77,23 +84,23 @@ namespace vkr::Render
 
 			m_pImpl->m_DLSSOptions = options;
 			m_pImpl->m_ResetDLSS = true;
-			view.SetRenderSize(m_pImpl->m_OptimalRenderSize);
+			view->SetRenderSize(m_pImpl->m_OptimalRenderSize);
 		}
 	}
 
-	void NvDLSS::Upscale(Graphics::View& view, Render::Context* ctx)
+	void NvDLSS::Upscale(Graphics::View* view, Render::Context* ctx)
 	{
 // 		if (m_pImpl->m_DLSSOptions.mode == sl::DLSSMode::eOff)
 // 		{
 // 			aTarget = aSource;
 // 			return;
 // 		}
-		const Graphics::ViewRenderData& renderData =  view.GetRenderData();
-		Graphics::ViewRenderTargets& renderTargets = view.GetRenderTargets();
+		const Graphics::ViewRenderData& renderData =  view->GetRenderData();
+		Graphics::ViewRenderTargets& renderTargets = view->GetRenderTargets();
 		const Graphics::CameraData& renderCameraConstants = renderData.m_CameraData;
 		const Vector2u srcSize = renderData.m_RenderSize;
 		const Vector2u dstSize = renderData.m_OutputSize;
-		sl::ViewportHandle viewportHandle = view.GetViewID();
+		sl::ViewportHandle viewportHandle = view->GetViewID();
 
 		const NvStreamline* streamline = GetDevice()->GetNvStreamline();
 		const sl::FrameToken& frameToken = *streamline->GetFrameToken(renderData.m_FrameIndex);
@@ -134,8 +141,8 @@ namespace vkr::Render
 
 		constants.mvecScale.x = 1.0f;
 		constants.mvecScale.y = 1.0f;
-		constants.jitterOffset.x = renderCameraConstants.CurrentJitter.x;
-		constants.jitterOffset.y = renderCameraConstants.CurrentJitter.y;
+		constants.jitterOffset.x = renderCameraConstants.CurrentJitter.x * 0.5f * renderData.m_RenderSize.x;
+		constants.jitterOffset.y = renderCameraConstants.CurrentJitter.y * -0.5f * renderData.m_RenderSize.y;
 
 		constants.reset = sl::Boolean(m_pImpl->m_ResetDLSS);
 		constants.motionVectors3D = sl::eFalse;

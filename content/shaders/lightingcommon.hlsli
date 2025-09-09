@@ -16,18 +16,16 @@ float3 ApplyDirectionalLighting(in ResolvedMaterial material, in float3 V, inout
             continue;
 
         const float3 L = normalize(-dirLight.Direction);
-            
-        const float3 up = abs(L.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0);
-        const float3 right = normalize(cross(up, L));
-        const float3 forward = normalize(cross(L, right));
-                
+                            
         RayDesc ray;
-        ray.Direction = L;
+        ray.Origin = material.WorldPosition + material.WorldNormal * FLT_SMALL_VALUE;
         ray.TMin = 0.01f;
         ray.TMax = 1000000.0f;
     
         static const uint SamplesPerLight = 1;
         static const float SampleWeight = 1.0f / SamplesPerLight;
+        
+        float3x3 localToWorldBasis = transpose(GetToLocalBasis(L));
         
         float shadowFactor = 1.0f;
         for (uint i = 0; i < SamplesPerLight; ++i)
@@ -36,11 +34,8 @@ float3 ApplyDirectionalLighting(in ResolvedMaterial material, in float3 V, inout
             xi.x = RandomFloat01(rngState);
             xi.y = RandomFloat01(rngState);
             
-            float2 diskSample = SampleUniformDisk(xi);
-
-            // Transform disk sample into world space offset
-            float3 offset = (diskSample.x * right + diskSample.y * forward) * dirLight.Radius;
-            ray.Origin = material.WorldPosition + offset + material.WorldNormal * FLT_SMALL_VALUE;
+            float3 rd = SampleUniformCone(xi, cos(dirLight.Radius));
+            ray.Direction = normalize(mul(localToWorldBasis, rd));
             
             RayQuery<RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> rayQuery;       
             rayQuery.TraceRayInline(RaytracingScene, 0, 0xff, ray);

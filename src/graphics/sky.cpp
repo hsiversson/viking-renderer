@@ -1,4 +1,4 @@
-#include "viewrenderer.h"
+#include "sky.h"
 
 #include "core/common.h"
 #include "render/profiler.h"
@@ -180,10 +180,36 @@ namespace
 
 namespace vkr::Graphics
 {
-	void ViewRenderer::SkyLUTCompute(View & view)
+	bool Sky::Init()
 	{
-		const ViewRenderData& renderData = view.GetRenderData();
-		ViewRenderTargets& renderTargets = view.GetRenderTargets();
+		return true;
+	}
+
+	void Sky::PrepareView(View* view)
+	{
+		ViewRenderData& prepareData = view->GetPrepareData();
+
+		prepareData.m_UpdateSkyLut = (ElapsedTimer::FrameIndex() % 10) == 0; // every 10 frame for now.
+
+		// TODO: Add other sky related prepare data here
+	}
+
+	bool SkyRenderer::Init()
+	{
+		Render::Device* device = Render::GetDevice();
+
+		m_SkyTransmittanceLUTComputeShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/skytransmittancelut.hlsl"), L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
+		Render::PipelineStateDesc skyTransmittanceLUTPSODesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
+		skyTransmittanceLUTPSODesc.Compute.m_ComputeShader = m_SkyTransmittanceLUTComputeShader.get();
+		m_SkyTransmittanceLUTPSO = device->CreatePipelineState(skyTransmittanceLUTPSODesc);
+
+		return true;
+	}
+
+	void SkyRenderer::ComputeLuts(View* view)
+	{
+		const ViewRenderData& renderData = view->GetRenderData();
+		ViewRenderTargets& renderTargets = view->GetRenderTargets();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 
 		ctx->ClearStateCache(); //Maybe we should do this somewhere else 
@@ -200,8 +226,7 @@ namespace vkr::Graphics
 		renderTargets.m_ScatteringLUT.m_Format = Render::FORMAT_RGBA32_FLOAT;
 		renderTargets.m_ScatteringLUT.Update(Vector2u(SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT), "ScatteringLUT");
 
-		SET_CONTEXT_MARKER_FUNCTION(ctx);
-		VKR_PROFILE_GPU_FUNCTION(ctx);
+		VKR_CONTEXT_EVENT_FUNCTION(ctx);
 
 		{
 			std::vector<Render::TextureBarrierDesc> barriers;

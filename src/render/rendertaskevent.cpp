@@ -9,7 +9,7 @@ namespace vkr::Render
 
 	}
 
-	bool RenderTaskEvent::Wait(bool block /*= true*/)
+	bool RenderTaskEvent::Wait(bool block /*= true*/) const
 	{
 		if (!block)
 		{
@@ -25,12 +25,12 @@ namespace vkr::Render
 		return true;
 	}
 
-	bool RenderTaskEvent::WaitForEvent(bool block)
+	bool RenderTaskEvent::WaitForEvent(bool block) const
 	{
 		return m_Event.Wait(block);
 	}
 
-	bool RenderTaskEvent::WaitForFence(bool block)
+	bool RenderTaskEvent::WaitForFence(bool block) const
 	{
 		return m_Fence.Wait(block);
 	}

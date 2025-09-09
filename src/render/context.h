@@ -84,13 +84,16 @@ namespace vkr::Render
 
 		void Begin();
 		void End();
-		Fence Flush();
+		Fence Flush(bool force = false);
 
 		void ClearStateCache();
 
 		// Markers
-		void BeginMarker(const char* label, uint32_t color);
-		void EndMarker();
+		void SetMarker(const char* label, uint32_t color);
+
+		// Events
+		void BeginEvent(const char* label, uint32_t color);
+		void EndEvent();
 
 		// Queries
 		void TimestampQuery(QueryHeap* queryHeap, uint32_t index);
@@ -222,22 +225,21 @@ namespace vkr::Render
 		const ContextType m_Type;
 	};
 
-	class ContextMarkerScope
+	class ContextEventScope
 	{
 	public:
-		ContextMarkerScope(Context* ctx, const char* label, uint32_t color) : m_Ctx(ctx) { ctx->BeginMarker(label, color); }
-		~ContextMarkerScope() { m_Ctx->EndMarker(); }
+		ContextEventScope(Context* ctx, const char* label, uint32_t color) : m_Ctx(ctx) { ctx->BeginEvent(label, color); }
+		~ContextEventScope() { m_Ctx->EndEvent(); }
 	private:
 		Context* m_Ctx;
 	};
 
-#define _SET_CTX_MARKER_CONCAT_IMPL(x, y) x##y
-#define _SET_CTX_MARKER_CONCAT(x, y) _SET_CTX_MARKER_CONCAT_IMPL(x, y)
+#define VKR_CONTEXT_MARKER_COLORED(ctx, label, color)	ctx->SetMarker(label, color)
+#define VKR_CONTEXT_MARKER(ctx, label)					VKR_CONTEXT_MARKER_COLORED(ctx, label, vkr::Random::Rnd_u32())
 
 // TODO: Begin/End category? Which would make any sub-scope markers use the same color as the previous scope.
-
-#define SET_CONTEXT_MARKER(ctx, label) vkr::Render::ContextMarkerScope _SET_CTX_MARKER_CONCAT(_ctxMarkerScope_, __LINE__)(ctx, label, vkr::Random::Rnd_u32())
-#define SET_CONTEXT_MARKER_COLORED(ctx, label, color) vkr::Render::ContextMarkerScope _SET_CTX_MARKER_CONCAT(_ctxMarkerScope_, __LINE__)(ctx, label, color)
-#define SET_CONTEXT_MARKER_FUNCTION(ctx) SET_CONTEXT_MARKER(ctx, __FUNCTION__)
-#define SET_CONTEXT_MARKER_FUNCTION_COLORED(ctx, color) SET_CONTEXT_MARKER_COLORED(ctx, __FUNCTION__, color)
+#define VKR_CONTEXT_EVENT_COLORED(ctx, label, color)	vkr::Render::ContextEventScope VKR_CONCAT(_ctxMarkerScope_, __LINE__)(ctx, label, color)
+#define VKR_CONTEXT_EVENT(ctx, label)					VKR_CONTEXT_EVENT_COLORED(ctx, label, vkr::Random::Rnd_u32())
+#define VKR_CONTEXT_EVENT_FUNCTION_COLORED(ctx, color)	VKR_CONTEXT_EVENT_COLORED(ctx, __FUNCTION__, color)
+#define VKR_CONTEXT_EVENT_FUNCTION(ctx)					VKR_CONTEXT_EVENT_FUNCTION_COLORED(ctx, vkr::Random::Rnd_u32())
 }

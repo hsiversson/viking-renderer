@@ -4,6 +4,7 @@
 #include "application/appsettings.h"
 #include "graphics/material.h"
 #include "graphics/mesh.h"
+#include "graphics/sky.h"
 #include "render/context.h"
 #include "render/device.h"
 #include "render/nvdlss.h"
@@ -37,11 +38,6 @@ namespace vkr::Graphics
 		m_StaticVelPSO = device->CreatePipelineState(staticVelPSODesc);
 
 		//Sky
-		m_SkyTransmittanceLUTComputeShader = device->CreateShader("../../../content/shaders/skytransmittancelut.hlsl", L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
-		Render::PipelineStateDesc skyTransmittanceLUTPSODesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
-		skyTransmittanceLUTPSODesc.Compute.m_ComputeShader = m_SkyTransmittanceLUTComputeShader.get();
-		m_SkyTransmittanceLUTPSO = device->CreatePipelineState(skyTransmittanceLUTPSODesc);
-
 		m_SkyComputeShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/sky.hlsl"), L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
 		Render::PipelineStateDesc skyPSODesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
 		skyPSODesc.Compute.m_ComputeShader = m_SkyComputeShader.get();
@@ -82,37 +78,45 @@ namespace vkr::Graphics
 			m_TonemapPSO = device->CreatePipelineState(psoDesc);
 		}
 
+		m_SkyRenderer = MakeUnique<SkyRenderer>();
+		if (!m_SkyRenderer->Init())
+		{
+			return false;
+		}
+
 		return true;
 	}
 
-	void ViewRenderer::RenderView(View& view)
+	void ViewRenderer::RenderView(View* view)
 	{
-		View* viewPtr = &view; 
-		viewPtr->BeginRender();
-		if (m_UpdateSkyLUTS)
+		view->BeginRender();
+
+		ViewRenderData& renderData = view->GetMutableRenderData();
+
+		if (renderData.m_UpdateSkyLut)
 		{
 			//Precalculate LUTs for sky rendering (Brute force it into a single stage. Do we need to divide between multiple frames?)
-			m_SkyLUTTaskEvent = Render::QueueComputeTask([this, viewPtr]() mutable { SkyLUTCompute(*viewPtr); });
-			m_UpdateSkyLUTS = false;
+			renderData.m_UpdateSkyLutEvent = Render::QueueComputeTask(std::bind(&SkyRenderer::ComputeLuts, m_SkyRenderer.get(), view));
 		}
+
 		// no need to split into multiple tasks yet...
-		Render::QueueGraphicsTask([this, viewPtr]() mutable 
+		Render::QueueGraphicsTask([this, view]() mutable
 			{ 
-				PreRenderUpdates(*viewPtr); 
-				DepthPrepass(*viewPtr);
-				StaticVelocity(*viewPtr);
-				TraceRadiance(*viewPtr);
-				ApplyUpscaling(*viewPtr);
-				ApplyPostEffects(*viewPtr);
-				FinalizeFrame(*viewPtr);
+				PreRenderUpdates(view);
+				DepthPrepass(view);
+				StaticVelocity(view);
+				TraceRadiance(view);
+				ApplyUpscaling(view);
+				ApplyPostEffects(view);
+				FinalizeFrame(view);
 			});
 
-		viewPtr->EndRender();
+		view->EndRender();
 	}
 
-	void ViewRenderer::PreRenderUpdates(View& view)
+	void ViewRenderer::PreRenderUpdates(View* view)
 	{
-		ViewRenderData& renderData = view.GetMutableRenderData();
+		ViewRenderData& renderData = view->GetMutableRenderData();
 
 		renderData.m_MaterialDataBuffer.PrepareBuffer();
 
@@ -202,15 +206,15 @@ namespace vkr::Graphics
 
 	}
 
-	void ViewRenderer::UpdateParticles(View& view)
+	void ViewRenderer::UpdateParticles(View* view)
 	{
 
 	}
 
-	void ViewRenderer::DepthPrepass(View& view)
+	void ViewRenderer::DepthPrepass(View* view)
 	{
-		const ViewRenderData& renderData = view.GetRenderData();
-		ViewRenderTargets& renderTargets = view.GetRenderTargets();
+		const ViewRenderData& renderData = view->GetRenderData();
+		ViewRenderTargets& renderTargets = view->GetRenderTargets();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 
 		renderTargets.m_DepthBuffer.m_IsDepthStencil = true;
@@ -218,8 +222,8 @@ namespace vkr::Graphics
 		renderTargets.m_DepthBuffer.Update(renderData.m_RenderSize, "ViewRenderTargets::DepthBuffer");
 
 		ctx->InsertWait(renderData.m_RaytracingTLAS->GetBuffer()->GetGpuPending());
-		SET_CONTEXT_MARKER_FUNCTION(ctx);
-		VKR_PROFILE_GPU_FUNCTION(ctx);
+		VKR_CONTEXT_EVENT_FUNCTION(ctx);
+
 		//Depth prepass Transitions
 		{
 			//Transition DS to write
@@ -267,10 +271,10 @@ namespace vkr::Graphics
 		
 	}
 
-	void ViewRenderer::StaticVelocity(View& view)
+	void ViewRenderer::StaticVelocity(View* view)
 	{
-		const ViewRenderData& renderData = view.GetRenderData();
-		ViewRenderTargets& renderTargets = view.GetRenderTargets();
+		const ViewRenderData& renderData = view->GetRenderData();
+		ViewRenderTargets& renderTargets = view->GetRenderTargets();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
 
 		renderTargets.m_SceneBuffer_RenderSize.m_IsWritable = true;
@@ -286,8 +290,7 @@ namespace vkr::Graphics
 		renderTargets.m_Velocity.m_ClearValue = { nanValue, nanValue, nanValue, nanValue };
 		renderTargets.m_Velocity.Update(renderData.m_RenderSize, "ViewRenderTargets::Velocity");
 
-		SET_CONTEXT_MARKER_FUNCTION(ctx);
-		VKR_PROFILE_GPU_FUNCTION(ctx);
+		VKR_CONTEXT_EVENT_FUNCTION(ctx);
 
 		// At this point dynamic objects should have velocity (computed in PS in depth prepass)
 		// Add a small compute pass to add velocity to all static geometry (existing depth but no velocity written)
@@ -353,8 +356,8 @@ namespace vkr::Graphics
 				uint32_t VelocityBufferDescriptorIndex;
 			};
 			ConstantData data;
-			data.DepthBufferDescriptorIndex = view.GetRenderTargets().m_DepthBuffer.m_TextureView->GetIndex();
-			data.VelocityBufferDescriptorIndex = view.GetRenderTargets().m_Velocity.m_TextureViewRW->GetIndex();
+			data.DepthBufferDescriptorIndex = view->GetRenderTargets().m_DepthBuffer.m_TextureView->GetIndex();
+			data.VelocityBufferDescriptorIndex = view->GetRenderTargets().m_Velocity.m_TextureViewRW->GetIndex();
 
 			ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
@@ -362,13 +365,12 @@ namespace vkr::Graphics
 		}
 	}
 
-	void ViewRenderer::ForwardPass(View& view)
+	void ViewRenderer::ForwardPass(View* view)
 	{
-		const ViewRenderData& renderData = view.GetRenderData();
-		ViewRenderTargets& renderTargets = view.GetRenderTargets();
+		const ViewRenderData& renderData = view->GetRenderData();
+		ViewRenderTargets& renderTargets = view->GetRenderTargets();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
-		SET_CONTEXT_MARKER_FUNCTION(ctx);
-		VKR_PROFILE_GPU_FUNCTION(ctx);
+		VKR_CONTEXT_EVENT_FUNCTION(ctx);
 
 		renderTargets.m_SceneBuffer_RenderSize.m_IsWritable = true;
 		renderTargets.m_SceneBuffer_RenderSize.m_IsRenderTarget = true;
@@ -422,12 +424,12 @@ namespace vkr::Graphics
 		targets.push_back(renderTargets.m_Velocity.m_RenderTarget.get());
 
 		ctx->ClearRenderTargets(targets.size(), targets.data());
-		//ctx->ClearDepthStencil(view.GetDepthBuffer(), 0.0f);
+		//ctx->ClearDepthStencil(view->GetDepthBuffer(), 0.0f);
 
 		ctx->BindRenderTargets(targets.size(), targets.data());
 		ctx->BindDepthStencil(renderTargets.m_DepthBuffer.m_DepthStencil.get());
 
-		const Render::TextureDesc& rtDesc = view.GetOutputTarget()->GetTexture()->m_TextureDesc;
+		const Render::TextureDesc& rtDesc = view->GetOutputTarget()->GetTexture()->m_TextureDesc;
 		ctx->SetViewport(0, 0, rtDesc.m_Size.x, rtDesc.m_Size.y);
 		ctx->SetScissorRect(0, 0, rtDesc.m_Size.x, rtDesc.m_Size.y);
 
@@ -452,17 +454,16 @@ namespace vkr::Graphics
 		}
 	}
 
-	void ViewRenderer::TraceRadiance(View& view)
+	void ViewRenderer::TraceRadiance(View* view)
 	{
-		const ViewRenderData& renderData = view.GetRenderData();
+		const ViewRenderData& renderData = view->GetRenderData();
 
 		if (!renderData.m_TraceRaysPipelineState)
 			return;
 
-		ViewRenderTargets& renderTargets = view.GetRenderTargets();
+		ViewRenderTargets& renderTargets = view->GetRenderTargets();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
-		SET_CONTEXT_MARKER_FUNCTION(ctx);
-		VKR_PROFILE_GPU_FUNCTION(ctx);
+		VKR_CONTEXT_EVENT_FUNCTION(ctx);
 
 		renderTargets.m_DiffuseAlbedo.m_IsWritable = true;
 		renderTargets.m_DiffuseAlbedo.m_Format = Render::Format::FORMAT_RGBA8_UNORM;
@@ -476,17 +477,16 @@ namespace vkr::Graphics
 		renderTargets.m_NormalRoughness.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
 		renderTargets.m_NormalRoughness.Update(renderData.m_RenderSize, "ViewRenderTargets::NormalRoughness");
 
-		if (m_SkyLUTTaskEvent) //Did we need to recompute sky LUTs? Wait until sky is ready
+		if (renderData.m_UpdateSkyLutEvent) //Did we need to recompute sky LUTs? Wait until sky is ready
 		{
-			m_SkyLUTTaskEvent->WaitForEvent(true);
-			ctx->InsertWait(*m_SkyLUTTaskEvent);
+			ctx->InsertWait(*renderData.m_UpdateSkyLutEvent);
 		}
 
 		//Transition to UAV the output
 		std::vector<Render::TextureBarrierDesc> barriers;
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = view.GetRenderTargets().m_SceneBuffer_RenderSize.m_Texture.get();
+			barrierDesc.m_Texture = view->GetRenderTargets().m_SceneBuffer_RenderSize.m_Texture.get();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
@@ -514,13 +514,12 @@ namespace vkr::Graphics
 		ctx->DispatchRays(renderData.m_TraceRaysPipelineState.get() , renderData.m_RenderSize.x, renderData.m_RenderSize.y);
 	}
 
-	void ViewRenderer::RenderSky(View& view)
+	void ViewRenderer::RenderSky(View* view)
 	{
-		const ViewRenderData& renderData = view.GetRenderData();
-		ViewRenderTargets& renderTargets = view.GetRenderTargets();
+		const ViewRenderData& renderData = view->GetRenderData();
+		ViewRenderTargets& renderTargets = view->GetRenderTargets();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
-		SET_CONTEXT_MARKER_FUNCTION(ctx);
-		VKR_PROFILE_GPU_FUNCTION(ctx);
+		VKR_CONTEXT_EVENT_FUNCTION(ctx);
 
 		//Transition to UAV the output
 		std::vector<Render::TextureBarrierDesc> barriers;
@@ -550,14 +549,13 @@ namespace vkr::Graphics
 		ctx->DispatchThreads({ renderData.m_RenderSize.x, renderData.m_RenderSize.y,1 });
 	}
 
-	void ViewRenderer::ApplyUpscaling(View& view)
+	void ViewRenderer::ApplyUpscaling(View* view)
 	{
 		// TAA, DLSS, FSR, XeSS etc.
-		const ViewRenderData& renderData = view.GetRenderData();
-		ViewRenderTargets& renderTargets = view.GetRenderTargets();
+		const ViewRenderData& renderData = view->GetRenderData();
+		ViewRenderTargets& renderTargets = view->GetRenderTargets();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
-		SET_CONTEXT_MARKER_FUNCTION(ctx);
-		VKR_PROFILE_GPU_FUNCTION(ctx);
+		VKR_CONTEXT_EVENT_FUNCTION(ctx);
 
 		renderTargets.m_SceneBuffer_OutputSize.m_IsWritable = true;
 		renderTargets.m_SceneBuffer_OutputSize.m_IsRenderTarget = true;
@@ -599,7 +597,7 @@ namespace vkr::Graphics
 
 		if (ElapsedTimer::FrameIndex() > 10 && AppSettings::GetAppSettings()->GetGraphicsSettings().m_AAMethod == DLSS)
 		{
-			view.GetDLSS().Upscale(view, ctx);
+			view->GetDLSS().Upscale(view, ctx);
 			{
 				std::vector<Render::TextureBarrierDesc> barriers;
 				{
@@ -673,13 +671,12 @@ namespace vkr::Graphics
 
 	}
 
-	void ViewRenderer::ApplyPostEffects(View& view)
+	void ViewRenderer::ApplyPostEffects(View* view)
 	{
 		Render::Context* ctx = Render::Context::GetCurrentContext();
-		ViewRenderTargets& renderTargets = view.GetRenderTargets();
-		const ViewRenderData& renderData = view.GetRenderData();
-		SET_CONTEXT_MARKER_FUNCTION(ctx);
-		VKR_PROFILE_GPU_FUNCTION(ctx);
+		ViewRenderTargets& renderTargets = view->GetRenderTargets();
+		const ViewRenderData& renderData = view->GetRenderData();
+		VKR_CONTEXT_EVENT_FUNCTION(ctx);
 
 		// DoF
 		// Bloom
@@ -805,14 +802,14 @@ namespace vkr::Graphics
 		}
 	}
 
-	void ViewRenderer::FinalizeFrame(View& view)
+	void ViewRenderer::FinalizeFrame(View* view)
 	{
 		// finalizing work recorded here
 		// 
 		Render::Context* ctx = Render::Context::GetCurrentContext();
-		ViewRenderTargets& renderTargets = view.GetRenderTargets();
-		SET_CONTEXT_MARKER_FUNCTION(ctx);
-		VKR_PROFILE_GPU_FUNCTION(ctx);
+		ViewRenderTargets& renderTargets = view->GetRenderTargets();
+		VKR_CONTEXT_EVENT_FUNCTION(ctx);
+
 		// Copy scene texture to view output resource
 		// for main view, that would probably be the swapchain backbuffer
 
@@ -820,7 +817,7 @@ namespace vkr::Graphics
 		//Transition backbuffer to copy dest
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = view.GetOutputTarget()->GetTexture();
+			barrierDesc.m_Texture = view->GetOutputTarget()->GetTexture();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_COPY_TARGET;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COPY_TARGET;
@@ -828,12 +825,12 @@ namespace vkr::Graphics
 		}
 
 		//Perform copy operation
-		ctx->CopyTexture(view.GetOutputTarget()->GetTexture(), renderTargets.m_SceneBuffer_OutputSize.m_Texture.get());
+		ctx->CopyTexture(view->GetOutputTarget()->GetTexture(), renderTargets.m_SceneBuffer_OutputSize.m_Texture.get());
 		
 		//Transition output to present
 		{
 			Render::TextureBarrierDesc barrierDesc;
-			barrierDesc.m_Texture = view.GetOutputTarget()->GetTexture();
+			barrierDesc.m_Texture = view->GetOutputTarget()->GetTexture();
 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_PRESENT;
 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_COMMON;

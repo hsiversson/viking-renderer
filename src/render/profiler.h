@@ -65,32 +65,5 @@ namespace vkr::Render
 		std::array<std::queue<PendingFrame>, CONTEXT_TYPE_COUNT> m_PendingFramesPerContextType;
 		std::array<std::queue<ProfilerFrame>, CONTEXT_TYPE_COUNT> m_ResolvedFramesPerContextType;
 	};
-
-	struct ProfilerEventScope
-	{
-		ProfilerEventScope(Context* ctx, const char* tag)
-			: m_Context(ctx)
-		{
-			GetDevice()->GetProfiler()->BeginEvent(m_Context, tag);
-		}
-		~ProfilerEventScope()
-		{
-			GetDevice()->GetProfiler()->EndEvent(m_Context);
-		}
-
-		Context* m_Context;
-	};
 }
-
-#define _PROFILE_GPU_SCOPE_CONCAT_IMPL(x, y) x##y
-#define _PROFILE_GPU_SCOPE_CONCAT(x, y) _PROFILE_GPU_SCOPE_CONCAT_IMPL(x, y)
-
-#define VKR_PROFILE_GPU_SCOPE(ctx, tag) vkr::Render::ProfilerEventScope _PROFILE_GPU_SCOPE_CONCAT(_ctxProfilerGpuScope_, __LINE__)(ctx, tag)
-#define VKR_PROFILE_GPU_FUNCTION(ctx) VKR_PROFILE_GPU_SCOPE(ctx, __FUNCTION__)
-
-#else
-
-#define VKR_PROFILE_GPU_SCOPE(ctx, tag)
-#define VKR_PROFILE_GPU_FUNCTION(ctx)
-
 #endif // ENABLE_PROFILING

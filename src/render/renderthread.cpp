@@ -81,16 +81,26 @@ namespace vkr::Render
 					m_PendingTasks.pop();
 				}
 
-				if (task.m_Flags & RENDER_TASK_FLAG_WAITABLE_ONLY)
+				const bool waitableOnly = (task.m_Flags & RENDER_TASK_FLAG_WAITABLE_ONLY) != 0;
+				const bool forceFlush = (task.m_Flags & RENDER_TASK_FLAG_FORCE_FLUSH) != 0;
+
+				if (waitableOnly)
 				{
-					task.m_Event->m_Fence = ctx->GetLastFence();
+					if (forceFlush)
+					{
+						task.m_Event->m_Fence = ctx->Flush(forceFlush);
+					}
+					else
+					{
+						task.m_Event->m_Fence = ctx->GetLastFence();
+					}
 				}
 				else
 				{
 					ctx->Begin();
 					task.m_Task();
 					ctx->End();
-					task.m_Event->m_Fence = ctx->Flush();
+					task.m_Event->m_Fence = ctx->Flush(forceFlush);
 				}
 				task.m_Event->m_Event.Signal();
 			}

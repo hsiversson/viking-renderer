@@ -10,7 +10,7 @@ namespace vkr::Render
 		~FenceResource();
 
 		uint64_t Increment();
-		bool Wait(uint64_t value, bool block = true);
+		bool Wait(uint64_t value, bool block = true) const;
 		bool IsPending(uint64_t value) const;
 
 		ID3D12Fence* GetFence() const;
@@ -33,7 +33,7 @@ namespace vkr::Render
 		Fence operator+(uint64_t v) const;
 		Fence& operator+=(uint64_t v);
 
-		bool Wait(bool block = true);
+		bool Wait(bool block = true) const;
 		bool IsPending() const;
 	};
 }

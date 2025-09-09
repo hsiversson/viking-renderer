@@ -1,13 +1,14 @@
 #include "context.h"
 
 #include "buffer.h"
-#include "pipelinestate.h"
-#include "rootsignature.h"
-#include "device.h"
 #include "commandlist.h"
 #include "commandqueue.h"
-#include "queryheap.h"
 #include "d3dconvert.h"
+#include "device.h"
+#include "pipelinestate.h"
+#include "profiler.h"
+#include "queryheap.h"
+#include "rootsignature.h"
 
 #define USE_PIX
 #include "pix3.h"
@@ -78,16 +79,16 @@ namespace vkr::Render
 		g_CurrentContext = g_PrevContext;
 	}
 
-	Fence Context::Flush()
+	Fence Context::Flush(bool force)
 	{
+		for (uint32_t i = 0; i < m_FencesToWaitFor.size(); ++i)
+		{
+			m_CommandQueue->InsertWait(m_FencesToWaitFor[i]);
+		}
+		m_FencesToWaitFor.clear();
+
 		if (!m_CommandListsToSubmit.empty())
 		{
-			for (uint32_t i = 0; i < m_FencesToWaitFor.size(); ++i)
-			{
-				m_CommandQueue->InsertWait(m_FencesToWaitFor[i]);
-			}
-			m_FencesToWaitFor.clear();
-
 			m_LastFlushEvent = m_CommandQueue->Submit(m_CommandListsToSubmit.size(), m_CommandListsToSubmit.data());
 
 			CommandListPool::PendingCommandLists pending;
@@ -97,6 +98,10 @@ namespace vkr::Render
 
 			m_CommandListsToSubmit.clear();
 		}
+		else if (force)
+		{
+			m_LastFlushEvent = m_CommandQueue->Signal();
+		}
 		return m_LastFlushEvent;
 	}
 
@@ -105,13 +110,24 @@ namespace vkr::Render
 		m_StateCache.Clear();
 	}
 
-	void Context::BeginMarker(const char* label, uint32_t color)
+	void Context::SetMarker(const char* label, uint32_t color)
 	{
-		PIXBeginEvent(m_CurrentD3DCommandList, (0xff000000u | color), label);
+		PIXSetMarker(m_CurrentD3DCommandList, (0xff000000u | color), label);
 	}
 
-	void Context::EndMarker()
+	void Context::BeginEvent(const char* label, uint32_t color)
 	{
+		PIXBeginEvent(m_CurrentD3DCommandList, (0xff000000u | color), label);
+#if ENABLE_PROFILING
+		GetDevice()->GetProfiler()->BeginEvent(this, label);
+#endif
+	}
+
+	void Context::EndEvent()
+	{
+#if ENABLE_PROFILING
+		GetDevice()->GetProfiler()->EndEvent(this);
+#endif
 		PIXEndEvent(m_CurrentD3DCommandList);
 	}
 
@@ -901,6 +917,7 @@ namespace vkr::Render
 
 	void Context::InsertWait(const RenderTaskEvent& taskEvent)
 	{
+		taskEvent.WaitForEvent();
 		InsertWait(taskEvent.GetFence());
 	}
 }

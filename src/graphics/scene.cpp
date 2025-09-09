@@ -1,11 +1,12 @@
 #include "scene.h"
 #include "material.h"
 #include "mesh.h"
+#include "modelobject.h"
+#include "render/device.h"
+#include "sky.h"
 #include "view.h"
 #include "viewmanager.h"
 #include "viewrenderer.h"
-#include "modelobject.h"
-#include "render/device.h"
 
 #include <functional>
 
@@ -20,6 +21,14 @@ namespace vkr::Graphics
 		if (!m_ViewRenderer->Init())
 		{
 			VKR_ASSERT(false);
+			return;
+		}
+
+		m_Sky = MakeUnique<Sky>();
+		if (!m_Sky->Init())
+		{
+			VKR_ASSERT(false);
+			return;
 		}
 	}
 
@@ -122,8 +131,8 @@ namespace vkr::Graphics
 
 		for (View* view : m_ViewManager->GetViews())
 		{
-			PrepareView(*view);
-			m_ViewRenderer->RenderView(*view);
+			PrepareView(view);
+			m_ViewRenderer->RenderView(view);
 		}
 	}
 
@@ -149,30 +158,30 @@ namespace vkr::Graphics
 		m_PendingActions.push(std::move(action));
 	}
 
-	void Scene::PrepareView(View& view)
+	void Scene::PrepareView(View* view)
 	{
 		// traverse all objects in Scene, add relevant ones to view.PrepareData()
 		PrepareViewContext prepareViewCtx(view);
-		ViewRenderData& prepareData = view.GetPrepareData();
+		ViewRenderData& prepareData = view->GetPrepareData();
 
 		prepareData.m_FrameIndex = ElapsedTimer::FrameIndex();
 		prepareData.m_DeltaTime = ElapsedTimer::DeltaTime();
 		prepareData.m_ElapsedTime = ElapsedTimer::ElapsedTime();
 
-		prepareData.m_RenderSize = view.GetRenderSize();
-		prepareData.m_OutputSize = view.GetOutputSize();
+		prepareData.m_RenderSize = view->GetRenderSize();
+		prepareData.m_OutputSize = view->GetOutputSize();
 
 		//Sun
 		prepareData.m_DirectionalLights[0].Emission = Vector3f(3.0, 3.0, 3.0);
 		prepareData.m_DirectionalLights[0].Direction = Vector3f(0.4, -0.5, 0.6);
-		prepareData.m_DirectionalLights[0].Radius = tanf(DegToRad(0.53f));
+		prepareData.m_DirectionalLights[0].Radius = DegToRad(0.53f);
 
 		//Moon
 		prepareData.m_DirectionalLights[1].Emission = Vector3f(8.0, 2.0, 2.0);
 		prepareData.m_DirectionalLights[1].Direction = Vector3f(-0.4, -0.5, 0.6);
 		prepareData.m_DirectionalLights[1].Radius = 0.02f;
 
-		view.PrepareCameraConstants(prepareData.m_CameraData);
+		view->PrepareCameraConstants(prepareData.m_CameraData);
 
 		prepareData.m_TraceRaysPipelineState = m_TraceRaysPipelineState;
 
@@ -234,6 +243,8 @@ namespace vkr::Graphics
 		{
 			CollectBatchesForPass(prepareData.m_ForwardPassData, DefaultPSOSelector);
 		}
+
+		m_Sky->PrepareView(view);
 	}
 
 	void Scene::CollectModelPart(ViewRenderData& renderData, const Model::Part& part, const Mat44& parentWorldTransform, const Mat44& prevParentWorldTransform)

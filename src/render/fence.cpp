@@ -20,7 +20,7 @@ namespace vkr::Render
 		return m_Value.fetch_add(1, std::memory_order_acq_rel);
 	}
 
-	bool FenceResource::Wait(uint64_t value, bool block)
+	bool FenceResource::Wait(uint64_t value, bool block) const
 	{
 		if (IsPending(value))
 		{
@@ -85,7 +85,7 @@ namespace vkr::Render
 		return *this;
 	}
 
-	bool Fence::Wait(bool block)
+	bool Fence::Wait(bool block) const
 	{
 		if (m_FenceResource)
 		{

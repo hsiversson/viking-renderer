@@ -130,6 +130,9 @@ namespace vkr::Graphics
 
 		Render::TempBuffer m_PerSceneConstantBuffer;
 		
+		bool m_UpdateSkyLut;
+		Ref<Render::RenderTaskEvent> m_UpdateSkyLutEvent;
+
 		uint32_t m_TotalInstanceCount = 0;
 	};
 }

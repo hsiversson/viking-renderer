@@ -14,8 +14,8 @@ namespace vkr::Render
 	public:
 		NvDLSS();
 		~NvDLSS();
-		void Prepare(Graphics::View& view);
-		void Upscale(Graphics::View& view, Render::Context* ctx);
+		void Prepare(Graphics::View* view);
+		void Upscale(Graphics::View* view, Render::Context* ctx);
 
 	private:
 		struct PImpl;

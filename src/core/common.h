@@ -2,6 +2,9 @@
 
 #include "globaldefines.h"
 
+#define VKR_CONCAT_IMPL(x, y) x##y
+#define VKR_CONCAT(x, y) VKR_CONCAT_IMPL(x, y)
+
 namespace vkr
 {
 	static constexpr float PI = 3.1415927410125732421875f;

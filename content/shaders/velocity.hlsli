@@ -16,6 +16,9 @@ float2 CalcVelocity(float4 newPos, float4 oldPos)
     
     float2 velocity = prevPos - currPos; // Really were computing inverse motion vector here, so later we need to add it
     
+    if (abs(velocity.x) < 1e-5 && abs(velocity.y) < 1e-5)
+        velocity = 0;
+    
     return velocity;
 }
 

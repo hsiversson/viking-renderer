@@ -129,31 +129,31 @@ namespace vkr::Graphics
 
 	struct PrepareViewContext
 	{
-		PrepareViewContext(View& view) : m_View(view)
+		PrepareViewContext(View* view) : m_View(view)
 		{
-			m_View.BeginPrepare();
+			m_View->BeginPrepare();
 		}
 
 		~PrepareViewContext()
 		{
-			m_View.EndPrepare();
+			m_View->EndPrepare();
 		}
 
-		View& m_View;
+		View* m_View;
 	};
 
 	struct RenderViewContext
 	{
-		RenderViewContext(View& view) : m_View(view)
+		RenderViewContext(View* view) : m_View(view)
 		{
-			m_View.BeginRender();
+			m_View->BeginRender();
 		}
 
 		~RenderViewContext()
 		{
-			m_View.EndRender();
+			m_View->EndRender();
 		}
 
-		View& m_View;
+		View* m_View;
 	};
 }

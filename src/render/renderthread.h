@@ -11,6 +11,7 @@ namespace vkr::Render
 	{
 		RENDER_TASK_FLAG_NONE			= 0,
 		RENDER_TASK_FLAG_WAITABLE_ONLY	= (1<<0),
+		RENDER_TASK_FLAG_FORCE_FLUSH	= (1<<1),
 	};
 
 	struct RenderTask

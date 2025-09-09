@@ -11,6 +11,7 @@ namespace vkr::Render
 
 namespace vkr::Graphics
 {
+	class Sky;
 	class View;
 	class ViewManager;
 	class ViewRenderer;
@@ -33,7 +34,7 @@ namespace vkr::Graphics
 	private:
 		// Prepare render data for rendering for each view. 
 		// I.e extract renderable information and store in list to be picked up by render tasks later
-		void PrepareView(View& view);
+		void PrepareView(View* view);
 
 		void CollectModelPart(ViewRenderData& renderData, const Model::Part& part, const Mat44& parentWorldTransform, const Mat44& prevParentWorldTransform);
 
@@ -66,6 +67,8 @@ namespace vkr::Graphics
 
 		UniquePtr<ViewManager> m_ViewManager;
 		UniquePtr<ViewRenderer> m_ViewRenderer;
+
+		UniquePtr<Sky> m_Sky;
 
 		uint32_t m_MaterialHitGroupCounter = 0;
 		std::unordered_map<Material*, uint32_t> m_MaterialToHitGroupId;

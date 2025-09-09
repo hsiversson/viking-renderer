@@ -139,7 +139,9 @@ namespace vkr::Render
 	void Device::BeginFrame(uint64_t frameIndex)
 	{
 		Ref<RenderTaskEvent> event = QueueGraphicsTask([this, frameIndex]() {
-			SET_CONTEXT_MARKER(Context::GetCurrentContext(), "BeginFrame");
+
+			VKR_CONTEXT_MARKER(Context::GetCurrentContext(), "BeginFrame");
+
 			for (uint32_t i = 0; i < TEMP_BUFFER_USAGE_COUNT; ++i)
 			{
 				m_TempBufferAllocators[i]->StartChunk();
@@ -149,13 +151,14 @@ namespace vkr::Render
 			m_Profiler->BeginFrame(Context::GetCurrentContext(), frameIndex);
 #endif //ENABLE_PROFILING
 
-			});
+			}, RENDER_TASK_FLAG_FORCE_FLUSH);
 
 		QueueComputeTask([this, frameIndex, event]() {
-			SET_CONTEXT_MARKER(Context::GetCurrentContext(), "BeginFrame");
+
+			VKR_CONTEXT_MARKER(Context::GetCurrentContext(), "BeginFrame");
+
 			if (event)
 			{
-				event->WaitForEvent();
 				Context::GetCurrentContext()->InsertWait(*event);
 			}
 
@@ -167,16 +170,22 @@ namespace vkr::Render
 
 	void Device::EndFrame()
 	{
-		QueueComputeTask([this]() {
-			SET_CONTEXT_MARKER(Context::GetCurrentContext(), "EndFrame");
+		Ref<RenderTaskEvent> event = QueueComputeTask([this]() {
+			VKR_CONTEXT_MARKER(Context::GetCurrentContext(), "EndFrame");
 
 #if ENABLE_PROFILING
 			m_Profiler->EndFrame(Context::GetCurrentContext());
 #endif //ENABLE_PROFILING
 			});
 
-		QueueGraphicsTask([this]() {
-			SET_CONTEXT_MARKER(Context::GetCurrentContext(), "EndFrame");
+		QueueGraphicsTask([this, event]() {
+			VKR_CONTEXT_MARKER(Context::GetCurrentContext(), "EndFrame");
+
+			if (event)
+			{
+				Context::GetCurrentContext()->InsertWait(*event);
+			}
+
 			for (uint32_t i = 0; i < TEMP_BUFFER_USAGE_COUNT; ++i)
 			{
 				m_TempBufferAllocators[i]->EndChunk(GetCommandQueue(CONTEXT_TYPE_PRESENT)->Signal());

@@ -12,9 +12,9 @@ namespace vkr::Render
 		RenderTaskEvent();
 		~RenderTaskEvent() = default;
 
-		bool Wait(bool block = true);
-		bool WaitForEvent(bool block = true);
-		bool WaitForFence(bool block = true);
+		bool Wait(bool block = true) const;
+		bool WaitForEvent(bool block = true) const;
+		bool WaitForFence(bool block = true) const;
 
 		bool IsPending() const;
 		const Fence& GetFence() const { return m_Fence; }
