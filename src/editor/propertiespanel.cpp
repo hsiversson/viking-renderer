@@ -15,11 +15,6 @@ namespace vkr::Editor
 
 	}
 
-	void PropertiesPanel::SetSelected(Game::Entity e)
-	{
-		m_SelectedEntity = e;
-	}
-
 	void PropertiesPanel::OnDraw()
 	{
 		if (m_SelectedEntity.IsValid())
@@ -29,6 +24,13 @@ namespace vkr::Editor
 			ImGui::InputText("##entityName", idComponent->m_Name.data(), idComponent->m_Name.length(), 0);
 			ImGui::PopItemFlag();
 			ImGui::Separator();
+		}
+	}
+	void PropertiesPanel::ReceiveMessage(const BroadcastMessage& message)
+	{
+		if (message.GetId() == BROADCAST_MSG_ID_SELECTED_ENTITY)
+		{
+			message.GetData(m_SelectedEntity);
 		}
 	}
 }

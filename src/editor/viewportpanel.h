@@ -1,6 +1,7 @@
 #pragma once
 
 #if ENABLE_EDITOR
+#include "broadcast.h"
 #include "panel.h"
 #include "game/entity.h"
 #include "graphics/view.h"
@@ -30,17 +31,17 @@ namespace vkr::Editor
 		float m_PitchDeg = 0;
 	};
 
-	class ViewportPanel final : public Panel
+	class ViewportPanel final : public Panel, public BroadcastListener
 	{
 	public:
 		ViewportPanel(Game::World& world);
 		~ViewportPanel() override;
 
-		void SetSelectedEntity(const Game::Entity& selected);
-
 	private:
 		void OnUpdate() override;
 		void OnDraw() override;
+
+		void ReceiveMessage(const BroadcastMessage& message) override;
 
 	private:
 		Game::World& m_World;

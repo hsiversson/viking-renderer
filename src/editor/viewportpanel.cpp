@@ -136,11 +136,6 @@ namespace vkr::Editor
 		m_World.GetGraphicsScene()->DestroyView(m_View);
     }
 
-	void ViewportPanel::SetSelectedEntity(const Game::Entity& selected)
-	{
-		m_SelectedEntity = selected;
-	}
-
     void ViewportPanel::OnUpdate()
 	{
 		Vector2u viewportSize = Vector2u(m_ContentAreaSize);
@@ -197,6 +192,14 @@ namespace vkr::Editor
 			}
 		}
     }
+
+	void ViewportPanel::ReceiveMessage(const BroadcastMessage& message)
+	{
+		if (message.GetId() == BROADCAST_MSG_ID_SELECTED_ENTITY)
+		{
+			message.GetData(m_SelectedEntity);
+		}
+	}
 }
 
 #endif //ENABLE_EDITOR

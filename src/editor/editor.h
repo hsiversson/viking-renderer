@@ -1,6 +1,7 @@
 #pragma once
 
 #if ENABLE_EDITOR
+#include "broadcast.h"
 #include "icons.h"
 
 namespace vkr
@@ -40,6 +41,11 @@ namespace vkr::Editor
 		Icons* GetIcons() const;
 		InputManager* GetInputManager() const;
 
+		void Broadcast(const BroadcastMessage& message);
+
+		void RegisterBroadcastListener(BroadcastListener* listener);
+		void UnregisterBroadcastListener(BroadcastListener* listener);
+
 		static Manager* Get();
 
 	private:
@@ -61,6 +67,9 @@ namespace vkr::Editor
 
 		MovingAverage<uint32_t, 64> m_FpsMovingAverage;
 
+		std::vector<BroadcastListener*> m_BroadcastListeners;
+
+		const std::filesystem::path m_EditorLayoutConfigPath;
 		static Manager* g_Instance;
 	};
 }

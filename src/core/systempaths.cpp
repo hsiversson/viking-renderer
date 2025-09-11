@@ -29,7 +29,7 @@ namespace vkr::SystemPaths
 
 			g_EngineContentDirectory = std::filesystem::weakly_canonical(g_ExeDirectory / ".." / ".." / "content");
 			g_ProjectContentDirectory = projectContentDirectory;
-			g_UserDirectory = std::filesystem::weakly_canonical(documentsPath);
+			g_UserDirectory = std::filesystem::weakly_canonical(documentsPath) / "VikingRenderer"; // TODO: <project name> instead of "VikingRenderer"
 
 			return true;
 		}

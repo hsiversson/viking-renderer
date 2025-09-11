@@ -4,6 +4,7 @@
 
 #include "application/window.h"
 #include "application/application.h"
+#include "broadcast.h"
 #include "core/timer.h"
 #include "core/inputmanager.h"
 #include "layout.h"
@@ -93,6 +94,7 @@ namespace vkr::Editor
 
 	Manager::Manager()
 		: m_InputManager(nullptr)
+		, m_EditorLayoutConfigPath(SystemPaths::GetUserDirectory() / "editor_layout.ini")
 	{
 		VKR_ASSERT(g_Instance == nullptr);
 		g_Instance = this;
@@ -100,6 +102,12 @@ namespace vkr::Editor
 
 	Manager::~Manager()
 	{
+		ImGuiIO& io = ImGui::GetIO();
+		if (io.WantSaveIniSettings)
+		{
+			ImGui::SaveIniSettingsToDisk(m_EditorLayoutConfigPath.string().c_str());
+		}
+
 		g_Instance = nullptr;
 	}
 
@@ -114,7 +122,19 @@ namespace vkr::Editor
 		io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 		io.ConfigWindowsMoveFromTitleBarOnly = true;
 		io.ConfigViewportsNoAutoMerge = true;
-		io.IniFilename = "./vkr_layout.ini";
+		io.IniFilename = nullptr;
+
+		if (std::filesystem::exists(m_EditorLayoutConfigPath))
+		{
+			ImGui::LoadIniSettingsFromDisk(m_EditorLayoutConfigPath.string().c_str());
+		}
+		else
+		{
+			const std::filesystem::path defaultLayoutConfigPath = SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "config/default_editor_layout.ini");
+			ImGui::LoadIniSettingsFromDisk(defaultLayoutConfigPath.string().c_str());
+			std::filesystem::create_directories(m_EditorLayoutConfigPath.parent_path());
+			ImGui::SaveIniSettingsToDisk(m_EditorLayoutConfigPath.string().c_str());
+		}
 
 		io.BackendRendererName = "VikingRenderer";
 		io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
@@ -151,6 +171,10 @@ namespace vkr::Editor
 	void Manager::Update()
 	{
 		ImGuiIO& io = ImGui::GetIO();
+		if (io.WantSaveIniSettings)
+		{
+			ImGui::SaveIniSettingsToDisk(m_EditorLayoutConfigPath.string().c_str());
+		}
 
 		const Vector2u& windowSize = m_Window->GetSize();
 		io.DisplaySize = ImVec2(windowSize.x, windowSize.y);
@@ -194,6 +218,26 @@ namespace vkr::Editor
 	InputManager* Manager::GetInputManager() const
 	{
 		return m_InputManager;
+	}
+
+	void Manager::Broadcast(const BroadcastMessage& message)
+	{
+		for (BroadcastListener* listener : m_BroadcastListeners)
+		{
+			listener->ReceiveMessage(message);
+		}
+	}
+
+	void Manager::RegisterBroadcastListener(BroadcastListener* listener)
+	{
+		m_BroadcastListeners.push_back(listener);
+	}
+
+	void Manager::UnregisterBroadcastListener(BroadcastListener* listener)
+	{
+		auto it = std::find(m_BroadcastListeners.begin(), m_BroadcastListeners.end(), listener);
+		*it = m_BroadcastListeners.back();
+		m_BroadcastListeners.pop_back();
 	}
 
 	Manager* Manager::Get()

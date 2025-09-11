@@ -48,7 +48,17 @@ namespace vkr::Editor
 					DrawEntityNode(entity);
 				}
 			}
+
 			ImGui::EndTable();
+		}
+
+		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
+		{
+			m_SelectedEntity = Game::Entity();
+
+			BroadcastMessage msg(BROADCAST_MSG_ID_SELECTED_ENTITY);
+			msg.SetData(m_SelectedEntity);
+			Manager::Get()->Broadcast(msg);
 		}
 	}
 
@@ -100,11 +110,10 @@ namespace vkr::Editor
 		if (ImGui::IsItemClicked())
 		{
 			m_SelectedEntity = entity;
-			//
-			//Editor_Broadcast* broadcast = Editor_Module::Get()->GetBroadcast();
-			//Editor_BroadcastMessage msg(EDITOR_MSG_UID_SELECTED_ENTITY);
-			//msg.SetData(mSelectedEntity);
-			//broadcast->Broadcast(msg);
+			
+			BroadcastMessage msg(BROADCAST_MSG_ID_SELECTED_ENTITY);
+			msg.SetData(m_SelectedEntity);
+			Manager::Get()->Broadcast(msg);
 		}
 
 		// Right click menu

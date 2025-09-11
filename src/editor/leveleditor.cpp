@@ -40,9 +40,6 @@ namespace vkr::Editor
 		e0.AddChild(e2);
 		e0.AddChild(e3);
 
-		m_Viewport->SetSelectedEntity(e0);
-		m_Properties->SetSelected(e0);
-
 		Game::ModelComponent& modelComponent = e0.AddComponent<Game::ModelComponent>();
 		modelComponent.m_ModelFilePath = SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "models/cp_noodles/scene.gltf");
 
