@@ -106,6 +106,7 @@ namespace vkr::Editor
 		if (io.WantSaveIniSettings)
 		{
 			ImGui::SaveIniSettingsToDisk(m_EditorLayoutConfigPath.string().c_str());
+			io.WantSaveIniSettings = false;
 		}
 
 		g_Instance = nullptr;
@@ -174,6 +175,7 @@ namespace vkr::Editor
 		if (io.WantSaveIniSettings)
 		{
 			ImGui::SaveIniSettingsToDisk(m_EditorLayoutConfigPath.string().c_str());
+			io.WantSaveIniSettings = false;
 		}
 
 		const Vector2u& windowSize = m_Window->GetSize();
