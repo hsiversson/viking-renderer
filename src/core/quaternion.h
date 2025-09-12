@@ -18,7 +18,12 @@ namespace vkr
 
 		Quaternion operator*(const Quaternion& rhs) const;
 
+		bool operator==(const Quaternion& rhs) const;
+		bool operator!=(const Quaternion& rhs) const;
+
 		static Quaternion FromAxisAngle(const Vector3f& axis, float angleRad);
 		static Quaternion FromEuler(float pitchDeg, float yawDeg, float rollDeg);
+		static Quaternion FromEuler(const Vector3f& euler);
+		static Quaternion Identity();
 	};
 }

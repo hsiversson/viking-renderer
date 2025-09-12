@@ -108,6 +108,16 @@ namespace vkr
 
 		constexpr bool operator==(const Vector3& other) const { return x == other.x && y == other.y && z == other.z; }
 		constexpr bool operator!=(const Vector3& other) const { return !(*this == other); }
+		constexpr T& operator[](uint32_t index) 
+		{ 
+			VKR_ASSERT(index >= 0 && index < 3);
+			return index == 0 ? x : index == 1 ? y : z; 
+		}
+		constexpr const T& operator[](uint32_t index) const
+		{
+			VKR_ASSERT(index >= 0 && index < 3);
+			return index == 0 ? x : index == 1 ? y : z;
+		}
 	};
 
 	template<typename T>

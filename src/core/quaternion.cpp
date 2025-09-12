@@ -71,36 +71,24 @@ namespace vkr
 	{
 		Vector3f euler;
 
-		// Row-major rotation matrix elements
-		float r00 = 1 - 2 * (y * y + z * z);
-		float r01 = 2 * (x * y - z * w);
-		float r02 = 2 * (x * z + y * w);
-
-		float r10 = 2 * (x * y + z * w);
-		float r11 = 1 - 2 * (x * x + z * z);
-		float r12 = 2 * (y * z - x * w);
-
-		float r20 = 2 * (x * z - y * w);
-		float r21 = 2 * (y * z + x * w);
-		float r22 = 1 - 2 * (x * x + y * y);
-
 		// Pitch (X)
-		euler.x = RadToDeg(asinf(-r21));
+		float sinr_cosp = 2.0f * (w * x + y * z);
+		float cosr_cosp = 1.0f - 2.0f * (x * x + y * y);
+		euler.x = atan2f(sinr_cosp, cosr_cosp);
 
-		// Handle gimbal lock
-		if (fabsf(r21) < 0.999999f)
-		{
-			// Yaw (Y) and Roll (Z)
-			euler.y = RadToDeg(atan2f(r20, r22));
-			euler.z = RadToDeg(atan2f(r01, r11));
-		}
+		// Yaw (Y)
+		float sinp = 2.0f * (w * y - z * x);
+		if (fabsf(sinp) >= 1.0f)
+			euler.y = copysignf(PI / 2.0f, sinp); // gimbal lock
 		else
-		{
-			euler.y = RadToDeg(atan2f(-r02, r00));
-			euler.z = 0.0f;
-		}
+			euler.y = asinf(sinp);
 
-		return euler;
+		// Roll (Z)
+		float siny_cosp = 2.0f * (w * z + x * y);
+		float cosy_cosp = 1.0f - 2.0f * (y * y + z * z);
+		euler.z = atan2f(siny_cosp, cosy_cosp);
+
+		return Vector3f(RadToDeg(euler.x), RadToDeg(euler.y), RadToDeg(euler.z));
 	}
 
 	Quaternion Quaternion::operator*(const Quaternion& rhs) const
@@ -111,6 +99,16 @@ namespace vkr
 			w * rhs.y - x * rhs.z + y * rhs.w + z * rhs.x,
 			w * rhs.z + x * rhs.y - y * rhs.x + z * rhs.w
 		);
+	}
+
+	bool Quaternion::operator==(const Quaternion& rhs) const
+	{
+		return (w == rhs.w) && (x == rhs.x) && (y == rhs.y) && (z == rhs.z);
+	}
+
+	bool Quaternion::operator!=(const Quaternion& rhs) const
+	{
+		return !(*this == rhs);
 	}
 
 	// Create from axis-angle (angle in radians)
@@ -129,22 +127,32 @@ namespace vkr
 	// Create from Euler angles (degrees)
 	Quaternion Quaternion::FromEuler(float pitchDeg, float yawDeg, float rollDeg)
 	{
-		float pitch = DegToRad(pitchDeg);
-		float yaw = DegToRad(yawDeg);
-		float roll = DegToRad(rollDeg);
+		float pRad = DegToRad(pitchDeg);
+		float yRad = DegToRad(yawDeg);
+		float rRad = DegToRad(rollDeg);
 
-		float cy = std::cos(yaw * 0.5f);
-		float sy = std::sin(yaw * 0.5f);
-		float cp = std::cos(pitch * 0.5f);
-		float sp = std::sin(pitch * 0.5f);
-		float cr = std::cos(roll * 0.5f);
-		float sr = std::sin(roll * 0.5f);
+		float cx = cosf(pRad * 0.5f);
+		float sx = sinf(pRad * 0.5f);
+		float cy = cosf(yRad * 0.5f);
+		float sy = sinf(yRad * 0.5f);
+		float cz = cosf(rRad * 0.5f);
+		float sz = sinf(rRad * 0.5f);
 
 		Quaternion q;
-		q.w = cr * cp * cy + sr * sp * sy;
-		q.x = sr * cp * cy - cr * sp * sy;
-		q.y = cr * sp * cy + sr * cp * sy;
-		q.z = cr * cp * sy - sr * sp * cy;
+		q.w = cx * cy * cz + sx * sy * sz;
+		q.x = sx * cy * cz - cx * sy * sz;
+		q.y = cx * sy * cz + sx * cy * sz;
+		q.z = cx * cy * sz - sx * sy * cz;
 		return q;
+	}
+
+	Quaternion Quaternion::FromEuler(const Vector3f& euler)
+	{
+		return Quaternion::FromEuler(euler.x, euler.y, euler.z);
+	}
+
+	Quaternion Quaternion::Identity()
+	{
+		return Quaternion(1.0f, 0.0f, 0.0f, 0.0f);
 	}
 }

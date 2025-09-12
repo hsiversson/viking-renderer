@@ -63,7 +63,7 @@ namespace vkr::Editor
 			Local
 		};
 		Game::Entity m_SelectedEntity;
-		GizmoOperation m_SelectedGizmoOp = GizmoOperation::Translate;
+		GizmoOperation m_SelectedGizmoOp = GizmoOperation::Rotate;
 		GizmoSpace m_SelectedGizmoSpace = GizmoSpace::World;
 
 		bool m_IsHovered;

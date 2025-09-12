@@ -7,8 +7,8 @@ namespace vkr::Game
 {
 	struct TransformComponent : public IComponent
 	{
-		PROPERTY(Vector3f, Position);
-		PROPERTY(Quaternion, Rotation);
-		PROPERTY(Vector3f, Scale, Vector3f(1.0f, 1.0f, 1.0f));
+		Vector3f m_Position = Vector3f(0.0f, 0.0f, 0.0f);
+		Quaternion m_Rotation = Quaternion::Identity();
+		Vector3f m_Scale = Vector3f(1.0f, 1.0f, 1.0f);
 	};
 }
