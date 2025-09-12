@@ -33,3 +33,4 @@
 #include "core/timer.h"
 #include "core/types.h"
 #include "core/systempaths.h"
+#include "core/threadpool.h"

@@ -14,6 +14,12 @@ namespace vkr
 		Thread();
 		~Thread();
 
+		Thread(Thread&&) noexcept = default;
+		Thread& operator=(Thread&&) noexcept = default;
+
+		Thread(const Thread&) = delete;
+		Thread& operator=(const Thread&) = delete;
+
 		template<typename Fn, typename ...Args>
 		void Start(Fn&& func, Args&&... args)
 		{

@@ -37,6 +37,7 @@ namespace vkr
 		m_Window.reset();
 
 		Logger::Destroy();
+		ThreadPool::Destroy();
 		Window::UnregisterWindowClass();
 
 		g_Instance = nullptr;
@@ -46,6 +47,7 @@ namespace vkr
 	{
 		Thread::RegisterMainThread();
 		SystemPaths::Init(desc.m_ExePath, desc.m_ContentDirectory);
+		ThreadPool::Create();
 		Logger::Create();
 
 		ReturnCode result = Init(desc);
@@ -177,6 +179,8 @@ namespace vkr
 			Render::QueueGraphicsTask(std::bind(&Render::SwapChain::Present, m_SwapChain.get()));
 			Render::GetDevice()->EndFrame();
 			m_InputManager->EndFrame();
+
+			ThreadPool::Get().WaitForShortTasks();
 
 			// TODO: we shouldn't need this, but is done because we don't want to show an empty window for one or two frames.
 			if (isFirstIteration)
