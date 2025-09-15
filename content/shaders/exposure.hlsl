@@ -97,10 +97,27 @@ void ComputeExposure(uint groupIndex : SV_GroupIndex)
         static const float middleGray = 0.18f;
         float targetExposure = middleGray / exp2(logLuminance);
 
-        // temporal smoothing
         RWTexture2D<float> exposureTarget = ResourceDescriptorHeap[Constants.ExposureTargetDescriptorIndex];
         float prevExposure = exposureTarget[int2(0, 0)];
-        float adaptedExposure = prevExposure + (targetExposure - prevExposure) * (1.0f - exp(-Constants.DeltaTime * 1.5));
+        
+        float logPrev = log2(prevExposure);
+        float logTarget = log2(targetExposure);
+        
+        float diff = logTarget - logPrev;
+        
+        static const float BrightenSpeed = 1.0f;
+        static const float DarkenSpeed = 0.5f;
+        float baseRate = (diff > 0.0f) ? DarkenSpeed : BrightenSpeed;
+        
+        float absDiff = abs(diff);
+        float dynamicScale = saturate(absDiff * 2.0f);
+
+        float changeRate = baseRate * (1.0f + dynamicScale);
+        
+        float logAdapted = logPrev + diff * (1.0f - exp(-Constants.DeltaTime * changeRate));
+        
+        float adaptedExposure = exp2(logAdapted);
+
         adaptedExposure = Constants.Reset ? targetExposure : adaptedExposure;
         exposureTarget[int2(0, 0)] = adaptedExposure;
     }
