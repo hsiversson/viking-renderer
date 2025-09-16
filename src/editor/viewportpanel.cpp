@@ -154,6 +154,7 @@ namespace vkr::Editor
 		m_RenderTargetMS.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
 		m_RenderTargetMS.m_NumSamples = 8;
 
+		m_ResolvedTarget.m_IsRenderTarget = true;
 		m_ResolvedTarget.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
 
 		m_DepthStencilMS.m_IsDepthStencil = true;
@@ -170,103 +171,121 @@ namespace vkr::Editor
 		std::vector<OutlinerObject> outlineObjects;
 		for (const Game::Entity& entity : selectedEntities)
 		{
-			const Game::TransformComponent* transformComponent = entity.GetComponent<Game::TransformComponent>();
-			const Game::ModelComponent* modelComponent = entity.GetComponent<Game::ModelComponent>();
-			const std::vector<Graphics::Model::Part>& parts = modelComponent->m_Model->GetParts();
-			for (const Graphics::Model::Part& part : parts)
+			if (entity.HasComponent<Game::ModelComponent>())
 			{
-				FetchPartData(part, Compose(transformComponent->m_Position, transformComponent->m_Rotation, transformComponent->m_Scale), outlineObjects);
+				const Game::TransformComponent* transformComponent = entity.GetComponent<Game::TransformComponent>();
+				const Game::ModelComponent* modelComponent = entity.GetComponent<Game::ModelComponent>();
+				const std::vector<Graphics::Model::Part>& parts = modelComponent->m_Model->GetParts();
+				for (const Graphics::Model::Part& part : parts)
+				{
+					FetchPartData(part, Compose(transformComponent->m_Position, transformComponent->m_Rotation, transformComponent->m_Scale), outlineObjects);
+				}
 			}
 		}
 
-		const Mat44 cameraViewProjection = camera.GetViewProjection();
-		const Mat44 cameraView = camera.GetView();
+		if (!outlineObjects.empty())
+		{
+			const Mat44 cameraViewProjection = camera.GetViewProjection();
+			const Mat44 cameraView = camera.GetView();
 
-		Render::QueueGraphicsTask([this, outlineObjects, viewportSize, cameraViewProjection, cameraView]()
+			Render::QueueGraphicsTask([this, outlineObjects, viewportSize, cameraViewProjection, cameraView]()
+				{
+					Render::Context* ctx = Render::Context::GetCurrentContext();
+
+					m_RenderTargetMS.Update(viewportSize, "Outliner Target");
+					m_DepthStencilMS.Update(viewportSize, "Outliner Depth");
+					m_ResolvedTarget.Update(viewportSize, "Outliner Resolved Target");
+
+					ctx->ClearRenderTarget(m_RenderTargetMS.m_RenderTarget.get(), Vector4f(0.0f));
+					ctx->ClearDepthStencil(m_DepthStencilMS.m_DepthStencil.get(), 0.0f);
+
+					ctx->BindRenderTarget(m_RenderTargetMS.m_RenderTarget.get());
+					ctx->BindDepthStencil(m_DepthStencilMS.m_DepthStencil.get());
+
+					ctx->SetViewport(0, 0, viewportSize.x, viewportSize.y);
+					ctx->SetScissorRect(0, 0, viewportSize.x, viewportSize.y);
+
+					for (const OutlinerObject& obj : outlineObjects)
+					{
+						ctx->BindIndexBuffer(obj.m_IndexBuffer);
+
+						struct Constants
+						{
+							Mat44 ViewProjection;
+							Mat44 View;
+							Mat44 ObjectTransform;
+							uint32_t VertexBufferDescriptorIndex;
+							uint32_t VertexPositionByteOffset;
+							uint32_t VertexNormalByteOffset;
+							uint32_t VertexStride;
+							Vector2f OutlineSizeNdc;
+							float ColorIntensity;
+							float _pad;
+						};
+						Constants constants = {};
+						constants.ViewProjection = cameraViewProjection;
+						constants.View = cameraView;
+						constants.ObjectTransform = obj.m_Transform;
+						constants.VertexBufferDescriptorIndex = obj.m_VertexBuffer->GetIndex();
+						constants.VertexPositionByteOffset = obj.m_PositionByteOffset;
+						constants.VertexNormalByteOffset = obj.m_NormalByteOffset;
+						constants.VertexStride = obj.m_VertexStride;
+						constants.ColorIntensity = 1.0f;
+
+						constants.OutlineSizeNdc = Vector2f(1.0f / viewportSize.x, 1.0f / viewportSize.y) * 2.0f * 3.0f;
+
+						ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
+						ctx->BindPipelineState(m_WriteObjectOutlinePSO.get());
+						ctx->DrawIndexed(obj.m_IndexBuffer->GetDesc().m_ElementCount);
+					}
+
+					for (const OutlinerObject& obj : outlineObjects)
+					{
+						ctx->BindIndexBuffer(obj.m_IndexBuffer);
+
+						struct Constants
+						{
+							Mat44 ViewProjection;
+							Mat44 View;
+							Mat44 ObjectTransform;
+							uint32_t VertexBufferDescriptorIndex;
+							uint32_t VertexPositionByteOffset;
+							uint32_t VertexNormalByteOffset;
+							uint32_t VertexStride;
+							Vector2f OutlineSizeNdc;
+							float ColorIntensity;
+							float _pad;
+						};
+						Constants constants = {};
+						constants.ViewProjection = cameraViewProjection;
+						constants.View = cameraView;
+						constants.ObjectTransform = obj.m_Transform;
+						constants.VertexBufferDescriptorIndex = obj.m_VertexBuffer->GetIndex();
+						constants.VertexPositionByteOffset = obj.m_PositionByteOffset;
+						constants.VertexNormalByteOffset = obj.m_NormalByteOffset;
+						constants.VertexStride = obj.m_VertexStride;
+						constants.OutlineSizeNdc = Vector2f(0.0f);
+						constants.ColorIntensity = 0.0f;
+						ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
+						ctx->BindPipelineState(m_DiscardObjectPixelsPSO.get());
+						ctx->DrawIndexed(obj.m_IndexBuffer->GetDesc().m_ElementCount);
+					}
+
+					ctx->ResolveMultiSampleTarget(m_ResolvedTarget.m_Texture.get(), m_RenderTargetMS.m_Texture.get());
+				});
+		}
+		else
+		{
+			if (m_ResolvedTarget.m_TextureView)
 			{
-				Render::Context* ctx = Render::Context::GetCurrentContext();
-
-				m_RenderTargetMS.Update(viewportSize, "Outliner Target");
-				m_DepthStencilMS.Update(viewportSize, "Outliner Depth");
-				m_ResolvedTarget.Update(viewportSize, "Outliner Resolved Target");
-
-				ctx->ClearRenderTarget(m_RenderTargetMS.m_RenderTarget.get(), Vector4f(0.0f));
-				ctx->ClearDepthStencil(m_DepthStencilMS.m_DepthStencil.get(), 0.0f);
-
-				ctx->BindRenderTarget(m_RenderTargetMS.m_RenderTarget.get());
-				ctx->BindDepthStencil(m_DepthStencilMS.m_DepthStencil.get());
-
-				ctx->SetViewport(0, 0, viewportSize.x, viewportSize.y);
-				ctx->SetScissorRect(0, 0, viewportSize.x, viewportSize.y);
-
-				for (const OutlinerObject& obj : outlineObjects)
-				{
-					ctx->BindIndexBuffer(obj.m_IndexBuffer);
-
-					struct Constants
+				Render::QueueGraphicsTask([this, viewportSize]()
 					{
-						Mat44 ViewProjection;
-						Mat44 View;
-						Mat44 ObjectTransform;
-						uint32_t VertexBufferDescriptorIndex;
-						uint32_t VertexPositionByteOffset;
-						uint32_t VertexNormalByteOffset;
-						uint32_t VertexStride;
-						Vector2f OutlineSizeNdc;
-						float ColorIntensity;
-						float _pad;
-					};
-					Constants constants = {};
-					constants.ViewProjection = cameraViewProjection;
-					constants.View = cameraView;
-					constants.ObjectTransform = obj.m_Transform;
-					constants.VertexBufferDescriptorIndex = obj.m_VertexBuffer->GetIndex();
-					constants.VertexPositionByteOffset = obj.m_PositionByteOffset;
-					constants.VertexNormalByteOffset = obj.m_NormalByteOffset;
-					constants.VertexStride = obj.m_VertexStride;
-					constants.ColorIntensity = 1.0f;
-
-					constants.OutlineSizeNdc = Vector2f(1.0f / viewportSize.x, 1.0f / viewportSize.y) * 2.0f * 3.0f;
-
-					ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
-					ctx->BindPipelineState(m_WriteObjectOutlinePSO.get());
-					ctx->DrawIndexed(obj.m_IndexBuffer->GetDesc().m_ElementCount);
-				}
-
-				for (const OutlinerObject& obj : outlineObjects)
-				{
-					ctx->BindIndexBuffer(obj.m_IndexBuffer);
-
-					struct Constants
-					{
-						Mat44 ViewProjection;
-						Mat44 View;
-						Mat44 ObjectTransform;
-						uint32_t VertexBufferDescriptorIndex;
-						uint32_t VertexPositionByteOffset;
-						uint32_t VertexNormalByteOffset;
-						uint32_t VertexStride;
-						Vector2f OutlineSizeNdc;
-						float ColorIntensity;
-						float _pad;
-					};
-					Constants constants = {};
-					constants.ViewProjection = cameraViewProjection;
-					constants.View = cameraView;
-					constants.ObjectTransform = obj.m_Transform;
-					constants.VertexBufferDescriptorIndex = obj.m_VertexBuffer->GetIndex();
-					constants.VertexPositionByteOffset = obj.m_PositionByteOffset;
-					constants.VertexNormalByteOffset = obj.m_NormalByteOffset;
-					constants.VertexStride = obj.m_VertexStride;
-					constants.OutlineSizeNdc = Vector2f(0.0f);
-					constants.ColorIntensity = 0.0f;
-					ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
-					ctx->BindPipelineState(m_DiscardObjectPixelsPSO.get());
-					ctx->DrawIndexed(obj.m_IndexBuffer->GetDesc().m_ElementCount);
-				}
-
-				ctx->ResolveMultiSampleTarget(m_ResolvedTarget.m_Texture.get(), m_RenderTargetMS.m_Texture.get());
-			});
+						Render::Context* ctx = Render::Context::GetCurrentContext();
+						m_ResolvedTarget.Update(viewportSize, "Outliner Resolved Target");
+						ctx->ClearRenderTarget(m_ResolvedTarget.m_RenderTarget.get(), Vector4f(0.0f));
+					});
+			}
+		}
 	}
 
 	Render::TextureView* ViewportOutliner::GetTexture() const
