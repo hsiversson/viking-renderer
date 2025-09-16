@@ -135,8 +135,7 @@ namespace vkr
 				return RETURN_ERROR;
 		}
 
-		AppInit();
-		return RETURN_OK;
+		return InitInternal();
 	}
 
 	ReturnCode Application::MainLoop()
@@ -171,7 +170,7 @@ namespace vkr
 				m_EditorManager->Update();
 
 			// App tick
-			Tick(m_ElapsedTimer.DeltaTime());
+			TickInternal(m_ElapsedTimer.DeltaTime());
 
 			if (m_EditorManager)
 				m_EditorManager->Render();

@@ -33,20 +33,22 @@ namespace vkr::Graphics
 		bool Init(const MeshDesc& desc);
 
 		const Ref<Render::Buffer>& GetVertexBuffer() const;
+		const Ref<Render::BufferView>& GetVertexBufferView() const;
+
 		const Ref<Render::Buffer>& GetIndexBuffer() const;
+		const Ref<Render::BufferView>& GetIndexBufferView() const;
+
 		const Ref<Render::Buffer>& GetBLAS() const;
 
 		const Render::VertexLayout& GetVertexLayout() const;
 		Render::PrimitiveTopology GetTopology() const;
 
-		const Ref<Render::BufferView>& GetRaytraceVBView() const { return m_RaytraceVBView; }
-		const Ref<Render::BufferView>& GetRaytraceIBView() const { return m_RaytraceIBView; }
 
 	private:
 		Ref<Render::Buffer> m_VertexBuffer;
 		Ref<Render::Buffer> m_IndexBuffer;
-		Ref<Render::BufferView> m_RaytraceVBView;
-		Ref<Render::BufferView> m_RaytraceIBView;
+		Ref<Render::BufferView> m_VertexBufferView;
+		Ref<Render::BufferView> m_IndexBufferView;
 		Render::VertexLayout m_VertexLayout;
 		Render::PrimitiveTopology m_Topology;
 

@@ -54,10 +54,16 @@ namespace vkr::Editor
 
 		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
 		{
-			m_SelectedEntity = Game::Entity();
+			m_SelectedEntities.clear();
 
-			BroadcastMessage msg(BROADCAST_MSG_ID_SELECTED_ENTITY);
-			msg.SetData(m_SelectedEntity);
+			BroadcastMessage msg(BROADCAST_MSG_ID_SELECTED_ENTITIES);
+			struct Selection
+			{
+				uint32_t m_NumEntities;
+				Game::Entity* m_Entities;
+			};
+			Selection selection = {};
+			msg.SetData(selection);
 			Manager::Get()->Broadcast(msg);
 		}
 	}
@@ -87,7 +93,7 @@ namespace vkr::Editor
 
 		ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_OpenOnArrow;
 
-		bool isSelected = entity == m_SelectedEntity;
+		bool isSelected = std::find(m_SelectedEntities.begin(), m_SelectedEntities.end(), entity) != m_SelectedEntities.end();
 		if (isSelected)
 			treeNodeFlags |= ImGuiTreeNodeFlags_Selected;
 
@@ -109,12 +115,26 @@ namespace vkr::Editor
 
 		if (ImGui::IsItemClicked())
 		{
-			m_SelectedEntity = entity;
-			
-			BroadcastMessage msg(BROADCAST_MSG_ID_SELECTED_ENTITY);
-			msg.SetData(m_SelectedEntity);
+			// single selection
+			m_SelectedEntities.clear();
+			m_SelectedEntities.push_back(entity);
+
+			BroadcastMessage msg(BROADCAST_MSG_ID_SELECTED_ENTITIES);
+			struct Selection
+			{
+				uint32_t m_NumEntities;
+				Game::Entity* m_Entities;
+			};
+			Selection selection = {};
+			selection.m_NumEntities = m_SelectedEntities.size();
+			selection.m_Entities = m_SelectedEntities.data();
+			msg.SetData(selection);
 			Manager::Get()->Broadcast(msg);
 		}
+		//else if (multiSelect)
+		//{
+		//	// TODO: Handle multi selection
+		//}
 
 		// Right click menu
 		//bool entityDeleted = false;

@@ -45,18 +45,20 @@ namespace vkr
 
 		void SetCurrentSwapChain(const Ref<Render::SwapChain>& swapChain);
 
-		virtual void AppInit() {}
-		virtual void Tick(float deltaTime) {}
-		virtual void AppShutdown() {}
-
 		Window* GetMainWindow() const;
 
 		static Application* Get();
 		static void RequestQuit(ReturnCode returnCode = RETURN_OK);
+
 	private:
 		ReturnCode Init(const ApplicationInitDesc& desc);
 		ReturnCode MainLoop();
 		ReturnCode Exit();
+
+	protected:
+		virtual ReturnCode InitInternal() { return RETURN_OK; }
+		virtual ReturnCode TickInternal(float deltaTime) { return RETURN_OK; }
+		virtual ReturnCode ShutdownInternal() { return RETURN_OK; }
 
 	protected:
 		ElapsedTimer m_ElapsedTimer;

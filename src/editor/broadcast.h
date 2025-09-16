@@ -42,5 +42,5 @@ namespace vkr::Editor
 		virtual void ReceiveMessage(const BroadcastMessage& aMessage) = 0;
 	};
 
-	static constexpr BroadcastMessageId BROADCAST_MSG_ID_SELECTED_ENTITY = 100;
+	static constexpr BroadcastMessageId BROADCAST_MSG_ID_SELECTED_ENTITIES = 100;
 }

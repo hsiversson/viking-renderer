@@ -99,6 +99,9 @@ namespace vkr::Render
 		void TimestampQuery(QueryHeap* queryHeap, uint32_t index);
 		void ResolveQueries(QueryHeap* queryHeap);
 
+		// Multi-sampling
+		void ResolveMultiSampleTarget(Texture* dst, Texture* src);
+
 		// Compute
 		void Dispatch(uint32_t numGroupsX, uint32_t numGroupsY = 1, uint32_t numGroupsZ = 1);
 		void Dispatch(const Vector3u& Groups);

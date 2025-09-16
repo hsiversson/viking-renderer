@@ -75,6 +75,7 @@ namespace vkr
 		const Vector2f GetDpiScale() const;
 		void* GetNativeHandle() const;
 
+		const std::string& GetName() const;
 
 		static bool RegisterWindowClass(void* appIcon);
 		static void UnregisterWindowClass();
@@ -93,5 +94,6 @@ namespace vkr
 		Vector2u m_Size;
 		uint32_t m_ChangeFlags;
 		bool m_IsMaximized;
+		std::string m_Name;
 	};
 }

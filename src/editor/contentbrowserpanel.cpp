@@ -71,7 +71,7 @@ namespace vkr::Editor
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.243f, 0.62f, 0.047f, 1));
 		if (ImGui::Button("Import", ImVec2(256 + ImGui::GetStyle().ItemSpacing.x, 38)))
 		{
-
+			// TODO: Handle import dialog
 		}
 		ImGui::PopStyleColor();
 		ImGui::SameLine();
@@ -212,8 +212,24 @@ namespace vkr::Editor
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
 		ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
 		ImGui::ImageButton("##assetButton", thumbnail, ImVec2(aSize.x, aSize.y));
-		bool wasDoubleClicked = ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
 		ImGui::PopStyleColor(2);
+
+		bool wasDoubleClicked = ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+
+		if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+		{
+			ImGui::OpenPopup("##ItemContextMenu");
+		}
+
+		if (ImGui::BeginPopup("##ItemContextMenu"))
+		{
+			if (ImGui::MenuItem("Test Button"))
+			{
+
+			}
+			ImGui::EndPopup();
+		}
+
 		ImGui::TextWrapped("%s", aName);
 		ImGui::PopID();
 		return wasDoubleClicked;
@@ -241,21 +257,28 @@ namespace vkr::Editor
 			{
 				ImGui::TableNextColumn();
 				if (AssetButton((ImTextureID)icons->GetIcon(EDITOR_ICON_FOLDER).m_Texture.get(), Vector2u(thumbnailSize), "..."))
+				{
 					m_CurrentEntry = m_CurrentEntry->m_Parent;
+				}
 			}
 
 			for (uint32_t i = 0; i < m_CurrentEntry->m_ChildDirectories.size(); ++i)
 			{
 				ImGui::TableNextColumn();
 				if (AssetButton((ImTextureID)icons->GetIcon(EDITOR_ICON_FOLDER).m_Texture.get(), Vector2u(thumbnailSize), m_CurrentEntry->m_ChildDirectories[i].m_Path.filename().string().c_str()))
+				{
 					m_CurrentEntry = &m_CurrentEntry->m_ChildDirectories[i];
+				}
 			}
 
 			for (uint32_t i = 0; i < m_CurrentEntry->m_Files.size(); ++i)
 			{
 				ImGui::TableNextColumn();
 				// TODO: use thumbnail
-				AssetButton((ImTextureID)icons->GetIcon(EDITOR_ICON_FILE).m_Texture.get(), Vector2u(thumbnailSize), m_CurrentEntry->m_Files[i].filename().string().c_str());
+				if (AssetButton((ImTextureID)icons->GetIcon(EDITOR_ICON_FILE).m_Texture.get(), Vector2u(thumbnailSize), m_CurrentEntry->m_Files[i].filename().string().c_str()))
+				{
+					// TODO: Open asset
+				}
 			}
 
 			ImGui::EndTable();

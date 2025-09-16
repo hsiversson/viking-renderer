@@ -50,7 +50,9 @@ namespace vkr::Render
 	// TEXTURE VIEW
 	struct TextureViewDesc
 	{
+		Format m_Format = FORMAT_UNKNOWN;
 		uint32_t m_Mip = 0; //Use -1 to reference all mips when applicable
+		uint32_t m_NumSamples = 1;
 		bool m_Writable = false;
 	};
 
@@ -71,7 +73,9 @@ namespace vkr::Render
 	// RENDER TARGET VIEW
 	struct RenderTargetViewDesc
 	{
+		Format m_Format = FORMAT_UNKNOWN;
 		uint32_t m_Mip = 0; //Use -1 to reference all mips when applicable
+		uint32_t m_NumSamples = 1;
 	};
 
 	class RenderTargetView : public ResourceDescriptor
@@ -92,7 +96,9 @@ namespace vkr::Render
 
 	struct DepthStencilViewDesc
 	{
+		Format m_Format = FORMAT_UNKNOWN;
 		uint32_t m_Mip = 0; //Use -1 to reference all mips when applicable
+		uint32_t m_NumSamples = 1;
 	};
 
 	class DepthStencilView : public ResourceDescriptor

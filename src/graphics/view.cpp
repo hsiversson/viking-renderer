@@ -63,23 +63,40 @@ namespace vkr::Graphics
 		textureDesc.m_AllowDepthStencil = m_IsDepthStencil;
 		textureDesc.m_Format = m_Format;
 		textureDesc.m_ClearValue = m_ClearValue;
+		textureDesc.m_NumSamples = m_NumSamples;
 		m_Texture = Render::GetDevice()->CreateTexture(textureDesc);
 		VKR_ASSERT(m_Texture);
 
-		m_TextureView = Render::GetDevice()->CreateTextureView({}, m_Texture);
+		Render::TextureViewDesc textureViewDesc = {};
+		textureViewDesc.m_Format = m_Format;
+		textureViewDesc.m_Mip = 0;
+		textureViewDesc.m_NumSamples = m_NumSamples;
+		textureViewDesc.m_Writable = false;
+		m_TextureView = Render::GetDevice()->CreateTextureView(textureViewDesc, m_Texture);
 
 		if (m_IsWritable)
 		{
-			m_TextureViewRW = Render::GetDevice()->CreateTextureView({0, true}, m_Texture);
+			Render::TextureViewDesc rwTextureViewDesc = {};
+			rwTextureViewDesc.m_Format = m_Format;
+			rwTextureViewDesc.m_Mip = 0;
+			rwTextureViewDesc.m_NumSamples = m_NumSamples;
+			rwTextureViewDesc.m_Writable = true;
+			m_TextureViewRW = Render::GetDevice()->CreateTextureView(rwTextureViewDesc, m_Texture);
 		}
 
 		if (m_IsRenderTarget)
 		{
-			m_RenderTarget = Render::GetDevice()->CreateRenderTargetView({}, m_Texture);
+			Render::RenderTargetViewDesc rtvDesc = {};
+			rtvDesc.m_Format = m_Format;
+			rtvDesc.m_NumSamples = m_NumSamples;
+			m_RenderTarget = Render::GetDevice()->CreateRenderTargetView(rtvDesc, m_Texture);
 		}
 		else if (m_IsDepthStencil)
 		{
-			m_DepthStencil = Render::GetDevice()->CreateDepthStencilView({}, m_Texture);
+			Render::DepthStencilViewDesc dsvDesc = {};
+			dsvDesc.m_Format = m_Format;
+			dsvDesc.m_NumSamples = m_NumSamples;
+			m_DepthStencil = Render::GetDevice()->CreateDepthStencilView(dsvDesc, m_Texture);
 		}
 		return true;
 	}

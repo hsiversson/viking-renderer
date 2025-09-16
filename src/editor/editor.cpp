@@ -142,7 +142,7 @@ namespace vkr::Editor
 		io.BackendFlags |= ImGuiBackendFlags_RendererHasViewports;
 
 		const Vector2f& windowDpi = window->GetDpiScale();
-		io.Fonts->AddFontFromFileTTF(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "fonts/cascadia-code/CascadiaCode.ttf").string().c_str(), 14.0f * windowDpi.x);
+		io.Fonts->AddFontFromFileTTF(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "fonts/cascadia-code/CascadiaMono.ttf").string().c_str(), 14.0f * windowDpi.x);
 		io.FontDefault = io.Fonts->Fonts[0];
 
 		SetStyle();
@@ -361,11 +361,14 @@ namespace vkr::Editor
 
 		{
 			// Centered Window title
-			ImVec2 textSize = ImGui::CalcTextSize("Viking Renderer");
+			const char* windowName = m_Window->GetName().c_str();
+			ImVec2 textSize = ImGui::CalcTextSize(windowName);
 			float centeredX = (fullWidth - textSize.x) * 0.5f;
 			float centeredY = 2.0f + windowPadding.y + 6.0f;
-			ImGui::SetCursorPos(ImVec2(centeredX, centeredY));
-			ImGui::TextUnformatted("Viking Renderer");
+			ImGui::SetCursorPos(ImVec2(centeredX, centeredY)); 
+			ImGui::SetWindowFontScale(1.25f);
+			ImGui::TextUnformatted(windowName);
+			ImGui::SetWindowFontScale(1.0f);
 		}
 
 		// Window buttons

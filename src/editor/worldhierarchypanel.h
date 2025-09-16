@@ -23,7 +23,7 @@ namespace vkr::Editor
 
 		void DrawEntityNode(const Game::Entity& entity);
 
-		Game::Entity m_SelectedEntity;
+		std::vector<Game::Entity> m_SelectedEntities;
 		Game::World& m_World;
 	};
 }

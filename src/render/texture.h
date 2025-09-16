@@ -15,6 +15,7 @@ namespace vkr::Render
 		bool m_AllowRenderTarget = false;
 		bool m_AllowDepthStencil = false;
 		Vector4f m_ClearValue = { 0,0,0,0 };
+		uint32_t m_NumSamples = 1;
 
 		const char* m_Name = nullptr;
 	};

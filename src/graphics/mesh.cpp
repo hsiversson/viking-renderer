@@ -50,21 +50,20 @@ namespace vkr::Graphics
 		if (!m_IndexBuffer)
 			return false;
 
-		//These views will be used for raytracing
-		Render::BufferViewDesc srvVBDesc;
-		srvVBDesc.m_Usage = Render::BUFFER_VIEW_USAGE_RAW;
-		srvVBDesc.m_ElementCount = desc.m_NumVertices * desc.m_VertexLayout.GetStride();
-		srvVBDesc.m_ElementSize = 1;
-		srvVBDesc.m_ElementStart = 0;
-		srvVBDesc.m_Format = Render::FORMAT_UNKNOWN;
-		m_RaytraceVBView = device->CreateBufferView(srvVBDesc, m_VertexBuffer);
+		Render::BufferViewDesc vertexBufferViewDesc;
+		vertexBufferViewDesc.m_Usage = Render::BUFFER_VIEW_USAGE_RAW;
+		vertexBufferViewDesc.m_ElementCount = desc.m_NumVertices * desc.m_VertexLayout.GetStride();
+		vertexBufferViewDesc.m_ElementSize = 1;
+		vertexBufferViewDesc.m_ElementStart = 0;
+		vertexBufferViewDesc.m_Format = Render::FORMAT_UNKNOWN;
+		m_VertexBufferView = device->CreateBufferView(vertexBufferViewDesc, m_VertexBuffer);
 
-		Render::BufferViewDesc srvIBDesc;
-		srvIBDesc.m_Usage = Render::BUFFER_VIEW_USAGE_RAW;
-		srvIBDesc.m_ElementCount = desc.m_NumIndices * GetFormatBytesPerPixel(desc.m_IndexFormat);
-		srvIBDesc.m_ElementSize = 1;
-		srvIBDesc.m_ElementStart = 0;
-		m_RaytraceIBView = device->CreateBufferView(srvIBDesc, m_IndexBuffer);
+		Render::BufferViewDesc indexBufferViewDesc;
+		indexBufferViewDesc.m_Usage = Render::BUFFER_VIEW_USAGE_RAW;
+		indexBufferViewDesc.m_ElementCount = desc.m_NumIndices * GetFormatBytesPerPixel(desc.m_IndexFormat);
+		indexBufferViewDesc.m_ElementSize = 1;
+		indexBufferViewDesc.m_ElementStart = 0;
+		m_IndexBufferView = device->CreateBufferView(indexBufferViewDesc, m_IndexBuffer);
 
 		m_Topology = desc.m_Topology;
 		m_VertexLayout = desc.m_VertexLayout;
@@ -85,9 +84,19 @@ namespace vkr::Graphics
 		return m_VertexBuffer;
 	}
 
+	const Ref<Render::BufferView>& Mesh::GetVertexBufferView() const
+	{
+		return m_VertexBufferView;
+	}
+
 	const Ref<Render::Buffer>& Mesh::GetIndexBuffer() const
 	{
 		return m_IndexBuffer;
+	}
+
+	const Ref<Render::BufferView>& Mesh::GetIndexBufferView() const
+	{
+		return m_IndexBufferView;
 	}
 
 	const Ref<Render::Buffer>& Mesh::GetBLAS() const

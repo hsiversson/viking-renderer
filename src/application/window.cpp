@@ -44,6 +44,7 @@ namespace vkr
 	{
 		m_BorderThickness = createDesc.m_BorderThickness;
 		m_IsMaximized = createDesc.m_IsMaximized;
+		m_Name = createDesc.m_WindowName;
 
 		const uint32_t windowStyle = ConvertToWindowStyle(createDesc, createDesc.m_IsMaximized);
 
@@ -285,6 +286,11 @@ namespace vkr
 	void* Window::GetNativeHandle() const
 	{
 		return m_NativeHandle;
+	}
+
+	const std::string& Window::GetName() const
+	{
+		return m_Name;
 	}
 
 	bool Window::RegisterWindowClass(void* appIcon)

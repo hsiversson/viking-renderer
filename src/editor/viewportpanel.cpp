@@ -3,6 +3,7 @@
 #if ENABLE_EDITOR
 #include "editor.h"
 #include "game/transformcomponent.h"
+#include "game/modelcomponent.h"
 #include "game/world.h"
 #include "graphics/view.h"
 #include "graphics/scene.h"
@@ -18,12 +19,12 @@ namespace vkr::Editor
 	{
 	}
 
-	void EditorCameraController::Update(bool /*isHovered*/)
+	void EditorCameraController::Update(bool isHovered)
 	{
 		InputManager* inputManager = Manager::Get()->GetInputManager();
 
 		Vector3f newVelocity = { 0,0,0 };
-		if (inputManager->IsMouseKeyPressed(INPUT_MOUSE_KEY_RIGHT))
+		if (isHovered && inputManager->IsMouseKeyPressed(INPUT_MOUSE_KEY_RIGHT))
 		{
 			Vector2f mouseMoveDelta = Vector2f(inputManager->GetMouseDelta());
 
@@ -107,6 +108,193 @@ namespace vkr::Editor
 		}
 	}
 
+	bool ViewportWorldPicker::Init()
+	{
+		//Render::Device* device = Render::GetDevice();
+		//Ref<Render::Shader> vertexShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/editor_writeobjectoutline.hlsl"), L"MainVS", Render::SHADER_STAGE_VERTEX);
+		//Ref<Render::Shader> pixelShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/editor_writeobjectoutline.hlsl"), L"MainPS", Render::SHADER_STAGE_PIXEL);
+		//
+		//Render::PipelineStateDesc psoDesc(Render::PIPELINE_STATE_TYPE_DEFAULT);
+		//psoDesc.Default.m_PrimitiveType = Render::PRIMITIVE_TYPE_TRIANGLE;
+		//psoDesc.Default.m_DepthStencilState.m_Enabled = false;
+		//psoDesc.Default.m_RasterizerState.m_CullMode = Render::FACE_CULL_MODE_NONE;
+		//psoDesc.Default.m_RenderTargetState.m_Formats[0] = Render::Format::FORMAT_RGBA16_FLOAT;
+		//psoDesc.Default.m_VertexShader = vertexShader.get();
+		//psoDesc.Default.m_PixelShader = pixelShader.get();
+		//m_WriteObjectIdPSO = device->CreatePipelineState(psoDesc);
+
+		return true;
+	}
+
+	bool ViewportWorldPicker::Run(const Vector2u& mousePosition, const Game::World& world, std::vector<Game::Entity>& selectedEntities) const
+	{
+		return false;
+	}
+
+	bool ViewportOutliner::Init()
+	{
+		Render::Device* device = Render::GetDevice();
+		Ref<Render::Shader> vertexShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/editor_writeobjectoutline.hlsl"), L"MainVS", Render::SHADER_STAGE_VERTEX);
+		Ref<Render::Shader> pixelShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/editor_writeobjectoutline.hlsl"), L"MainPS", Render::SHADER_STAGE_PIXEL);
+
+		Render::PipelineStateDesc psoDesc(Render::PIPELINE_STATE_TYPE_DEFAULT);
+		psoDesc.Default.m_PrimitiveType = Render::PRIMITIVE_TYPE_TRIANGLE;
+		psoDesc.Default.m_DepthStencilState.m_Enabled = false;
+		psoDesc.Default.m_RasterizerState.m_CullMode = Render::FACE_CULL_MODE_NONE;
+		psoDesc.Default.m_RenderTargetState.m_Formats[0] = Render::Format::FORMAT_RGBA16_FLOAT;
+		psoDesc.Default.m_NumSamples = 8;
+		psoDesc.Default.m_VertexShader = vertexShader.get();
+		psoDesc.Default.m_PixelShader = pixelShader.get();
+		m_WriteObjectOutlinePSO = device->CreatePipelineState(psoDesc);
+
+		psoDesc.Default.m_RasterizerState.m_CullMode = Render::FACE_CULL_MODE_BACK;
+		m_DiscardObjectPixelsPSO = device->CreatePipelineState(psoDesc);
+
+		m_RenderTargetMS.m_IsRenderTarget = true;
+		m_RenderTargetMS.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
+		m_RenderTargetMS.m_NumSamples = 8;
+
+		m_ResolvedTarget.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
+
+		m_DepthStencilMS.m_IsDepthStencil = true;
+		m_DepthStencilMS.m_Format = Render::FORMAT_D32_FLOAT;
+		m_DepthStencilMS.m_NumSamples = 8;
+
+		return true;
+	}
+
+	void ViewportOutliner::Run(const Vector2u& viewportSize, Graphics::Camera& camera, const std::vector<Game::Entity>& selectedEntities, const Game::World& world)
+	{
+		Graphics::Scene* scene = world.GetGraphicsScene();
+
+		std::vector<OutlinerObject> outlineObjects;
+		for (const Game::Entity& entity : selectedEntities)
+		{
+			const Game::TransformComponent* transformComponent = entity.GetComponent<Game::TransformComponent>();
+			const Game::ModelComponent* modelComponent = entity.GetComponent<Game::ModelComponent>();
+			const std::vector<Graphics::Model::Part>& parts = modelComponent->m_Model->GetParts();
+			for (const Graphics::Model::Part& part : parts)
+			{
+				FetchPartData(part, Compose(transformComponent->m_Position, transformComponent->m_Rotation, transformComponent->m_Scale), outlineObjects);
+			}
+		}
+
+		const Mat44 cameraViewProjection = camera.GetViewProjection();
+		const Mat44 cameraView = camera.GetView();
+
+		Render::QueueGraphicsTask([this, outlineObjects, viewportSize, cameraViewProjection, cameraView]()
+			{
+				Render::Context* ctx = Render::Context::GetCurrentContext();
+
+				m_RenderTargetMS.Update(viewportSize, "Outliner Target");
+				m_DepthStencilMS.Update(viewportSize, "Outliner Depth");
+				m_ResolvedTarget.Update(viewportSize, "Outliner Resolved Target");
+
+				ctx->ClearRenderTarget(m_RenderTargetMS.m_RenderTarget.get(), Vector4f(0.0f));
+				ctx->ClearDepthStencil(m_DepthStencilMS.m_DepthStencil.get(), 0.0f);
+
+				ctx->BindRenderTarget(m_RenderTargetMS.m_RenderTarget.get());
+				ctx->BindDepthStencil(m_DepthStencilMS.m_DepthStencil.get());
+
+				ctx->SetViewport(0, 0, viewportSize.x, viewportSize.y);
+				ctx->SetScissorRect(0, 0, viewportSize.x, viewportSize.y);
+
+				for (const OutlinerObject& obj : outlineObjects)
+				{
+					ctx->BindIndexBuffer(obj.m_IndexBuffer);
+
+					struct Constants
+					{
+						Mat44 ViewProjection;
+						Mat44 View;
+						Mat44 ObjectTransform;
+						uint32_t VertexBufferDescriptorIndex;
+						uint32_t VertexPositionByteOffset;
+						uint32_t VertexNormalByteOffset;
+						uint32_t VertexStride;
+						Vector2f OutlineSizeNdc;
+						float ColorIntensity;
+						float _pad;
+					};
+					Constants constants = {};
+					constants.ViewProjection = cameraViewProjection;
+					constants.View = cameraView;
+					constants.ObjectTransform = obj.m_Transform;
+					constants.VertexBufferDescriptorIndex = obj.m_VertexBuffer->GetIndex();
+					constants.VertexPositionByteOffset = obj.m_PositionByteOffset;
+					constants.VertexNormalByteOffset = obj.m_NormalByteOffset;
+					constants.VertexStride = obj.m_VertexStride;
+					constants.ColorIntensity = 1.0f;
+
+					constants.OutlineSizeNdc = Vector2f(1.0f / viewportSize.x, 1.0f / viewportSize.y) * 2.0f * 3.0f;
+
+					ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
+					ctx->BindPipelineState(m_WriteObjectOutlinePSO.get());
+					ctx->DrawIndexed(obj.m_IndexBuffer->GetDesc().m_ElementCount);
+				}
+
+				for (const OutlinerObject& obj : outlineObjects)
+				{
+					ctx->BindIndexBuffer(obj.m_IndexBuffer);
+
+					struct Constants
+					{
+						Mat44 ViewProjection;
+						Mat44 View;
+						Mat44 ObjectTransform;
+						uint32_t VertexBufferDescriptorIndex;
+						uint32_t VertexPositionByteOffset;
+						uint32_t VertexNormalByteOffset;
+						uint32_t VertexStride;
+						Vector2f OutlineSizeNdc;
+						float ColorIntensity;
+						float _pad;
+					};
+					Constants constants = {};
+					constants.ViewProjection = cameraViewProjection;
+					constants.View = cameraView;
+					constants.ObjectTransform = obj.m_Transform;
+					constants.VertexBufferDescriptorIndex = obj.m_VertexBuffer->GetIndex();
+					constants.VertexPositionByteOffset = obj.m_PositionByteOffset;
+					constants.VertexNormalByteOffset = obj.m_NormalByteOffset;
+					constants.VertexStride = obj.m_VertexStride;
+					constants.OutlineSizeNdc = Vector2f(0.0f);
+					constants.ColorIntensity = 0.0f;
+					ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
+					ctx->BindPipelineState(m_DiscardObjectPixelsPSO.get());
+					ctx->DrawIndexed(obj.m_IndexBuffer->GetDesc().m_ElementCount);
+				}
+
+				ctx->ResolveMultiSampleTarget(m_ResolvedTarget.m_Texture.get(), m_RenderTargetMS.m_Texture.get());
+			});
+	}
+
+	Render::TextureView* ViewportOutliner::GetTexture() const
+	{
+		return m_ResolvedTarget.m_TextureView.get();
+	}
+
+	void ViewportOutliner::FetchPartData(const Graphics::Model::Part& part, const Mat44& parentWorldTransform, std::vector<OutlinerObject>& objects)
+	{
+		OutlinerObject obj = {};
+		obj.m_VertexBuffer = part.m_Mesh->GetVertexBufferView().get();
+		obj.m_IndexBuffer = part.m_Mesh->GetIndexBuffer().get();
+
+		const Render::VertexLayout& vertexLayout = part.m_Mesh->GetVertexLayout();
+		obj.m_PositionByteOffset = vertexLayout.GetByteOffset(Render::VertexAttribute::TYPE_POSITION, 0);
+		obj.m_NormalByteOffset = vertexLayout.GetByteOffset(Render::VertexAttribute::TYPE_NORMAL, 0);
+		obj.m_VertexStride = vertexLayout.GetStride();
+
+		obj.m_Transform = part.m_LocalTransform * parentWorldTransform;
+
+		objects.push_back(obj);
+
+		for (const Graphics::Model::Part& childPart : part.m_ChildParts)
+		{
+			FetchPartData(childPart, obj.m_Transform, objects);
+		}
+	}
+
     ViewportPanel::ViewportPanel(Game::World& world)
         : Panel("Viewport")
         , m_World(world)
@@ -129,6 +317,9 @@ namespace vkr::Editor
 		m_Camera.SetSize(Vector2f(1280, 720));
 		m_Camera.SetInvertedZ(true);
 		m_View->SetCamera(m_Camera);
+
+		m_WorldPicker.Init();
+		m_Outliner.Init();
     }
 
     ViewportPanel::~ViewportPanel()
@@ -150,18 +341,39 @@ namespace vkr::Editor
 		m_CameraController.Update(m_IsHovered);
 
         m_View->SetCamera(m_Camera);
+
+		//if (m_PickRequested)
+		//{
+		//	m_WorldPicker.Run(mousePosition, m_World);
+		//}
+		if (!m_SelectedEntities.empty())
+		{
+			m_Outliner.Run(viewportSize, m_Camera, m_SelectedEntities, m_World);
+		}
     }
 
     void ViewportPanel::OnDraw()
     {
 		auto OutputTexture = m_View->GetRenderTargets().m_SceneBuffer_OutputSize.m_Texture;
         Vector2f uvMax = { m_ContentAreaSize.x / (float)m_ViewOutput.m_Texture->m_TextureDesc.m_Size.x, m_ContentAreaSize.y / (float)m_ViewOutput.m_Texture->m_TextureDesc.m_Size.y };
-        ImGui::Image((ImTextureID)m_ViewOutput.m_TextureView.get(), { m_ContentAreaSize.x, m_ContentAreaSize.y }, { 0,0 }, { uvMax.x, uvMax.y });
-		m_IsHovered = ImGui::IsItemHovered();
 
-		if (m_SelectedEntity)
+		ImVec2 curPos = ImGui::GetCursorScreenPos();
+        ImGui::Image((ImTextureID)m_ViewOutput.m_TextureView.get(), { m_ContentAreaSize.x, m_ContentAreaSize.y }, { 0,0 }, { uvMax.x, uvMax.y });
+
+		Render::TextureView* outlinerTexture = m_Outliner.GetTexture();
+		if (!m_SelectedEntities.empty() && outlinerTexture)
 		{
-			Game::TransformComponent* transformComponent = m_SelectedEntity.GetComponent<Game::TransformComponent>();
+			ImGui::SetCursorScreenPos(curPos);
+			ImGui::Image((ImTextureID)m_Outliner.GetTexture(), { m_ContentAreaSize.x, m_ContentAreaSize.y }, { 0,0 }, { uvMax.x, uvMax.y });
+		}
+		m_IsHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows);
+
+		if (!m_SelectedEntities.empty())
+		{
+			// TODO: handle multiple entities
+			//		 build a transform that positions itself in the middle of all of the entities
+
+			Game::TransformComponent* transformComponent = m_SelectedEntities[0].GetComponent<Game::TransformComponent>();
 
 			Mat44 cameraTransform = m_Camera.GetWorldTransform();
 
@@ -195,9 +407,21 @@ namespace vkr::Editor
 
 	void ViewportPanel::ReceiveMessage(const BroadcastMessage& message)
 	{
-		if (message.GetId() == BROADCAST_MSG_ID_SELECTED_ENTITY)
+		if (message.GetId() == BROADCAST_MSG_ID_SELECTED_ENTITIES)
 		{
-			message.GetData(m_SelectedEntity);
+			struct Selection
+			{
+				uint32_t m_NumEntities;
+				Game::Entity* m_Entities;
+			};
+			Selection selection;
+			message.GetData(selection);
+
+			m_SelectedEntities.clear();
+			if (selection.m_NumEntities > 0)
+			{
+				m_SelectedEntities.insert(m_SelectedEntities.end(), selection.m_Entities, selection.m_Entities + selection.m_NumEntities);
+			}
 		}
 	}
 }

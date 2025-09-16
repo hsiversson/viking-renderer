@@ -759,8 +759,8 @@ namespace vkr::Render
 		textureDesc.DepthOrArraySize = desc.m_Dimension == ResourceDimension::Texture3D ? desc.m_Size.z : desc.m_ArraySize;
 		textureDesc.Alignment = 0;
 		textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-		textureDesc.SampleDesc.Count = 1;
-		textureDesc.SampleDesc.Quality = 0;
+		textureDesc.SampleDesc.Count = desc.m_NumSamples;
+		textureDesc.SampleDesc.Quality = desc.m_NumSamples > 1 ? DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN : 0;
 		textureDesc.MipLevels = desc.m_MipLevels;
 		if (textureDesc.MipLevels == UINT16_MAX)
 		{

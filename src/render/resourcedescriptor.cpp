@@ -75,7 +75,7 @@ namespace vkr::Render
 		if (AllocateDescriptor())
 		{
 			const TextureDesc& textureDesc = resource->m_TextureDesc;
-			Render::Format finalFormat = textureDesc.m_Format;
+			Render::Format finalFormat = desc.m_Format != FORMAT_UNKNOWN ? desc.m_Format : textureDesc.m_Format;
 			if (finalFormat == FORMAT_D32_FLOAT)
 			{
 				finalFormat = FORMAT_R32_FLOAT; // Special path to be able to use depth buffers as SRV/UAV
@@ -111,11 +111,18 @@ namespace vkr::Render
 				}
 				else if (textureDesc.m_Dimension == ResourceDimension::Texture2D)
 				{
-					srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-					srvDesc.Texture2D.PlaneSlice = 0;
-					srvDesc.Texture2D.MipLevels = textureDesc.m_MipLevels;
-					srvDesc.Texture2D.MostDetailedMip = desc.m_Mip;
-					srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+					if (desc.m_NumSamples > 1)
+					{
+						srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+					}
+					else
+					{
+						srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+						srvDesc.Texture2D.PlaneSlice = 0;
+						srvDesc.Texture2D.MipLevels = textureDesc.m_MipLevels;
+						srvDesc.Texture2D.MostDetailedMip = desc.m_Mip;
+						srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+					}
 				}
 				GetDevice()->GetD3DDevice()->CreateShaderResourceView(resource->GetD3DResource(), &srvDesc, m_D3DHandle);
 			}
@@ -136,8 +143,28 @@ namespace vkr::Render
 	{
 		if (AllocateDescriptor())
 		{
-			// TODO: add desc
-			GetDevice()->GetD3DDevice()->CreateRenderTargetView(resource->GetD3DResource(), nullptr, m_D3DHandle);
+			D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+			if (desc.m_Format == FORMAT_UNKNOWN)
+			{
+				rtvDesc.Format = D3DConvertFormat(resource->m_TextureDesc.m_Format);
+			}
+			else
+			{
+				rtvDesc.Format = D3DConvertFormat(desc.m_Format);
+			}
+
+			if (desc.m_NumSamples > 1)
+			{
+				rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+			}
+			else
+			{
+				rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+				rtvDesc.Texture2D.MipSlice = 0;
+				rtvDesc.Texture2D.PlaneSlice = 0;
+			}
+
+			GetDevice()->GetD3DDevice()->CreateRenderTargetView(resource->GetD3DResource(), &rtvDesc, m_D3DHandle);
 
 			m_Texture = resource;
 			m_DescHash = hash_fnv64(reinterpret_cast<const uint8_t*>(&desc), sizeof(desc));
@@ -158,8 +185,8 @@ namespace vkr::Render
 		if (AllocateDescriptor())
 		{
 			D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-			dsvDesc.Format = D3DConvertFormat(resource->m_TextureDesc.m_Format);
-			dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+			dsvDesc.Format = D3DConvertFormat(desc.m_Format != FORMAT_UNKNOWN ? desc.m_Format : resource->m_TextureDesc.m_Format);
+			dsvDesc.ViewDimension = desc.m_NumSamples > 1 ? D3D12_DSV_DIMENSION_TEXTURE2DMS : D3D12_DSV_DIMENSION_TEXTURE2D;
 			dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 			GetDevice()->GetD3DDevice()->CreateDepthStencilView(resource->GetD3DResource(), &dsvDesc, m_D3DHandle);
 

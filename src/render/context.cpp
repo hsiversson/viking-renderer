@@ -155,6 +155,12 @@ namespace vkr::Render
 		++m_NumRecordedCommands;
 	}
 
+	void Context::ResolveMultiSampleTarget(Texture* dst, Texture* src)
+	{
+		m_CurrentD3DCommandList->ResolveSubresource(dst->GetD3DResource(), 0, src->GetD3DResource(), 0, D3DConvertFormat(dst->m_TextureDesc.m_Format));
+		++m_NumRecordedCommands;
+	}
+
 	void Context::Dispatch(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ)
 	{
 		UpdateState();

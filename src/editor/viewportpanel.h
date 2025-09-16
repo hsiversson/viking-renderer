@@ -6,6 +6,7 @@
 #include "game/entity.h"
 #include "graphics/view.h"
 #include "graphics/camera.h"
+#include "graphics/model.h"
 
 namespace vkr::Game
 {
@@ -31,6 +32,45 @@ namespace vkr::Editor
 		float m_PitchDeg = 0;
 	};
 
+	class ViewportWorldPicker
+	{
+	public:
+		bool Init();
+		bool Run(const Vector2u& mousePosition, const Game::World& world, std::vector<Game::Entity>& selectedEntities) const;
+
+	private:
+		Ref<Render::PipelineState> m_WriteObjectIdPSO;
+		Graphics::TextureTarget m_ObjectIdBuffer;
+	};
+
+	class ViewportOutliner
+	{
+	public:
+		bool Init();
+		void Run(const Vector2u& viewportSize, Graphics::Camera& camera, const std::vector<Game::Entity>& selectedEntities, const Game::World& world);
+
+		Render::TextureView* GetTexture() const;
+
+	private:
+		struct OutlinerObject
+		{
+			Render::BufferView* m_VertexBuffer;
+			Render::Buffer* m_IndexBuffer;
+			uint32_t m_PositionByteOffset;
+			uint32_t m_NormalByteOffset;
+			uint32_t m_VertexStride;
+			Mat44 m_Transform;
+		};
+
+		void FetchPartData(const Graphics::Model::Part& part, const Mat44& parentWorldTransform, std::vector<OutlinerObject>& objects);
+
+		Ref<Render::PipelineState> m_WriteObjectOutlinePSO;
+		Ref<Render::PipelineState> m_DiscardObjectPixelsPSO;
+		Graphics::TextureTarget m_RenderTargetMS;
+		Graphics::TextureTarget m_DepthStencilMS;
+		Graphics::TextureTarget m_ResolvedTarget;
+	};
+
 	class ViewportPanel final : public Panel, public BroadcastListener
 	{
 	public:
@@ -47,6 +87,8 @@ namespace vkr::Editor
 		Game::World& m_World;
 		Graphics::Camera m_Camera;
 		EditorCameraController m_CameraController;
+		ViewportWorldPicker m_WorldPicker;
+		ViewportOutliner m_Outliner;
 		Graphics::View* m_View;
 		Graphics::TextureTarget m_ViewOutput; 
 
@@ -62,7 +104,7 @@ namespace vkr::Editor
 			World,
 			Local
 		};
-		Game::Entity m_SelectedEntity;
+		std::vector<Game::Entity> m_SelectedEntities;
 		GizmoOperation m_SelectedGizmoOp = GizmoOperation::Rotate;
 		GizmoSpace m_SelectedGizmoSpace = GizmoSpace::World;
 

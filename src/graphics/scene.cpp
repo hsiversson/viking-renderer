@@ -255,13 +255,13 @@ namespace vkr::Graphics
 		data.m_PrevTransform = part.m_LocalTransform * prevParentWorldTransform;
 		data.m_MaterialID = part.m_Material->GatherMaterialData(renderData.m_MaterialDataBuffer); //TODO
 		//Fill up instance data with RT specific info
-		data.m_VertexBufferDescriptorIndex = part.m_Mesh->GetRaytraceVBView()->GetIndex();
+		data.m_VertexBufferDescriptorIndex = part.m_Mesh->GetVertexBufferView()->GetIndex();
 		data.m_VertexStride = part.m_Mesh->GetVertexLayout().GetStride();
 		data.m_VertexPositionByteOffset = part.m_Mesh->GetVertexLayout().GetByteOffset(Render::VertexAttribute::TYPE_POSITION, 0);
 		data.m_VertexNormalByteOffset = part.m_Mesh->GetVertexLayout().GetByteOffset(Render::VertexAttribute::TYPE_NORMAL, 0);
 		data.m_VertexTangentByteOffset = part.m_Mesh->GetVertexLayout().GetByteOffset(Render::VertexAttribute::TYPE_TANGENT, 0);
 		data.m_VertexUVByteOffset = part.m_Mesh->GetVertexLayout().GetByteOffset(Render::VertexAttribute::TYPE_UV, 0);
-		data.m_IndexBufferDescriptorIndex = part.m_Mesh->GetRaytraceIBView()->GetIndex();
+		data.m_IndexBufferDescriptorIndex = part.m_Mesh->GetIndexBufferView()->GetIndex();
 		data.m_IndexStride = GetFormatBytesPerPixel(part.m_Mesh->GetIndexBuffer()->GetDesc().m_Format);
 		uint8_t* genericdata = (uint8_t*)&data;
 		//Serialize instance data into byte buffer

@@ -141,6 +141,7 @@ namespace vkr::Render
 			graphicsDesc.DepthStencilState.StencilEnable = false;
 			graphicsDesc.DSVFormat = D3DConvertFormat(desc.Default.m_DepthStencilState.m_DSFormat);
 		}
+
 		graphicsDesc.SampleMask = UINT_MAX;
 		graphicsDesc.PrimitiveTopologyType = D3DConvertPrimitiveType(desc.Default.m_PrimitiveType);
 
@@ -151,10 +152,12 @@ namespace vkr::Render
 			{
 				graphicsDesc.RTVFormats[i] = D3DConvertFormat(desc.Default.m_RenderTargetState.m_Formats[i]);
 				++graphicsDesc.NumRenderTargets;
-
 			}
 		}
-		graphicsDesc.SampleDesc.Count = 1;
+		{
+			graphicsDesc.SampleDesc.Count = desc.Default.m_NumSamples;
+			graphicsDesc.SampleDesc.Quality = desc.Default.m_NumSamples > 1 ? DXGI_STANDARD_MULTISAMPLE_QUALITY_PATTERN : 0;
+		}
 
 		if (FAILED(device->CreateGraphicsPipelineState(&graphicsDesc, IID_PPV_ARGS(&m_PipelineState))))
 		{

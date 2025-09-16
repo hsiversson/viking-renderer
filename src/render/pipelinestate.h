@@ -32,6 +32,8 @@ namespace vkr::Render
 		DepthStencilState m_DepthStencilState;
 		RenderTargetState m_RenderTargetState;
 		BlendState m_BlendState;
+
+		uint32_t m_NumSamples = 1;
 	};
 
 	struct ComputePipelineStateDesc
@@ -86,13 +88,13 @@ namespace vkr::Render
 			switch (m_Type)
 			{
 			case PIPELINE_STATE_TYPE_DEFAULT:
-				new (&Default) DefaultPipelineStateDesc();
+				new (&Default) DefaultPipelineStateDesc{};
 				break;
 			case PIPELINE_STATE_TYPE_COMPUTE:
-				new (&Compute) ComputePipelineStateDesc();
+				new (&Compute) ComputePipelineStateDesc{};
 				break;
 			case PIPELINE_STATE_TYPE_RAYTRACING:
-				new (&Raytracing) RaytracingPipelineStateDesc();
+				new (&Raytracing) RaytracingPipelineStateDesc{};
 				break;
 			default:
 				break;

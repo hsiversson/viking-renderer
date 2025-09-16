@@ -18,17 +18,17 @@ namespace vkr::Editor
 
 	void PropertiesPanel::OnDraw()
 	{
-		if (m_SelectedEntity.IsValid())
+		if (!m_SelectedEntities.empty())
 		{
-			Game::IdComponent* idComponent = m_SelectedEntity.GetComponent<Game::IdComponent>();
+			Game::IdComponent* idComponent = m_SelectedEntities[0].GetComponent<Game::IdComponent>();
 			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
 			ImGui::InputText("##entityName", idComponent->m_Name.data(), idComponent->m_Name.length(), 0);
 			ImGui::PopItemFlag();
 			ImGui::Separator();
 
-			if (m_SelectedEntity.HasComponent<Game::TransformComponent>())
+			if (m_SelectedEntities[0].HasComponent<Game::TransformComponent>())
 			{
-				Game::TransformComponent* transform = m_SelectedEntity.GetComponent<Game::TransformComponent>();
+				Game::TransformComponent* transform = m_SelectedEntities[0].GetComponent<Game::TransformComponent>();
 
 				ImGui::DragFloat3("Position", &transform->m_Position.x, 0.1f);
 
@@ -68,10 +68,18 @@ namespace vkr::Editor
 	}
 	void PropertiesPanel::ReceiveMessage(const BroadcastMessage& message)
 	{
-		if (message.GetId() == BROADCAST_MSG_ID_SELECTED_ENTITY)
+		struct Selection
 		{
-			message.GetData(m_SelectedEntity);
-			m_EulerRotationCacheInitialized = false;
+			uint32_t m_NumEntities;
+			Game::Entity* m_Entities;
+		};
+		Selection selection;
+		message.GetData(selection);
+
+		m_SelectedEntities.clear();
+		if (selection.m_NumEntities > 0)
+		{
+			m_SelectedEntities.insert(m_SelectedEntities.end(), selection.m_Entities, selection.m_Entities + selection.m_NumEntities);
 		}
 	}
 }
