@@ -205,23 +205,22 @@ namespace vkr::Editor
 					ctx->SetViewport(0, 0, viewportSize.x, viewportSize.y);
 					ctx->SetScissorRect(0, 0, viewportSize.x, viewportSize.y);
 
+					struct Constants
+					{
+						Mat44 ViewProjection;
+						Mat44 View;
+						Mat44 ObjectTransform;
+						uint32_t VertexBufferDescriptorIndex;
+						uint32_t VertexPositionByteOffset;
+						uint32_t VertexNormalByteOffset;
+						uint32_t VertexStride;
+						Vector2f OutlineSizeNdc;
+						float ColorIntensity;
+						float _pad;
+					};
+
 					for (const OutlinerObject& obj : outlineObjects)
 					{
-						ctx->BindIndexBuffer(obj.m_IndexBuffer);
-
-						struct Constants
-						{
-							Mat44 ViewProjection;
-							Mat44 View;
-							Mat44 ObjectTransform;
-							uint32_t VertexBufferDescriptorIndex;
-							uint32_t VertexPositionByteOffset;
-							uint32_t VertexNormalByteOffset;
-							uint32_t VertexStride;
-							Vector2f OutlineSizeNdc;
-							float ColorIntensity;
-							float _pad;
-						};
 						Constants constants = {};
 						constants.ViewProjection = cameraViewProjection;
 						constants.View = cameraView;
@@ -231,31 +230,16 @@ namespace vkr::Editor
 						constants.VertexNormalByteOffset = obj.m_NormalByteOffset;
 						constants.VertexStride = obj.m_VertexStride;
 						constants.ColorIntensity = 1.0f;
-
 						constants.OutlineSizeNdc = Vector2f(1.0f / viewportSize.x, 1.0f / viewportSize.y) * 2.0f * 3.0f;
-
 						ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
+
+						ctx->BindIndexBuffer(obj.m_IndexBuffer);
 						ctx->BindPipelineState(m_WriteObjectOutlinePSO.get());
 						ctx->DrawIndexed(obj.m_IndexBuffer->GetDesc().m_ElementCount);
 					}
 
 					for (const OutlinerObject& obj : outlineObjects)
 					{
-						ctx->BindIndexBuffer(obj.m_IndexBuffer);
-
-						struct Constants
-						{
-							Mat44 ViewProjection;
-							Mat44 View;
-							Mat44 ObjectTransform;
-							uint32_t VertexBufferDescriptorIndex;
-							uint32_t VertexPositionByteOffset;
-							uint32_t VertexNormalByteOffset;
-							uint32_t VertexStride;
-							Vector2f OutlineSizeNdc;
-							float ColorIntensity;
-							float _pad;
-						};
 						Constants constants = {};
 						constants.ViewProjection = cameraViewProjection;
 						constants.View = cameraView;
@@ -267,6 +251,8 @@ namespace vkr::Editor
 						constants.OutlineSizeNdc = Vector2f(0.0f);
 						constants.ColorIntensity = 0.0f;
 						ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
+
+						ctx->BindIndexBuffer(obj.m_IndexBuffer);
 						ctx->BindPipelineState(m_DiscardObjectPixelsPSO.get());
 						ctx->DrawIndexed(obj.m_IndexBuffer->GetDesc().m_ElementCount);
 					}
