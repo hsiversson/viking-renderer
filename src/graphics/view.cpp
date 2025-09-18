@@ -30,8 +30,30 @@ namespace
 
 namespace vkr::Graphics
 {
+
 	bool TextureTarget::Update(uint32_t width, uint32_t height, const char* name)
 	{
+		return Update(2, Vector3u(width, height, 1), name);
+	}
+
+	bool TextureTarget::Update(Vector2u size, const char* name)
+	{
+		return Update(2, Vector3u(size.x, size.y, 1), name);
+	}
+
+	bool TextureTarget::Update(Vector3u size, const char* name /*= "Unnamed Texture"*/)
+	{
+		return Update(3, size, name);
+	}
+
+	bool TextureTarget::Update(uint32_t width, uint32_t height, uint32_t depth, const char* name /*= "Unnamed Texture"*/)
+	{
+		return Update(3, Vector3u(width, height, depth), name);
+	}
+
+	bool TextureTarget::Update(uint32_t dimension, Vector3u size, const char* name)
+	{
+		VKR_ASSERT(dimension == 2 || dimension == 3);
 		VKR_ASSERT((m_IsRenderTarget && m_IsDepthStencil) == false);
 		VKR_ASSERT((m_IsWritable && m_IsDepthStencil) == false);
 
@@ -45,7 +67,7 @@ namespace vkr::Graphics
 		if (m_Texture)
 		{
 			const Render::TextureDesc& textureDesc = m_Texture->m_TextureDesc;
-			changed |= textureDesc.m_Size != Vector3u(width, height, 1);
+			changed |= textureDesc.m_Size != size;
 			changed |= textureDesc.m_Format != m_Format;
 		}
 
@@ -55,8 +77,8 @@ namespace vkr::Graphics
 		}
 
 		Render::TextureDesc textureDesc = {};
-		textureDesc.m_Dimension = Render::ResourceDimension::Texture2D;
-		textureDesc.m_Size = { width, height, 1 };
+		textureDesc.m_Dimension = dimension == 2 ? Render::ResourceDimension::Texture2D : Render::ResourceDimension::Texture3D;
+		textureDesc.m_Size = size;
 		textureDesc.m_MipLevels = 1;
 		textureDesc.m_Writable = m_IsWritable;
 		textureDesc.m_AllowRenderTarget = m_IsRenderTarget;
@@ -99,11 +121,6 @@ namespace vkr::Graphics
 			m_DepthStencil = Render::GetDevice()->CreateDepthStencilView(dsvDesc, m_Texture);
 		}
 		return true;
-	}
-
-	bool TextureTarget::Update(Vector2u size, const char* name)
-	{
-		return Update(size.x, size.y, name);
 	}
 
 	View::View()

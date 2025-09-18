@@ -1,84 +1,54 @@
-// An atmosphere layer of width 'width', and whose density is defined as
-//   'exp_term' * exp('exp_scale' * h) + 'linear_term' * h + 'constant_term',
-// clamped to [0,1], and where h is the altitude.
-struct DensityProfileLayer
-{
-    float width;
-    float exp_term;
-    float exp_scale;
-    float linear_term;
-    float constant_term;
-    float3 _padding;
-};
+#include "common.hlsli"
+#include "random.hlsli"
 
-// An atmosphere density profile made of several layers on top of each other
-// (from bottom to top). The width of the last layer is ignored, i.e. it always
-// extend to the top atmosphere boundary. The profile values vary between 0
-// (null density) to 1 (maximum density).
-struct DensityProfile
-{
-    DensityProfileLayer layers[2];
-};
+// Float accuracy offset in Sky unit (km, so this is 1m). Should match the one in FAtmosphereSetup::ComputeViewData
+#define PLANET_RADIUS_OFFSET 0.001f
+#define M_TO_SKY_UNIT 0.001f; //Converts from meters which is the engine unit to kilometers that is the sky calculations base unit 
+
+static const float FarDepthValue = 0.0f; //We use inverted depth
+static const float OutputPreExposure = 1.0f; //TODO: What do we do about this?
 
 struct AtmosphereParameters
-{   
-     // The solar irradiance at the top of the atmosphere.
-    float3 solar_irradiance;
-  // The sun's angular radius. Warning: the implementation uses approximations
-  // that are valid only if this angle is smaller than 0.1 radians.
-    float sun_angular_radius;
-    
-  // The distance between the planet center and the bottom of the atmosphere.
-    float bottom_radius;
-  // The distance between the planet center and the top of the atmosphere.
-    float top_radius;
-    float2 _pad1;
-    
-  // The density profile of air molecules, i.e. a function from altitude to
-  // dimensionless values between 0 (null density) and 1 (maximum density).
-    DensityProfile rayleigh_density;
-  // The scattering coefficient of air molecules at the altitude where their
-  // density is maximum (usually the bottom of the atmosphere), as a function of
-  // wavelength. The scattering coefficient at altitude h is equal to
-  // 'rayleigh_scattering' times 'rayleigh_density' at this altitude.
-    float3 rayleigh_scattering;
-    float _pad2;
-    
-  // The density profile of aerosols, i.e. a function from altitude to
-  // dimensionless values between 0 (null density) and 1 (maximum density).
-    DensityProfile mie_density;
-  // The scattering coefficient of aerosols at the altitude where their density
-  // is maximum (usually the bottom of the atmosphere), as a function of
-  // wavelength. The scattering coefficient at altitude h is equal to
-  // 'mie_scattering' times 'mie_density' at this altitude.
-    float3 mie_scattering;
-    float _pad3;
-    
-  // The extinction coefficient of aerosols at the altitude where their density
-  // is maximum (usually the bottom of the atmosphere), as a function of
-  // wavelength. The extinction coefficient at altitude h is equal to
-  // 'mie_extinction' times 'mie_density' at this altitude.
-    float3 mie_extinction;
-  // The asymetry parameter for the Cornette-Shanks phase function for the
-  // aerosols.
-    float mie_phase_function_g;
-    
-  // The density profile of air molecules that absorb light (e.g. ozone), i.e.
-  // a function from altitude to dimensionless values between 0 (null density)
-  // and 1 (maximum density).
-    DensityProfile absorption_density;
-  // The extinction coefficient of molecules that absorb light (e.g. ozone) at
-  // the altitude where their density is maximum, as a function of wavelength.
-  // The extinction coefficient at altitude h is equal to
-  // 'absorption_extinction' times 'absorption_density' at this altitude.
-    float3 absorption_extinction;
-    float _pad4;
-    
-  // The average albedo of the ground.
-    float3 ground_albedo;
-  // The cosine of the maximum Sun zenith angle for which atmospheric scattering
-  // must be precomputed (for maximum precision, use the smallest Sun zenith
-  // angle yielding negligible sky light radiance values. For instance, for the
-  // Earth case, 102 degrees is a good choice - yielding mu_s_min = -0.2).
-    float mu_s_min;
+{
+    float MultiScatteringFactor;
+    // The distance between the planet center and the bottom of the atmosphere.
+    float BottomRadiusKm;
+    // The distance between the ground and the top of the atmosphere.
+    float TopRadiusKm;
+    float RayleighDensityExpScale;
+    float3 RayleighScattering;
+    float3 MieScattering;
+    float MieDensityExpScale;
+    float3 MieExtinction;
+    float MiePhaseG;
+    float3 MieAbsorption;
+    float AbsorptionDensity0LayerWidth;
+    float AbsorptionDensity0ConstantTerm;
+    float AbsorptionDensity0LinearTerm;
+    float AbsorptionDensity1ConstantTerm;
+    float AbsorptionDensity1LinearTerm;
+    float3 AbsorptionExtinction;
+    // The average albedo of the ground.
+    float3 GroundAlbedo;
+};
+
+struct SamplingSetup
+{
+    bool VariableSampleCount;
+    float SampleCountIni; // Used when VariableSampleCount is false
+    float MinSampleCount;
+    float MaxSampleCount;
+    float DistanceToSampleCountMaxInv;
+};
+
+struct SingleScatteringResult
+{
+    float3 L; // Scattered light (luminance)
+    float3 LMieOnly; // L but Mie scattering only
+    float3 LRayOnly; // L but Rayleigh scattering only
+    float3 OpticalDepth; // Optical depth (1/m)
+    float3 Transmittance; // Transmittance in [0,1] (unitless)
+    float3 TransmittanceMieOnly; // Transmittance in [0,1] (unitless) but Mie scattering only
+    float3 TransmittanceRayOnly; // Transmittance in [0,1] (unitless) but Rayleigh scattering only
+    float3 MultiScatAs1;
 };

@@ -29,7 +29,11 @@ namespace vkr::Graphics
 		uint32_t m_NumSamples = 1;
 
 		bool Update(uint32_t width, uint32_t height, const char* name = "Unnamed Texture");
+		bool Update(uint32_t width, uint32_t height, uint32_t depth, const char* name = "Unnamed Texture");
 		bool Update(Vector2u size, const char* name = "Unnamed Texture");
+		bool Update(Vector3u size, const char* name = "Unnamed Texture");
+	private:
+		bool Update(uint32_t dimension, Vector3u size, const char* name = "Unnamed Texture");
 	};
 
 	struct ViewRenderTargets
@@ -48,9 +52,10 @@ namespace vkr::Graphics
 		TextureTarget m_SceneHistory;
 
 		//Sky
-		TextureTarget m_TransmittanceLUT;
-		TextureTarget m_IrradianceLUT;
-		TextureTarget m_ScatteringLUT;
+		TextureTarget m_SkyTransmittanceLUT;
+		TextureTarget m_SkyMultiScatteringLUT;
+		TextureTarget m_SkyViewLUT;
+		TextureTarget m_SkyAerialPerspective;
 		
 		TextureTarget m_Exposure; // 1x1 with adapted exposure value
 		Ref<Render::BufferView> m_ExposureHistogram;

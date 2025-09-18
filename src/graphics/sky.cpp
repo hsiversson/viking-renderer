@@ -99,20 +99,27 @@ namespace
 		uint32_t transmittanceTextureDescriptorIndex;
 	};
 
+	struct alignas(16) SkyViewConstantData
+	{
+		uint32_t transmittanceTextureDesciptorIndex;
+		uint32_t multiscatteringTextureDescriptorIndex;
+		uint32_t skyViewTextureDescriptorIndex;
+		uint32_t _pad0;
+		Vector4f skyViewLUTSizeAndInvSize;
+	};
+
 	constexpr uint32_t TRANSMITTANCE_TEXTURE_WIDTH = 256;
 	constexpr uint32_t TRANSMITTANCE_TEXTURE_HEIGHT = 64;
 
-	constexpr uint32_t SCATTERING_TEXTURE_R_SIZE = 32;
-	constexpr uint32_t SCATTERING_TEXTURE_MU_SIZE = 128;
-	constexpr uint32_t SCATTERING_TEXTURE_MU_S_SIZE = 32;
-	constexpr uint32_t SCATTERING_TEXTURE_NU_SIZE = 8;
+	constexpr uint32_t MULTISCATTERING_TEXTURE_WIDTH = 32;
+	constexpr uint32_t MULTISCATTERING_TEXTURE_HEIGHT = 32;
 
-	constexpr uint32_t IRRADIANCE_TEXTURE_WIDTH = 64;
-	constexpr uint32_t IRRADIANCE_TEXTURE_HEIGHT = 16;
+	constexpr uint32_t SKYVIEW_TEXTURE_WIDTH = 192;
+	constexpr uint32_t SKYVIEW_TEXTURE_HEIGHT = 104;
 
-	constexpr uint32_t SCATTERING_TEXTURE_WIDTH = SCATTERING_TEXTURE_NU_SIZE * SCATTERING_TEXTURE_MU_S_SIZE;
-	constexpr uint32_t SCATTERING_TEXTURE_HEIGHT = SCATTERING_TEXTURE_MU_SIZE;
-	constexpr uint32_t SCATTERING_TEXTURE_DEPTH = SCATTERING_TEXTURE_R_SIZE;
+	constexpr uint32_t AERIAL_PERSPECTIVE_TEXTURE_WIDTH = 32;
+	constexpr uint32_t AERIAL_PERSPECTIVE_TEXTURE_HEIGHT = 32;
+	constexpr uint32_t AERIAL_PERSPECTIVE_TEXTURE_DEPTH = 16;
 
 	constexpr float LambdaMin = 360;
 	constexpr float LambdaR = 680;
@@ -203,6 +210,11 @@ namespace vkr::Graphics
 		skyTransmittanceLUTPSODesc.Compute.m_ComputeShader = m_SkyTransmittanceLUTComputeShader.get();
 		m_SkyTransmittanceLUTPSO = device->CreatePipelineState(skyTransmittanceLUTPSODesc);
 
+// 		m_SkyViewLUTComputeShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/skyviewlut.hlsl"), L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
+// 		Render::PipelineStateDesc skyViewLUTPSODesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
+// 		skyViewLUTPSODesc.Compute.m_ComputeShader = m_SkyViewLUTComputeShader.get();
+// 		m_SkyViewLUTPSO = device->CreatePipelineState(skyViewLUTPSODesc);
+
 		return true;
 	}
 
@@ -214,17 +226,21 @@ namespace vkr::Graphics
 
 		ctx->ClearStateCache(); //Maybe we should do this somewhere else 
 
-		renderTargets.m_TransmittanceLUT.m_IsWritable = true;
-		renderTargets.m_TransmittanceLUT.m_Format = Render::FORMAT_RGBA32_FLOAT;
-		renderTargets.m_TransmittanceLUT.Update(Vector2u(TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT), "TransmittanceLUT");
+		renderTargets.m_SkyTransmittanceLUT.m_IsWritable = true;
+		renderTargets.m_SkyTransmittanceLUT.m_Format = Render::FORMAT_RGBA32_FLOAT;
+		renderTargets.m_SkyTransmittanceLUT.Update(Vector2u(TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT), "TransmittanceLUT");
 
-		renderTargets.m_IrradianceLUT.m_IsWritable = true;
-		renderTargets.m_IrradianceLUT.m_Format = Render::FORMAT_RGBA32_FLOAT;
-		renderTargets.m_IrradianceLUT.Update(Vector2u(IRRADIANCE_TEXTURE_WIDTH, IRRADIANCE_TEXTURE_HEIGHT), "IrradianceLUT");
-
-		renderTargets.m_ScatteringLUT.m_IsWritable = true;
-		renderTargets.m_ScatteringLUT.m_Format = Render::FORMAT_RGBA32_FLOAT;
-		renderTargets.m_ScatteringLUT.Update(Vector2u(SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT), "ScatteringLUT");
+// 		renderTargets.m_SkyMultiScatteringLUT.m_IsWritable = true;
+// 		renderTargets.m_SkyMultiScatteringLUT.m_Format = Render::FORMAT_RGBA32_FLOAT;
+// 		renderTargets.m_SkyMultiScatteringLUT.Update(Vector2u(MULTISCATTERING_TEXTURE_WIDTH, MULTISCATTERING_TEXTURE_HEIGHT), "MultiScatteringLUT");
+// 
+// 		renderTargets.m_SkyViewLUT.m_IsWritable = true;
+// 		renderTargets.m_SkyViewLUT.m_Format = Render::FORMAT_RGBA32_FLOAT;
+// 		renderTargets.m_SkyViewLUT.Update(Vector2u(SKYVIEW_TEXTURE_WIDTH, SKYVIEW_TEXTURE_HEIGHT), "SkyViewLUT");
+// 
+// 		renderTargets.m_SkyAerialPerspective.m_IsWritable = true;
+// 		renderTargets.m_SkyAerialPerspective.m_Format = Render::FORMAT_RGBA32_FLOAT;
+// 		renderTargets.m_SkyAerialPerspective.Update(Vector3u(AERIAL_PERSPECTIVE_TEXTURE_WIDTH, AERIAL_PERSPECTIVE_TEXTURE_HEIGHT, AERIAL_PERSPECTIVE_TEXTURE_DEPTH), "AerialPerspectiveCameraVolume");
 
 		VKR_CONTEXT_EVENT_FUNCTION(ctx);
 
@@ -233,7 +249,7 @@ namespace vkr::Graphics
 			{
 				//Transition transmittance LUT to write
 				Render::TextureBarrierDesc barrierDesc;
-				barrierDesc.m_Texture = renderTargets.m_TransmittanceLUT.m_Texture.get();
+				barrierDesc.m_Texture = renderTargets.m_SkyTransmittanceLUT.m_Texture.get();
 				barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
 				barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
 				barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
@@ -250,16 +266,120 @@ namespace vkr::Graphics
 
 		TransmittanceConstantData constantData;
 		constantData.atmosphere = atmosphereData;
-		constantData.transmittanceTextureSize = Vector2u(renderTargets.m_TransmittanceLUT.m_Texture->m_TextureDesc.m_Size.x, renderTargets.m_TransmittanceLUT.m_Texture->m_TextureDesc.m_Size.y);
-		constantData.transmittanceTextureDescriptorIndex = renderTargets.m_TransmittanceLUT.m_TextureViewRW->GetIndex();
+		constantData.transmittanceTextureSize = Vector2u(renderTargets.m_SkyTransmittanceLUT.m_Texture->m_TextureDesc.m_Size.x, renderTargets.m_SkyTransmittanceLUT.m_Texture->m_TextureDesc.m_Size.y);
+		constantData.transmittanceTextureDescriptorIndex = renderTargets.m_SkyTransmittanceLUT.m_TextureViewRW->GetIndex();
 
 		ctx->BindLocalConstantBuffer(sizeof(TransmittanceConstantData), &constantData, 0);
 
 		ctx->DispatchThreads(Vector3u(constantData.transmittanceTextureSize.x, constantData.transmittanceTextureSize.y, 1));
-
-		//Irradiance
-
-// 		ctx->BindPipelineState(m_SkyIrradianceLUTPSO.get());
+		
+		// Sky view
+// 		{
+// 			std::vector<Render::TextureBarrierDesc> barriers;
+// 			
+// 
+// 			//Transition sky view LUT to write
+// 			Render::TextureBarrierDesc barrierDesc;
+// 			barrierDesc.m_Texture = renderTargets.m_SkyViewLUT.m_Texture.get();
+// 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
+// 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
+// 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
+// 			barriers.push_back(barrierDesc);
+// 
+// 			//Transition transmittance LUT to read
+// 			Render::TextureBarrierDesc barrierDesc;
+// 			barrierDesc.m_Texture = renderTargets.m_SkyTransmittanceLUT.m_Texture.get();
+// 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
+// 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_READ;
+// 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
+// 			barriers.push_back(barrierDesc);
+// 			ctx->TextureBarrier(barriers.size(), barriers.data());
+// 
+// 			//Transition multiscattering LUT to read
+// 			Render::TextureBarrierDesc barrierDesc;
+// 			barrierDesc.m_Texture = renderTargets.m_SkyMultiScatteringLUT.m_Texture.get();
+// 			barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
+// 			barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_READ;
+// 			barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
+// 			barriers.push_back(barrierDesc);
+// 			ctx->TextureBarrier(barriers.size(), barriers.data());
+// 		}
+// 
+// 		ctx->BindPipelineState(m_SkyViewLUTPSO.get());
+// 		SkyViewConstantData skyViewConstantData;
+// 		skyViewConstantData.multiscatteringTextureDescriptorIndex = renderTargets.m_SkyMultiScatteringLUT.m_TextureView->GetIndex();
+// 		skyViewConstantData.transmittanceTextureDesciptorIndex = renderTargets.m_SkyTransmittanceLUT.m_TextureView->GetIndex();
+// 		skyViewConstantData.skyViewTextureDescriptorIndex = renderTargets.m_SkyViewLUT.m_TextureViewRW->GetIndex();
+// 
+// 		// Where are we in relation to our "virtual planet"? For atmosphere calculations we need to know where the observer/camera sits within the atmosphere
+// 		// Were gonna consider a flat world in our scene and that that Y = 0 is where our earth surface is
+// 		// The constants below should match the one in SkyAtmosphereCommon.ush
+// 		// Always force to be 5 meters above the ground/sea level (to always see the sky and not be under the virtual planet occluding ray tracing) and lower for small planet radius
+// 		const float PlanetRadiusOffset = 0.005f; //Sky units in km
+// 
+// 		const float Offset = PlanetRadiusOffset * SkyUnitToCm;
+// 		const float BottomRadiusWorld = BottomRadiusKm * SkyUnitToCm;
+// 		const Vector3f PlanetCenterWorld = PlanetCenterKm * SkyUnitToCm;
+// 		const Vector3f PlanetCenterTranslatedWorld = PlanetCenterWorld + PreViewTranslation;
+// 		const Vector3f WorldCameraOriginTranslatedWorld = WorldCameraOrigin + PreViewTranslation;
+// 		const Vector3f PlanetCenterToCameraTranslatedWorld = WorldCameraOriginTranslatedWorld - PlanetCenterTranslatedWorld;
+// 		const float DistanceToPlanetCenterTranslatedWorld = vkr::Length(PlanetCenterToCameraTranslatedWorld);
+// 		// If the camera is below the planet surface, we snap it back onto the surface.
+// 		// This is to make sure the sky is always visible even if the camera is inside the virtual planet.
+// 		Vector3f SkyCameraTranslatedWorldOriginTranslatedWorld = Vector3f(
+// 			DistanceToPlanetCenterTranslatedWorld < (BottomRadiusWorld + Offset) ?
+// 			PlanetCenterTranslatedWorld + (BottomRadiusWorld + Offset) * (PlanetCenterToCameraTranslatedWorld / DistanceToPlanetCenterTranslatedWorld) :
+// 			WorldCameraOriginTranslatedWorld);
+// 		Vector4f SkyPlanetTranslatedWorldCenterAndViewHeight = Vector4f(PlanetCenterTranslatedWorld.x,
+// 			PlanetCenterTranslatedWorld.y,
+// 			PlanetCenterTranslatedWorld.z,
+// 			Length(SkyCameraTranslatedWorldOriginTranslatedWorld - PlanetCenterTranslatedWorld));
+// 
+// 		// Compute the basis vectors for the frame of reference of the sky view LUT. This is a frame of reference tangent to the earth surface at the point the camera is
+// 		// Our world is flat and not curved so we consider +Y  the up vector
+// 		Mat44 SkyViewLutReferential;
+// 		Vector3f ViewForward = Vector3f(renderData.m_CameraData.ViewMatrix[8], renderData.m_CameraData.ViewMatrix[9], renderData.m_CameraData.ViewMatrix[10]);
+// 		Vector3f ViewRight = Vector3f(renderData.m_CameraData.ViewMatrix[0], renderData.m_CameraData.ViewMatrix[1], renderData.m_CameraData.ViewMatrix[2]);
+// 		Vector3f Up = Vector3f(0,1,0);
+// 		Vector3f Forward = ViewForward;		// This can make texel visible when the camera is rotating. Use constant world direction instead?
+// 		//FVector3f	Left = normalize(cross(Forward, Up)); 
+// 		Vector3f	Left;
+// 		Left = vkr::Cross(Forward, Up);
+// 		vkr::Normalize(Left);
+// 		const float DotMainDir = abs(vkr::Dot(Up, Forward));
+// 		if (DotMainDir > 0.999f)
+// 		{
+// 			// When it becomes hard to generate a referential, generate it procedurally.
+// 			// [ Duff et al. 2017, "Building an Orthonormal Basis, Revisited" ]
+// 			const float Sign = Up.z >= 0.0f ? 1.0f : -1.0f;
+// 			const float a = -1.0f / (Sign + Up.z);
+// 			const float b = Up.x * Up.y * a;
+// 			Forward = Vector3f(1 + Sign * a * pow(Up.x, 2.0f), Sign * b, -Sign * Up.x);
+// 			Left = Vector3f(b, Sign + a * pow(Up.y, 2.0f), -Up.y);
+// 
+// 			SkyViewLutReferential = vkr::Compose(
+// 				Vector4f(Forward.x,Forward.y,Forward.z,0.0f),
+// 				Vector4f(Left.x, Left.y, Left.z, 0.0f),
+// 				Vector4f(Up.x, Up.y, Up.z, 0.0f),
+// 				Vector4f(0.0f,0.0f,0.0f,1.0f)
+// 			);
+// 			SkyViewLutReferential = SkyViewLutReferential.GetTransposed();
+// 		}
+// 		else
+// 		{
+// 			// This is better as it should be more stable with respect to camera forward.
+// 			Forward = vkr::Cross(Up, Left);
+// 			vkr::Normalize(Forward);
+// 			SkyViewLutReferential.SetColumn(0, Forward);
+// 			SkyViewLutReferential.SetColumn(1, Left);
+// 			SkyViewLutReferential.SetColumn(2, Up);
+// 			SkyViewLutReferential = SkyViewLutReferential.GetTransposed();
+// 		}
+// 
+// 		ctx->BindLocalConstantBuffer(sizeof(SkyViewConstantData), &skyViewConstantData, 0);
+// 
+// 		ctx->DispatchThreads(Vector3u(SKYVIEW_TEXTURE_WIDTH, SKYVIEW_TEXTURE_HEIGHT, 1));
+ 		
 // 
 // 		const AtmosphereData& atmosphereData = GetAtmosphereData();
 // 
@@ -273,5 +393,6 @@ namespace vkr::Graphics
 // 		ctx->DispatchThreads(Vector3u(constantData.transmittanceTextureSize.x, constantData.transmittanceTextureSize.y, 1));
 
 		//Direct scattering
+		
 	}
 }
