@@ -186,6 +186,14 @@ namespace vkr
 		return a * (T(1) - t) + b * t;
 	}
 
+	template<typename T>
+	Vector3<T> Clamp(const Vector3<T>& a, T min, T max)
+	{
+		return Vector3<T>(std::clamp(a.x, min, max),
+			std::clamp(a.y, min, max),
+			std::clamp(a.z, min, max));
+	}
+
 	using Vector3f = Vector3<float>;
 	using Vector3i = Vector3<int32_t>;
 	using Vector3u = Vector3<uint32_t>;

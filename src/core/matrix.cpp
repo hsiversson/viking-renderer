@@ -79,6 +79,15 @@ namespace vkr
 		};
 	}
 
+	vkr::Mat33 Compose(const Vector3f& m0, const Vector3f& m1, const Vector3f& m2)
+	{
+		Mat33 m;
+		m[0] = m0.x; m[1] = m0.y; m[2] = m0.z;
+		m[3] = m1.x; m[4] = m1.y; m[5] = m1.z;
+		m[6] = m2.x; m[7] = m2.y; m[8] = m2.z;
+		return m;
+	}
+
 	void Decompose(const Mat44& m, Vector3f& position, Quaternion& rotation, Vector3f& scale)
 	{
 		// Extract translation

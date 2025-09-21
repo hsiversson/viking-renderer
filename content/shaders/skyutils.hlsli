@@ -6,6 +6,13 @@
 #define VIEWDATA_AVAILABLE //Defines if we have sceneconstants available
 #endif
 
+// Float accuracy offset in Sky unit (km, so this is 1m). Should match the one in FAtmosphereSetup::ComputeViewData
+#define PLANET_RADIUS_OFFSET 0.001f
+#define M_TO_SKY_UNIT 0.001f; //Converts from meters which is the engine unit to kilometers that is the sky calculations base unit 
+
+static const float FarDepthValue = 0.0f; //We use inverted depth
+static const float OutputPreExposure = 1.0f; //TODO: What do we do about this?
+
 void fromTransmittanceLutUVs(
 	out float ViewHeight, out float ViewZenithCosAngle,
 	in float BottomRadius, in float TopRadius, in float2 UV)
@@ -66,7 +73,7 @@ float3 SvPositionToTranslatedWorld(float4 SvPosition)
     float4 worldPos = mul(SceneConstants.InvViewProjection, clipPos);
     worldPos /= worldPos.w;*/
     
-    float4 HomWorldPos = mul(SceneConstants.InvViewProjection, float4(SvPosition.xyz, 1));
+    float4 HomWorldPos = mul(InvViewProjection, float4(SvPosition.xyz, 1));
 
     return HomWorldPos.xyz / HomWorldPos.w;
 }
@@ -351,7 +358,7 @@ SingleScatteringResult IntegrateSingleScatteredLuminance(
 	if (DeviceZ != FarDepthValue)
 	{
 		const float3 DepthBufferTranslatedWorldPosKm = GetScreenTranslatedWorldPos(SVPos, DeviceZ).xyz * M_TO_SKY_UNIT;
-		const float3 TraceStartTranslatedWorldPosKm  = WorldPos + View.SkyPlanetTranslatedWorldCenterAndViewHeight.xyz * M_TO_SKY_UNIT; // apply planet offset to go back to world from planet local referencial.
+		const float3 TraceStartTranslatedWorldPosKm  = WorldPos + SkyPlanetTranslatedWorldCenterAndViewHeight.xyz * M_TO_SKY_UNIT; // apply planet offset to go back to world from planet local referencial.
 		const float3 TraceStartToSurfaceWorldKm = DepthBufferTranslatedWorldPosKm - TraceStartTranslatedWorldPosKm;
 		float tDepth = length(TraceStartToSurfaceWorldKm);
 		if (tDepth < tMax)
@@ -419,7 +426,7 @@ SingleScatteringResult IntegrateSingleScatteredLuminance(
 //#if SAMPLE_OPAQUE_SHADOW
 	// Get the referencial when rendering the SkyView lut being in a special Z-top space
 #ifdef SKYVIEWLUT_PASS
-	float3x3 LocalReferencial = GetSkyViewLutReferential(SkyViewLutReferential);
+	float3x3 LocalReferencial = SkyViewLutReferential;
 #endif
 //#endif
     
@@ -531,7 +538,9 @@ SingleScatteringResult IntegrateSingleScatteredLuminance(
         float3 ShadowP0 = P;
         bool bUnused = false;
 #ifdef SKYVIEWLUT_PASS
-		ShadowP0 = GetTranslatedCameraPlanetPos() + t * mul(LocalReferencial, WorldDir); // Inverse of the local SkyViewLUT referencial transform
+        float3 SkyCameraTranslatedWorldOrigin = float3(0.0f,0.0f,0.0f); // TODO: need to uderstand better the mess of references theyw ork with in unreal. Potential bug here
+        float3 TranslatedCameraPlanetPos = (SkyCameraTranslatedWorldOrigin - SkyPlanetTranslatedWorldCenterAndViewHeight.xyz) * M_TO_SKY_UNIT;
+		ShadowP0 = TranslatedCameraPlanetPos + t * mul(LocalReferencial, WorldDir); // Inverse of the local SkyViewLUT referencial transform
 #endif
 #ifdef SAMPLE_OPAQUE_SHADOW
 		{

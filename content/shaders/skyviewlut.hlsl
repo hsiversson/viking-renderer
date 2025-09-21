@@ -10,10 +10,16 @@ cbuffer Constants : register(b0)
     uint MultiScatteringTextureDescriptorIndex;
     uint SkyViewTextureDescriptorIndex;
     float4 SkyViewLutSizeAndInvSize;
+    float4 SkyPlanetTranslatedWorldCenterAndViewHeight;
     float3 AtmosphereLightDirection0;
+    uint pad0;
     float3 AtmosphereLightIlluminanceOuterSpace0;
+    uint pad1;
     float3 AtmosphereLightDirection1;
+    uint pad2;
     float3 AtmosphereLightIlluminanceOuterSpace1;
+    uint pad3;
+    float4x4 InvViewProjection;
 }
 
 Texture2D<float4> GetTransmittanceLUT()
@@ -81,7 +87,7 @@ void UvToSkyViewLutParams(out float3 ViewDir, in float ViewHeight, in float2 UV)
 void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     Texture2D<float4> TransmittanceLUT = ResourceDescriptorHeap[TransmittanceTextureDescriptorIndex];
-    Texture2D<float4> MultiScatteringLUT = ResourceDescriptorHeap[TransmittanceTextureDescriptorIndex];
+    //Texture2D<float4> MultiScatteringLUT = ResourceDescriptorHeap[TransmittanceTextureDescriptorIndex];
     RWTexture2D<float4> SkyView = ResourceDescriptorHeap[SkyViewTextureDescriptorIndex];
     
     float2 PixPos = float2(dispatchThreadID.xy) + 0.5f;

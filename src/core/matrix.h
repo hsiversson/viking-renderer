@@ -192,6 +192,8 @@ namespace vkr
 		return r;
 	}
 
+	Mat33 Compose(const Vector3f& m0, const Vector3f& m1, const Vector3f& m2);
+
 	Mat43 Compose(const Vector3f& m0, const Vector3f& m1, const Vector3f& m2, const Vector3f& m3);
 	Mat43 Compose(const Mat33& rotation, const Vector3f& translation);
 

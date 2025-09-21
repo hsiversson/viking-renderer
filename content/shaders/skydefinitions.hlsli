@@ -1,13 +1,6 @@
 #include "common.hlsli"
 #include "random.hlsli"
 
-// Float accuracy offset in Sky unit (km, so this is 1m). Should match the one in FAtmosphereSetup::ComputeViewData
-#define PLANET_RADIUS_OFFSET 0.001f
-#define M_TO_SKY_UNIT 0.001f; //Converts from meters which is the engine unit to kilometers that is the sky calculations base unit 
-
-static const float FarDepthValue = 0.0f; //We use inverted depth
-static const float OutputPreExposure = 1.0f; //TODO: What do we do about this?
-
 struct AtmosphereParameters
 {
     float MultiScatteringFactor;
@@ -17,6 +10,7 @@ struct AtmosphereParameters
     float TopRadiusKm;
     float RayleighDensityExpScale;
     float3 RayleighScattering;
+    uint pad0;
     float3 MieScattering;
     float MieDensityExpScale;
     float3 MieExtinction;
@@ -28,6 +22,7 @@ struct AtmosphereParameters
     float AbsorptionDensity1ConstantTerm;
     float AbsorptionDensity1LinearTerm;
     float3 AbsorptionExtinction;
+    uint pad1;
     // The average albedo of the ground.
     float3 GroundAlbedo;
 };

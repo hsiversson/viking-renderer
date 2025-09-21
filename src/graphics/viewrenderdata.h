@@ -96,6 +96,33 @@ namespace vkr::Graphics
 		std::vector<RenderBatch> m_InstanceBatches;
 	};
 
+	struct alignas(16) AtmosphereData
+	{
+		float MultiScatteringFactor;
+		// The distance between the planet center and the bottom of the atmosphere.
+		float BottomRadiusKm;
+		// The distance between the ground and the top of the atmosphere.
+		float TopRadiusKm;
+		float RayleighDensityExpScale;
+		Vector3f RayleighScattering;
+		uint32_t _pad0;
+		Vector3f MieScattering;
+		float MieDensityExpScale;
+		Vector3f MieExtinction;
+		float MiePhaseG;
+		Vector3f MieAbsorption;
+		float AbsorptionDensity0LayerWidth;
+		float AbsorptionDensity0ConstantTerm;
+		float AbsorptionDensity0LinearTerm;
+		float AbsorptionDensity1ConstantTerm;
+		float AbsorptionDensity1LinearTerm;
+		Vector3f AbsorptionExtinction;
+		uint32_t _pad1;
+		// The average albedo of the ground.
+		Vector3f GroundAlbedo;
+		uint32_t _pad2;
+	};
+
 	struct ViewRenderData
 	{
 		void Clear();
@@ -132,6 +159,8 @@ namespace vkr::Graphics
 		
 		bool m_UpdateSkyLut;
 		Ref<Render::RenderTaskEvent> m_UpdateSkyLutEvent;
+
+		AtmosphereData m_AtmosphereData;
 
 		uint32_t m_TotalInstanceCount = 0;
 	};
