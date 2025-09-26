@@ -13,28 +13,28 @@ namespace
 	struct alignas(16) TransmittanceConstantData
 	{
 		vkr::Graphics::AtmosphereData atmosphere;
-		Vector2u transmittanceTextureSize;
+		Vector4f transmittanceLutSizeAndInvSize;
 		uint32_t transmittanceTextureDescriptorIndex;
 	};
 
 	struct alignas(16) SkyViewConstantData
 	{
 		vkr::Graphics::AtmosphereData atmosphere;
-		Mat33 SkyViewLutReferential;
-		uint32_t TransmittanceTextureDescriptorIndex;
-		uint32_t MultiScatteringTextureDescriptorIndex;
-		uint32_t SkyViewTextureDescriptorIndex;
+		Mat44 SkyViewLutReferential;
+		Mat44 InvViewProjection;
 		Vector4f SkyViewLutSizeAndInvSize;
 		Vector4f SkyPlanetTranslatedWorldCenterAndViewHeight;
 		Vector3f AtmosphereLightDirection0;
-		uint32_t pad0;
+		uint32_t _pad0;
 		Vector3f AtmosphereLightIlluminanceOuterSpace0;
-		uint32_t pad1;
+		uint32_t _pad1;
 		Vector3f AtmosphereLightDirection1;
-		uint32_t pad2;
+		uint32_t _pad2;
 		Vector3f AtmosphereLightIlluminanceOuterSpace1;
-		uint32_t pad3;
-		Mat44 InvViewProjection;
+		uint32_t TransmittanceTextureDescriptorIndex;
+		uint32_t MultiScatteringTextureDescriptorIndex;
+		uint32_t SkyViewTextureDescriptorIndex;
+		uint32_t _pad3[2];
 	};
 
 	constexpr uint32_t TRANSMITTANCE_TEXTURE_WIDTH = 256;
@@ -266,12 +266,12 @@ namespace vkr::Graphics
 
 		TransmittanceConstantData constantData;
 		constantData.atmosphere = renderData.m_AtmosphereData;
-		constantData.transmittanceTextureSize = Vector2u(renderTargets.m_SkyTransmittanceLUT.m_Texture->m_TextureDesc.m_Size.x, renderTargets.m_SkyTransmittanceLUT.m_Texture->m_TextureDesc.m_Size.y);
+		constantData.transmittanceLutSizeAndInvSize = Vector4f(TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT, 1.0f/TRANSMITTANCE_TEXTURE_WIDTH, 1.0f/TRANSMITTANCE_TEXTURE_HEIGHT);
 		constantData.transmittanceTextureDescriptorIndex = renderTargets.m_SkyTransmittanceLUT.m_TextureViewRW->GetIndex();
 
 		ctx->BindLocalConstantBuffer(sizeof(TransmittanceConstantData), &constantData, 0);
 
-		ctx->DispatchThreads(Vector3u(constantData.transmittanceTextureSize.x, constantData.transmittanceTextureSize.y, 1));
+		ctx->DispatchThreads(Vector3u(TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT, 1));
 		
 		// Sky view
 		{
@@ -344,7 +344,7 @@ namespace vkr::Graphics
 
 		// Compute the basis vectors for the frame of reference of the sky view LUT. This is a frame of reference tangent to the earth surface at the point the camera is
 		// Our world is flat and not curved so we consider +Y  the up vector
-		Mat33 SkyViewLutReferential = Mat33::Identity();
+		Mat44 SkyViewLutReferential = Mat44::Identity();
 		Vector3f ViewForward = Vector3f(renderData.m_CameraData.ViewMatrix[8], renderData.m_CameraData.ViewMatrix[9], renderData.m_CameraData.ViewMatrix[10]);
 		Vector3f ViewRight = Vector3f(renderData.m_CameraData.ViewMatrix[0], renderData.m_CameraData.ViewMatrix[1], renderData.m_CameraData.ViewMatrix[2]);
 		Vector3f Up = Vector3f(0,1,0);
@@ -365,9 +365,10 @@ namespace vkr::Graphics
 			Left = Vector3f(b, Sign + a * pow(Up.y, 2.0f), -Up.y);
 
 			SkyViewLutReferential = vkr::Compose(
-				Vector3f(Forward.x,Forward.y,Forward.z),
-				Vector3f(Left.x, Left.y, Left.z),
-				Vector3f(Up.x, Up.y, Up.z)
+				Vector4f(Forward.x,Forward.y,Forward.z,0),
+				Vector4f(Left.x, Left.y, Left.z,0),
+				Vector4f(Up.x, Up.y, Up.z,0),
+				Vector4f(0,0,0,1)
 			);
 			SkyViewLutReferential = SkyViewLutReferential.GetTransposed();
 		}
@@ -377,8 +378,8 @@ namespace vkr::Graphics
 			Forward = vkr::Cross(Up, Left);
 			vkr::Normalize(Forward);
 			SkyViewLutReferential[0] = Forward.x; SkyViewLutReferential[1] = Forward.y; SkyViewLutReferential[2] = Forward.z;
-			SkyViewLutReferential[3] = Left.x; SkyViewLutReferential[4] = Left.y; SkyViewLutReferential[5] = Left.z;
-			SkyViewLutReferential[6] = Up.x; SkyViewLutReferential[7] = Up.y; SkyViewLutReferential[8] = Up.z;
+			SkyViewLutReferential[4] = Left.x; SkyViewLutReferential[5] = Left.y; SkyViewLutReferential[6] = Left.z; 
+			SkyViewLutReferential[8] = Up.x; SkyViewLutReferential[9] = Up.y; SkyViewLutReferential[10] = Up.z;
 			SkyViewLutReferential = SkyViewLutReferential.GetTransposed();
 		}
 

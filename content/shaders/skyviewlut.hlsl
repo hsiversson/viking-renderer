@@ -5,10 +5,8 @@
 cbuffer Constants : register(b0)
 {
     AtmosphereParameters Atmosphere;
-    float3x3 SkyViewLutReferential;
-    uint TransmittanceTextureDescriptorIndex;
-    uint MultiScatteringTextureDescriptorIndex;
-    uint SkyViewTextureDescriptorIndex;
+    float4x4 SkyViewLutReferential;
+    float4x4 InvViewProjection;
     float4 SkyViewLutSizeAndInvSize;
     float4 SkyPlanetTranslatedWorldCenterAndViewHeight;
     float3 AtmosphereLightDirection0;
@@ -18,8 +16,9 @@ cbuffer Constants : register(b0)
     float3 AtmosphereLightDirection1;
     uint pad2;
     float3 AtmosphereLightIlluminanceOuterSpace1;
-    uint pad3;
-    float4x4 InvViewProjection;
+    uint TransmittanceTextureDescriptorIndex;
+    uint MultiScatteringTextureDescriptorIndex;
+    uint SkyViewTextureDescriptorIndex;
 }
 
 Texture2D<float4> GetTransmittanceLUT()
@@ -97,7 +96,7 @@ void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 	// into a referential with UP being perpendicular to the world sphere. And with origin at the planet center.
 
 	// This is the local referencial
-    float3x3 LocalReferencial = SkyViewLutReferential;
+    float3x3 LocalReferencial = (float3x3) SkyViewLutReferential;
 
 	// This is the LUT camera height and position in the local referential
     float ViewHeight = Atmosphere.BottomRadiusKm + 0.005; //For now fix our camera height within the atmosphere to 5 meters above bottom radius
