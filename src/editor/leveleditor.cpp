@@ -31,14 +31,7 @@ namespace vkr::Editor
 		m_Panels.push_back(std::static_pointer_cast<Panel>(m_WorldHierarchy));
 		m_Panels.push_back(std::static_pointer_cast<Panel>(m_Properties));
 
-		Game::Entity e0 = m_World->CreateEntity("Test");
-		Game::Entity e1 = m_World->CreateEntity("Test2");
-		Game::Entity e2 = m_World->CreateEntity("Test3");
-		Game::Entity e3 = m_World->CreateEntity("Test4");
-
-		e0.AddChild(e1);
-		e0.AddChild(e2);
-		e0.AddChild(e3);
+		Game::Entity e0 = m_World->CreateEntity("CP_Noodles");
 
 		Game::ModelComponent& modelComponent = e0.AddComponent<Game::ModelComponent>();
 		modelComponent.m_ModelFilePath = SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "models/cp_noodles/scene.gltf");

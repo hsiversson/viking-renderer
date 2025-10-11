@@ -1,6 +1,7 @@
 #include "viewportpanel.h"
 
 #if ENABLE_EDITOR
+#include "asset.h"
 #include "editor.h"
 #include "game/transformcomponent.h"
 #include "game/modelcomponent.h"
@@ -475,18 +476,11 @@ namespace vkr::Editor
 
 		if (ImGui::BeginDragDropTarget())
 		{
-			struct AssetDragDropPayload
-			{
-				uint32_t m_AssetType;
-				char m_Filepath[252];
-			};
-
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("_AssetDragSource", ImGuiDragDropFlags_None))
 			{
 				AssetDragDropPayload unpacked = {};
 				memcpy(&unpacked, payload->Data, payload->DataSize);
-
-				VKR_LOG("Accepted asset: {}", unpacked.m_Filepath);
+				//HandleAssetDrop(unpacked);
 			}
 
 			ImGui::EndDragDropTarget();

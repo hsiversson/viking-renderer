@@ -1,6 +1,7 @@
 #include "contentbrowserpanel.h"
 
 #if ENABLE_EDITOR
+#include "asset.h"
 #include "editor.h"
 
 namespace vkr::Editor
@@ -220,17 +221,11 @@ namespace vkr::Editor
 		{
 			if (ImGui::BeginDragDropSource())
 			{
-				struct AssetDragDropPayload
-				{
-					uint32_t m_AssetType;
-					char m_Filepath[252];
-				};
-
 				AssetDragDropPayload payload = {};
-				payload.m_AssetType = 0;
+				payload.m_Type = AssetType::GLTF;
 
 				const std::string pathStr = path.string();
-				memcpy(payload.m_Filepath, pathStr.c_str(), pathStr.length());
+				memcpy(payload.m_Path, pathStr.c_str(), pathStr.length());
 
 				ImGui::SetDragDropPayload("_AssetDragSource", &payload, sizeof(payload));
 				ImGui::Image(thumbnail, ImVec2(size.x, size.y));
