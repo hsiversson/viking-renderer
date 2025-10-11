@@ -473,6 +473,25 @@ namespace vkr::Editor
 		ImVec2 curPos = ImGui::GetCursorScreenPos();
         ImGui::Image((ImTextureID)m_ViewOutput.m_TextureView.get(), { m_ContentAreaSize.x, m_ContentAreaSize.y }, { 0,0 }, { uvMax.x, uvMax.y });
 
+		if (ImGui::BeginDragDropTarget())
+		{
+			struct AssetDragDropPayload
+			{
+				uint32_t m_AssetType;
+				char m_Filepath[252];
+			};
+
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("_AssetDragSource", ImGuiDragDropFlags_None))
+			{
+				AssetDragDropPayload unpacked = {};
+				memcpy(&unpacked, payload->Data, payload->DataSize);
+
+				VKR_LOG("Accepted asset: {}", unpacked.m_Filepath);
+			}
+
+			ImGui::EndDragDropTarget();
+		}
+
 		Render::TextureView* outlinerTexture = m_Outliner.GetTexture();
 		if (!m_SelectedEntities.empty() && outlinerTexture)
 		{

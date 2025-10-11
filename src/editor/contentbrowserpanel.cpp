@@ -206,20 +206,34 @@ namespace vkr::Editor
 		}
 	}
 
-	static bool AssetButton(ImTextureID thumbnail, const Vector2u& aSize, const char* aName, bool allowDragDropSource = false)
+	static bool AssetButton(ImTextureID thumbnail, const Vector2u& size, const std::filesystem::path& path, bool allowDragDropSource = false)
 	{
-		ImGui::PushID(aName);
+		const std::string name = path.filename().string();
+
+		ImGui::PushID(name.c_str());
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
 		ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
-		ImGui::ImageButton("##assetButton", thumbnail, ImVec2(aSize.x, aSize.y));
+		ImGui::ImageButton("##assetButton", thumbnail, ImVec2(size.x, size.y));
 		ImGui::PopStyleColor(2);
 
 		if (allowDragDropSource)
 		{
 			if (ImGui::BeginDragDropSource())
 			{
-				ImGui::SetDragDropPayload("_AssetDragSource", "test", sizeof("test"));
-				ImGui::Image(thumbnail, ImVec2(aSize.x, aSize.y));
+				struct AssetDragDropPayload
+				{
+					uint32_t m_AssetType;
+					char m_Filepath[252];
+				};
+
+				AssetDragDropPayload payload = {};
+				payload.m_AssetType = 0;
+
+				const std::string pathStr = path.string();
+				memcpy(payload.m_Filepath, pathStr.c_str(), pathStr.length());
+
+				ImGui::SetDragDropPayload("_AssetDragSource", &payload, sizeof(payload));
+				ImGui::Image(thumbnail, ImVec2(size.x, size.y));
 				ImGui::EndDragDropSource();
 			}
 		}
@@ -240,7 +254,7 @@ namespace vkr::Editor
 			ImGui::EndPopup();
 		}
 
-		ImGui::TextWrapped("%s", aName);
+		ImGui::TextWrapped("%s", name.c_str());
 		ImGui::PopID();
 		return wasDoubleClicked;
 	}
@@ -275,7 +289,7 @@ namespace vkr::Editor
 			for (uint32_t i = 0; i < m_CurrentEntry->m_ChildDirectories.size(); ++i)
 			{
 				ImGui::TableNextColumn();
-				if (AssetButton((ImTextureID)icons->GetIcon(EDITOR_ICON_FOLDER).m_Texture.get(), Vector2u(thumbnailSize), m_CurrentEntry->m_ChildDirectories[i].m_Path.filename().string().c_str()))
+				if (AssetButton((ImTextureID)icons->GetIcon(EDITOR_ICON_FOLDER).m_Texture.get(), Vector2u(thumbnailSize), m_CurrentEntry->m_ChildDirectories[i].m_Path))
 				{
 					m_CurrentEntry = &m_CurrentEntry->m_ChildDirectories[i];
 				}
@@ -285,7 +299,7 @@ namespace vkr::Editor
 			{
 				ImGui::TableNextColumn();
 				// TODO: use thumbnail
-				if (AssetButton((ImTextureID)icons->GetIcon(EDITOR_ICON_FILE).m_Texture.get(), Vector2u(thumbnailSize), m_CurrentEntry->m_Files[i].filename().string().c_str(), true))
+				if (AssetButton((ImTextureID)icons->GetIcon(EDITOR_ICON_FILE).m_Texture.get(), Vector2u(thumbnailSize), m_CurrentEntry->m_Files[i], true))
 				{
 					// TODO: Open asset
 				}
