@@ -230,5 +230,20 @@ namespace vkr::Render
 		GLOBAL_CONSTANT_BUFFER_COUNT
 	};
 
+	enum CpuAccess : uint8_t
+	{
+		CPU_ACCESS_NONE,
+		CPU_ACCESS_READ,
+		CPU_ACCESS_WRITE,
+		CPU_ACCESS_READ_WRITE,
+	};
+
+	enum GpuAccess : uint8_t
+	{
+		GPU_ACCESS_READ,
+		GPU_ACCESS_READ_WRITE,
+		GPU_ACCESS_STAGING,
+	};
+
 	static constexpr uint32_t MAX_NUM_LOCAL_CONSTANT_BUFFERS = 4;
 }

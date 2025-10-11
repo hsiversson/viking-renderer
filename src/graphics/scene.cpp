@@ -158,6 +158,11 @@ namespace vkr::Graphics
 		m_PendingActions.push(std::move(action));
 	}
 
+	const std::vector<Ref<Model>>& Scene::GetModels() const
+	{
+		return m_Models;
+	}
+
 	void Scene::PrepareView(View* view)
 	{
 		// traverse all objects in Scene, add relevant ones to view.PrepareData()

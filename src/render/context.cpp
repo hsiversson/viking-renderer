@@ -926,4 +926,12 @@ namespace vkr::Render
 		taskEvent.WaitForEvent();
 		InsertWait(taskEvent.GetFence());
 	}
+	void Context::InsertWait(const Ref<RenderTaskEvent>& taskEvent)
+	{
+		if (taskEvent)
+		{
+			taskEvent->WaitForEvent();
+			InsertWait(taskEvent->GetFence());
+		}
+	}
 }

@@ -62,7 +62,7 @@ namespace vkr::Render
 			optimizedClearValue.DepthStencil = { 0.0f, 0 };
 		}
 
-		const D3D12_HEAP_PROPERTIES heapProps = D3DGetDefaultHeapProperties();
+		const D3D12_HEAP_PROPERTIES heapProps = D3DGetHeapProperties(desc.m_CpuAccess);
 		HRESULT hr = GetDevice()->GetD3DDevice10()->CreateCommittedResource3(&heapProps, D3D12_HEAP_FLAG_NONE, &textureDesc, initialLayout, (desc.m_AllowRenderTarget || desc.m_AllowDepthStencil) ? &optimizedClearValue : nullptr, nullptr, 0, nullptr, IID_PPV_ARGS(&m_Resource));
 		if (FAILED(hr))
 		{

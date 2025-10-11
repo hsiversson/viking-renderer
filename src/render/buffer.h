@@ -14,6 +14,9 @@ namespace vkr::Render
 		bool m_IsReadback = false;
 		bool m_IsRaytracingAccelerationStructure = false;
 
+		CpuAccess m_CpuAccess = CPU_ACCESS_NONE;
+		GpuAccess m_GpuAccess = GPU_ACCESS_READ;
+
 		const char* m_Name = nullptr;
 
 		inline uint32_t ByteSize() const { return m_ElementCount * m_ElementSize; }

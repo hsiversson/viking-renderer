@@ -162,6 +162,7 @@ namespace vkr::Render
 		// Synchronization
 		void InsertWait(const Fence& fence);
 		void InsertWait(const RenderTaskEvent& taskEvent);
+		void InsertWait(const Ref<RenderTaskEvent>& taskEvent);
 
 		ContextType GetType() const;
 		CommandList* GetCommandList() const;

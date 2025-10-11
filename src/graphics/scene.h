@@ -31,6 +31,8 @@ namespace vkr::Graphics
 		void AddModel(const Ref<Model>& model);
 		void RemoveModel(const Ref<Model>& model);
 
+		const std::vector<Ref<Model>>& GetModels() const;
+
 	private:
 		// Prepare render data for rendering for each view. 
 		// I.e extract renderable information and store in list to be picked up by render tasks later

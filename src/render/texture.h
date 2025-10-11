@@ -17,6 +17,9 @@ namespace vkr::Render
 		Vector4f m_ClearValue = { 0,0,0,0 };
 		uint32_t m_NumSamples = 1;
 
+		CpuAccess m_CpuAccess = CPU_ACCESS_NONE;
+		GpuAccess m_GpuAccess = GPU_ACCESS_READ;
+
 		const char* m_Name = nullptr;
 	};
 

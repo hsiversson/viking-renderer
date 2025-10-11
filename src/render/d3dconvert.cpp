@@ -834,4 +834,29 @@ namespace vkr::Render
 		return heapProps;
 	}
 
+	D3D12_HEAP_PROPERTIES D3DGetHeapProperties(CpuAccess cpuAccess)
+	{
+		D3D12_HEAP_PROPERTIES heapProps = {};
+		switch (cpuAccess)
+		{
+		case CPU_ACCESS_NONE:
+			heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+			break;
+		case CPU_ACCESS_READ:
+			heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+			break;
+		case CPU_ACCESS_WRITE:
+			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+			break;
+		case CPU_ACCESS_READ_WRITE:
+			heapProps.Type = D3D12_HEAP_TYPE_CUSTOM;
+			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
+			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+			break;
+		default:
+			VKR_CHECK_NO_ENTRY();
+		}
+		return heapProps;
+	}
+
 }

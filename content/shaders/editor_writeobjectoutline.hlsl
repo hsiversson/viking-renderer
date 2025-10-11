@@ -25,12 +25,12 @@ PixelInput MainVS(uint vertexId : SV_VertexID)
 {
     ByteAddressBuffer vertexBuffer = ResourceDescriptorHeap[Constants.VertexBufferDescriptorIndex];
     const uint vertexOffset = vertexId * Constants.VertexStride;
-    float3 position = asfloat(vertexBuffer.Load3(vertexOffset + Constants.VertexPositionByteOffset));
-    float3 normal = asfloat(vertexBuffer.Load3(vertexOffset + Constants.VertexNormalByteOffset));
+    float3 localPosition = asfloat(vertexBuffer.Load3(vertexOffset + Constants.VertexPositionByteOffset));
+    float3 localNormal = asfloat(vertexBuffer.Load3(vertexOffset + Constants.VertexNormalByteOffset));
     
     PixelInput output;
-    float3 worldPosition = mul(Constants.ObjectTransform, float4(position.xyz, 1.0f)).xyz;
-    float3 worldNormal = normalize(mul(Constants.ObjectTransform, float4(normal, 0.0f)).xyz);
+    float3 worldPosition = mul(Constants.ObjectTransform, float4(localPosition, 1.0f)).xyz;
+    float3 worldNormal = normalize(mul(Constants.ObjectTransform, float4(localNormal, 0.0f)).xyz);
     float3 viewNormal = normalize(mul(Constants.View, float4(worldNormal, 0.0f)).xyz);
     output.clipPosition = mul(Constants.ViewProjection, float4(worldPosition, 1.0f));
     

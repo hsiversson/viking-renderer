@@ -1,9 +1,13 @@
 struct ConstantsStruct
 {
     float4x4 ViewProjection;
-    uint ObjectId;
+    float4x4 ObjectTransform;
+    uint ObjectIdLowPart;
+    uint ObjectIdHighPart;
     uint VertexBufferDescriptorIndex;
     uint VertexPositionByteOffset;
+    uint VertexStride;
+    uint3 _pad;
 };
 ConstantBuffer<ConstantsStruct> Constants : register(b0);
 
@@ -15,14 +19,16 @@ struct PixelInput
 PixelInput MainVS(uint vertexId : SV_VertexID)
 {
     ByteAddressBuffer vertexBuffer = ResourceDescriptorHeap[Constants.VertexBufferDescriptorIndex];
-    float3 position = asfloat(vertexBuffer.Load3(vertexId + Constants.VertexPositionByteOffset));
+    const uint vertexOffset = vertexId * Constants.VertexStride;
+    float3 localPosition = asfloat(vertexBuffer.Load3(vertexOffset + Constants.VertexPositionByteOffset));
+    float3 worldPosition = mul(Constants.ObjectTransform, float4(localPosition, 1.0f)).xyz;
     
     PixelInput output;
-    output.clipPosition = mul(Constants.ViewProjection, float4(position.xyz, 1.0f));
+    output.clipPosition = mul(Constants.ViewProjection, float4(worldPosition, 1.0f));
     return output;
 }
 
-uint4 MainPS(PixelInput input) : SV_Target
+uint2 MainPS(PixelInput input) : SV_Target
 {
-    return uint4(Constants.ObjectId, 0, 0, 0);
+    return uint2(Constants.ObjectIdLowPart, Constants.ObjectIdHighPart);
 }

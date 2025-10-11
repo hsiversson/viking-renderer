@@ -36,11 +36,27 @@ namespace vkr::Editor
 	{
 	public:
 		bool Init();
-		bool Run(const Vector2u& mousePosition, const Game::World& world, std::vector<Game::Entity>& selectedEntities) const;
+		bool Run(const Vector2u& mousePosition, const Vector2u& viewportSize, Graphics::Camera& camera, const Game::World& world, std::vector<Game::Entity>& selectedEntities);
 
 	private:
+		struct ObjectIdEntry
+		{
+			uint32_t m_ObjectIdLowPart;
+			uint32_t m_ObjectIdHighPart;
+			Render::BufferView* m_VertexBuffer;
+			Render::Buffer* m_IndexBuffer;
+			uint32_t m_PositionByteOffset;
+			uint32_t m_VertexStride;
+			Mat44 m_Transform;
+		};
+
+		void FetchPartData(const Game::EntityHandle entityHandle, const Graphics::Model::Part& part, const Mat44& parentWorldTransform, std::vector<ObjectIdEntry>& objects);
+
+		Ref<Render::RenderTaskEvent> m_LastWriteEvent;
 		Ref<Render::PipelineState> m_WriteObjectIdPSO;
-		Graphics::TextureTarget m_ObjectIdBuffer;
+		Graphics::TextureTarget m_RenderTarget;
+		std::array<Ref<Render::Texture>, 3> m_ResolvedTargets;
+		Graphics::TextureTarget m_DepthStencil;
 	};
 
 	class ViewportOutliner

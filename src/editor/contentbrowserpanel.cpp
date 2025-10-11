@@ -206,13 +206,23 @@ namespace vkr::Editor
 		}
 	}
 
-	static bool AssetButton(ImTextureID thumbnail, const Vector2u& aSize, const char* aName)
+	static bool AssetButton(ImTextureID thumbnail, const Vector2u& aSize, const char* aName, bool allowDragDropSource = false)
 	{
 		ImGui::PushID(aName);
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
 		ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
 		ImGui::ImageButton("##assetButton", thumbnail, ImVec2(aSize.x, aSize.y));
 		ImGui::PopStyleColor(2);
+
+		if (allowDragDropSource)
+		{
+			if (ImGui::BeginDragDropSource())
+			{
+				ImGui::SetDragDropPayload("_AssetDragSource", "test", sizeof("test"));
+				ImGui::Image(thumbnail, ImVec2(aSize.x, aSize.y));
+				ImGui::EndDragDropSource();
+			}
+		}
 
 		bool wasDoubleClicked = ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
 
@@ -275,7 +285,7 @@ namespace vkr::Editor
 			{
 				ImGui::TableNextColumn();
 				// TODO: use thumbnail
-				if (AssetButton((ImTextureID)icons->GetIcon(EDITOR_ICON_FILE).m_Texture.get(), Vector2u(thumbnailSize), m_CurrentEntry->m_Files[i].filename().string().c_str()))
+				if (AssetButton((ImTextureID)icons->GetIcon(EDITOR_ICON_FILE).m_Texture.get(), Vector2u(thumbnailSize), m_CurrentEntry->m_Files[i].filename().string().c_str(), true))
 				{
 					// TODO: Open asset
 				}
