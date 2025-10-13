@@ -68,6 +68,26 @@ namespace vkr::Editor
 		}
 	}
 
+	void WorldHierarchyPanel::ReceiveMessage(const BroadcastMessage& message)
+	{
+		if (message.GetId() == BROADCAST_MSG_ID_SELECTED_ENTITIES)
+		{
+			struct Selection
+			{
+				uint32_t m_NumEntities;
+				Game::Entity* m_Entities;
+			};
+			Selection selection;
+			message.GetData(selection);
+
+			m_SelectedEntities.clear();
+			if (selection.m_NumEntities > 0)
+			{
+				m_SelectedEntities.insert(m_SelectedEntities.end(), selection.m_Entities, selection.m_Entities + selection.m_NumEntities);
+			}
+		}
+	}
+
 	void WorldHierarchyPanel::DrawEntityNode(const Game::Entity& entity)
 	{
 		ImGui::TableNextRow();
@@ -113,7 +133,7 @@ namespace vkr::Editor
 			ImGui::EndDragDropTarget();
 		}
 
-		if (ImGui::IsItemClicked())
+		if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
 		{
 			// single selection
 			m_SelectedEntities.clear();
@@ -131,22 +151,34 @@ namespace vkr::Editor
 			msg.SetData(selection);
 			Manager::Get()->Broadcast(msg);
 		}
+		else if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+		{
+			ImGui::OpenPopup("##EntityContextMenu");
+		}
 		//else if (multiSelect)
 		//{
 		//	// TODO: Handle multi selection
 		//}
 
 		// Right click menu
-		//bool entityDeleted = false;
-		//if (ImGui::BeginPopupContextItem())
-		//{
-		//	mSelectedEntity = aEntity;
-		//	Editor_BaseModule::Get()->GetRoot()->SetSelectedEntity(mSelectedEntity);
-		//	if (ImGui::MenuItem("Delete"))
-		//		entityDeleted = true;
-		//
-		//	ImGui::EndPopup();
-		//}
+		if (ImGui::BeginPopup("##EntityContextMenu"))
+		{
+			if (ImGui::MenuItem("Delete"))
+			{
+				m_World.DestroyEntity(entity);
+
+				BroadcastMessage msg(BROADCAST_MSG_ID_SELECTED_ENTITIES);
+				struct Selection
+				{
+					uint32_t m_NumEntities;
+					Game::Entity* m_Entities;
+				};
+				Selection selection = {};
+				msg.SetData(selection);
+				Manager::Get()->Broadcast(msg);
+			}
+			ImGui::EndPopup();
+		}
 
 		// Type
 		ImGui::TableSetColumnIndex(1);

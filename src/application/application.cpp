@@ -131,8 +131,10 @@ namespace vkr
 		if (desc.m_Mode == ApplicationMode::Editor)
 		{
 			m_EditorManager = MakeUnique<Editor::Manager>();
-			if (!m_EditorManager->Init(m_InputManager.get(), m_Window))
+			if (!m_EditorManager->Init(m_Window))
 				return RETURN_ERROR;
+
+			m_Window->AddMessageHandler(m_EditorManager.get());
 		}
 
 		return InitInternal();

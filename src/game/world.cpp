@@ -3,6 +3,7 @@
 #include "graphics/scene.h"
 #include "hierarchycomponent.h"
 #include "idcomponent.h"
+#include "modelcomponent.h"
 #include "transformcomponent.h"
 
 namespace vkr::Game
@@ -40,6 +41,13 @@ namespace vkr::Game
 
 	void World::DestroyEntity(const Entity& entity)
 	{
+		// TODO: Need to handle destruction flow better
+		if (entity.HasComponent<Game::ModelComponent>())
+		{
+			const Game::ModelComponent* comp = entity.GetComponent<Game::ModelComponent>();
+			m_GraphicsScene->RemoveModel(comp->m_Model);
+		}
+
 		m_EntityRegistry.DestroyEntity(entity);
 	}
 

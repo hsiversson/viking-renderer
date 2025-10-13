@@ -93,8 +93,7 @@ namespace vkr::Editor
 	Manager* Manager::g_Instance = nullptr;
 
 	Manager::Manager()
-		: m_InputManager(nullptr)
-		, m_EditorLayoutConfigPath(SystemPaths::GetUserDirectory() / "editor_layout.ini")
+		: m_EditorLayoutConfigPath(SystemPaths::GetUserDirectory() / "editor_layout.ini")
 	{
 		VKR_ASSERT(g_Instance == nullptr);
 		g_Instance = this;
@@ -112,7 +111,7 @@ namespace vkr::Editor
 		g_Instance = nullptr;
 	}
 
-	bool Manager::Init(InputManager* inputManager, const Ref<Window>& window)
+	bool Manager::Init(const Ref<Window>& window)
 	{
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -160,7 +159,6 @@ namespace vkr::Editor
 		}
 
 		m_Window = window;
-		m_InputManager = inputManager;
 
 		m_Window->SetIsTitlebarHoveredCallback([this](uint32_t, uint32_t) { return m_IsTitlebarHovered; });
 
@@ -183,20 +181,9 @@ namespace vkr::Editor
 		io.DeltaTime = ElapsedTimer::DeltaTime();
 
 		m_FpsMovingAverage.Add(static_cast<uint32_t>(std::roundf(1.0f / ElapsedTimer::DeltaTime())));
-		//VKR_LOG("FPS: {}", m_FpsMovingAverage.GetAverage());
 
 		const Vector2f& windowDpi = m_Window->GetDpiScale();
 		io.DisplayFramebufferScale = ImVec2(windowDpi.x, windowDpi.y);
-
-		if (m_InputManager)
-		{
-			const Vector2i mousePos = m_InputManager->GetMousePosition();
-			io.AddMousePosEvent(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
-			io.AddMouseButtonEvent(ImGuiMouseButton_Left, m_InputManager->IsMouseKeyPressed(INPUT_MOUSE_KEY_LEFT));
-			io.AddMouseButtonEvent(ImGuiMouseButton_Right, m_InputManager->IsMouseKeyPressed(INPUT_MOUSE_KEY_RIGHT));
-			io.AddMouseButtonEvent(ImGuiMouseButton_Middle, m_InputManager->IsMouseKeyPressed(INPUT_MOUSE_KEY_MIDDLE));
-			io.AddMouseWheelEvent(0.0f, m_InputManager->GetMouseScrollDelta());
-		}
 
 		ImGui::NewFrame();
 		ImGuizmo::BeginFrame();
@@ -215,11 +202,6 @@ namespace vkr::Editor
 	Icons* Manager::GetIcons() const
 	{
 		return m_Icons.get();
-	}
-
-	InputManager* Manager::GetInputManager() const
-	{
-		return m_InputManager;
 	}
 
 	void Manager::Broadcast(const BroadcastMessage& message)
@@ -637,6 +619,308 @@ namespace vkr::Editor
 		style.FrameRounding = 2.5f;
 		style.FrameBorderSize = 1.0f;
 		style.IndentSpacing = 11.0f;
+	}
+
+	static ImGuiKey ConvertToImGuiKey(uint32_t aKeyCode)
+	{
+		switch (aKeyCode)
+		{
+		case 0x30:
+			return ImGuiKey_0;
+		case 0x31:
+			return ImGuiKey_1;
+		case 0x32:
+			return ImGuiKey_2;
+		case 0x33:
+			return ImGuiKey_3;
+		case 0x34:
+			return ImGuiKey_4;
+		case 0x35:
+			return ImGuiKey_5;
+		case 0x36:
+			return ImGuiKey_6;
+		case 0x37:
+			return ImGuiKey_7;
+		case 0x38:
+			return ImGuiKey_8;
+		case 0x39:
+			return ImGuiKey_9;
+
+
+		case 0x41:
+			return ImGuiKey_A;
+		case 0x42:
+			return ImGuiKey_B;
+		case 0x43:
+			return ImGuiKey_C;
+		case 0x44:
+			return ImGuiKey_D;
+		case 0x45:
+			return ImGuiKey_E;
+		case 0x46:
+			return ImGuiKey_F;
+		case 0x47:
+			return ImGuiKey_G;
+		case 0x48:
+			return ImGuiKey_H;
+		case 0x49:
+			return ImGuiKey_I;
+		case 0x4A:
+			return ImGuiKey_J;
+		case 0x4B:
+			return ImGuiKey_K;
+		case 0x4C:
+			return ImGuiKey_L;
+		case 0x4D:
+			return ImGuiKey_M;
+		case 0x4E:
+			return ImGuiKey_N;
+		case 0x4F:
+			return ImGuiKey_O;
+		case 0x50:
+			return ImGuiKey_P;
+		case 0x51:
+			return ImGuiKey_Q;
+		case 0x52:
+			return ImGuiKey_R;
+		case 0x53:
+			return ImGuiKey_S;
+		case 0x54:
+			return ImGuiKey_T;
+		case 0x55:
+			return ImGuiKey_U;
+		case 0x56:
+			return ImGuiKey_V;
+		case 0x57:
+			return ImGuiKey_W;
+		case 0x58:
+			return ImGuiKey_X;
+		case 0x59:
+			return ImGuiKey_Y;
+		case 0x5A:
+			return ImGuiKey_Z;
+
+		case VK_NUMPAD0:
+			return ImGuiKey_Keypad0;
+		case VK_NUMPAD1:
+			return ImGuiKey_Keypad1;
+		case VK_NUMPAD2:
+			return ImGuiKey_Keypad2;
+		case VK_NUMPAD3:
+			return ImGuiKey_Keypad3;
+		case VK_NUMPAD4:
+			return ImGuiKey_Keypad4;
+		case VK_NUMPAD5:
+			return ImGuiKey_Keypad5;
+		case VK_NUMPAD6:
+			return ImGuiKey_Keypad6;
+		case VK_NUMPAD7:
+			return ImGuiKey_Keypad7;
+		case VK_NUMPAD8:
+			return ImGuiKey_Keypad8;
+		case VK_NUMPAD9:
+			return ImGuiKey_Keypad9;
+		case VK_SEPARATOR:
+			return ImGuiKey_Comma;
+		case VK_ADD:
+			return ImGuiKey_KeypadAdd;
+		case VK_SUBTRACT:
+			return ImGuiKey_KeypadSubtract;
+		case VK_MULTIPLY:
+			return ImGuiKey_KeypadMultiply;
+		case VK_DIVIDE:
+			return ImGuiKey_KeypadDivide;
+
+
+		case VK_F1:
+			return ImGuiKey_F1;
+		case VK_F2:
+			return ImGuiKey_F2;
+		case VK_F3:
+			return ImGuiKey_F3;
+		case VK_F4:
+			return ImGuiKey_F4;
+		case VK_F5:
+			return ImGuiKey_F5;
+		case VK_F6:
+			return ImGuiKey_F6;
+		case VK_F7:
+			return ImGuiKey_F7;
+		case VK_F8:
+			return ImGuiKey_F8;
+		case VK_F9:
+			return ImGuiKey_F9;
+		case VK_F10:
+			return ImGuiKey_F10;
+		case VK_F12:
+			return ImGuiKey_F12;
+		case VK_F13:
+			return ImGuiKey_F13;
+		case VK_F14:
+			return ImGuiKey_F14;
+		case VK_F15:
+			return ImGuiKey_F15;
+		case VK_F16:
+			return ImGuiKey_F16;
+		case VK_F17:
+			return ImGuiKey_F17;
+		case VK_F18:
+			return ImGuiKey_F18;
+		case VK_F19:
+			return ImGuiKey_F19;
+		case VK_F20:
+			return ImGuiKey_F20;
+		case VK_F21:
+			return ImGuiKey_F21;
+		case VK_F22:
+			return ImGuiKey_F22;
+		case VK_F23:
+			return ImGuiKey_F23;
+		case VK_F24:
+			return ImGuiKey_F24;
+
+		case VK_LEFT:
+			return ImGuiKey_LeftArrow;
+		case VK_RIGHT:
+			return ImGuiKey_RightArrow;
+		case VK_UP:
+			return ImGuiKey_UpArrow;
+		case VK_DOWN:
+			return ImGuiKey_DownArrow;
+		case VK_PRIOR:
+			return ImGuiKey_PageUp;
+		case VK_NEXT:
+			return ImGuiKey_PageDown;
+		case VK_HOME:
+			return ImGuiKey_Home;
+		case VK_END:
+			return ImGuiKey_End;
+		case VK_INSERT:
+			return ImGuiKey_Insert;
+		case VK_DELETE:
+			return ImGuiKey_Delete;
+		case VK_BACK:
+			return ImGuiKey_Backspace;
+		case VK_SPACE:
+			return ImGuiKey_Space;
+		case VK_RETURN:
+			return ImGuiKey_Enter;
+		case VK_ESCAPE:
+			return ImGuiKey_Escape;
+
+		case VK_LCONTROL:
+			return ImGuiKey_LeftCtrl;
+		case VK_LSHIFT:
+			return ImGuiKey_LeftShift;
+		case VK_LMENU:
+			return ImGuiKey_LeftAlt;
+		case VK_RCONTROL:
+			return ImGuiKey_RightCtrl;
+		case VK_RSHIFT:
+			return ImGuiKey_RightShift;
+		case VK_RMENU:
+			return ImGuiKey_RightAlt;
+		}
+
+		return ImGuiKey_None;
+	}
+
+	void Manager::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+
+		switch (msg)
+		{
+		case WM_MOUSEMOVE:
+		{
+			uint32_t val = (uint32_t)lParam;
+			int16_t x = static_cast<int16_t>(val & 0x0000ffff);
+			int16_t y = static_cast<int16_t>(val >> 16);
+			io.AddMousePosEvent((float)x, (float)y);
+			break;
+		}
+		case WM_NCMOUSEMOVE:
+		{
+			POINT pt;
+			pt.x = static_cast<int16_t>(lParam & 0x0000ffff);
+			pt.y = static_cast<int16_t>(lParam >> 16);
+			ScreenToClient((HWND)Application::Get()->GetMainWindow()->GetNativeHandle(), &pt);
+			io.AddMousePosEvent((float)pt.x, (float)pt.y);
+			break;
+		}
+		case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK:
+		case WM_RBUTTONDOWN: case WM_RBUTTONDBLCLK:
+		case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK:
+		case WM_XBUTTONDOWN: case WM_XBUTTONDBLCLK:
+		{
+			int button = 0;
+			if (msg == WM_LBUTTONDOWN || msg == WM_LBUTTONDBLCLK) { button = 0; }
+			if (msg == WM_RBUTTONDOWN || msg == WM_RBUTTONDBLCLK) { button = 1; }
+			if (msg == WM_MBUTTONDOWN || msg == WM_MBUTTONDBLCLK) { button = 2; }
+			if (msg == WM_XBUTTONDOWN || msg == WM_XBUTTONDBLCLK) { button = (GET_XBUTTON_WPARAM(wParam) == XBUTTON1) ? 3 : 4; }
+			io.AddMouseButtonEvent(button, true);
+			break;
+		}
+		case WM_LBUTTONUP:
+		case WM_RBUTTONUP:
+		case WM_MBUTTONUP:
+		case WM_XBUTTONUP:
+		{
+			int button = 0;
+			if (msg == WM_LBUTTONUP) { button = 0; }
+			if (msg == WM_RBUTTONUP) { button = 1; }
+			if (msg == WM_MBUTTONUP) { button = 2; }
+			if (msg == WM_XBUTTONUP) { button = (GET_XBUTTON_WPARAM(wParam) == XBUTTON1) ? 3 : 4; }
+			io.AddMouseButtonEvent(button, false);
+			break;
+		}
+		case WM_MOUSEWHEEL:
+			io.AddMouseWheelEvent(0.0f, (float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
+			break;
+		case WM_MOUSEHWHEEL:
+			io.AddMouseWheelEvent(-(float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA, 0.0f);
+			break;
+		case WM_KEYDOWN:
+		case WM_SYSKEYDOWN:
+		{
+			if (wParam < 256)
+			{
+				ImGuiKey key = ConvertToImGuiKey((uint32_t)wParam);
+				io.AddKeyEvent(key, true);
+			}
+			break;
+		}
+		case WM_KEYUP:
+		case WM_SYSKEYUP:
+		{
+			if (wParam < 256)
+			{
+				ImGuiKey key = ConvertToImGuiKey((uint32_t)wParam);
+				io.AddKeyEvent(key, false);
+			}
+			break;
+		}
+		case WM_SETFOCUS:
+		case WM_KILLFOCUS:
+			io.AddFocusEvent(msg == WM_SETFOCUS);
+			break;
+		case WM_CHAR:
+			if (::IsWindowUnicode((HWND)m_Window->GetNativeHandle()))
+			{
+				// You can also use ToAscii()+GetKeyboardState() to retrieve characters.
+				if (wParam > 0 && wParam < 0x10000)
+				{
+					io.AddInputCharacterUTF16((unsigned short)wParam);
+				}
+			}
+			else
+			{
+				wchar_t wch = 0;
+				::MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, (char*)&wParam, 1, &wch, 1);
+				io.AddInputCharacter(wch);
+			}
+			break;
+		}
 	}
 }
 #endif //ENABLE_EDITOR

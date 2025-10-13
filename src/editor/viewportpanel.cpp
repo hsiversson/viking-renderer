@@ -10,6 +10,10 @@
 #include "graphics/scene.h"
 #include "core/inputmanager.h"
 
+// TEMP
+#include "graphics/modelloader_gltf.h"
+// TEMP
+
 #include "imguizmo.h"
 
 namespace vkr::Editor
@@ -22,12 +26,12 @@ namespace vkr::Editor
 
 	void EditorCameraController::Update(bool isHovered)
 	{
-		InputManager* inputManager = Manager::Get()->GetInputManager();
-
+		ImGuiIO& io = ImGui::GetIO();
 		Vector3f newVelocity = { 0,0,0 };
-		if (isHovered && inputManager->IsMouseKeyPressed(INPUT_MOUSE_KEY_RIGHT))
+		if (isHovered && ImGui::IsMouseDown(ImGuiMouseButton_Right))
 		{
-			Vector2f mouseMoveDelta = Vector2f(inputManager->GetMouseDelta());
+			ImVec2 delta = io.MouseDelta;
+			Vector2f mouseMoveDelta = Vector2f(delta.x, delta.y);
 
 			m_YawDeg += mouseMoveDelta.x * m_MouseSensitivity;
 			m_YawDeg = std::fmod(m_YawDeg, 360.0f);
@@ -49,19 +53,19 @@ namespace vkr::Editor
 			Vector3f camRight = Normalized(Cross(Vector3f(0, 1, 0), camForward));
 			Vector3f camUp = Normalized(Cross(camForward, camRight));
 
-			if (inputManager->IsKeyPressed(INPUT_KEY_W)) newVelocity = newVelocity + camForward;
-			if (inputManager->IsKeyPressed(INPUT_KEY_S)) newVelocity = newVelocity - camForward;
-			if (inputManager->IsKeyPressed(INPUT_KEY_A)) newVelocity = newVelocity - camRight;
-			if (inputManager->IsKeyPressed(INPUT_KEY_D)) newVelocity = newVelocity + camRight;
-			if (inputManager->IsKeyPressed(INPUT_KEY_Q)) newVelocity = newVelocity + camUp;
-			if (inputManager->IsKeyPressed(INPUT_KEY_E)) newVelocity = newVelocity - camUp;
+			if (ImGui::IsKeyDown(ImGuiKey_W)) newVelocity = newVelocity + camForward;
+			if (ImGui::IsKeyDown(ImGuiKey_S)) newVelocity = newVelocity - camForward;
+			if (ImGui::IsKeyDown(ImGuiKey_A)) newVelocity = newVelocity - camRight;
+			if (ImGui::IsKeyDown(ImGuiKey_D)) newVelocity = newVelocity + camRight;
+			if (ImGui::IsKeyDown(ImGuiKey_Q)) newVelocity = newVelocity + camUp;
+			if (ImGui::IsKeyDown(ImGuiKey_E)) newVelocity = newVelocity - camUp;
 
 			if (Length(newVelocity) > 0.0f)
 				newVelocity = Normalized(newVelocity);
 
-			if (inputManager->GetMouseScrollDelta() != 0.0f)
+			if (io.MouseWheel != 0.0f)
 			{
-				m_MoveSpeed += inputManager->GetMouseScrollDelta() * 100.0f;
+				m_MoveSpeed += io.MouseWheel;
 				m_MoveSpeed = std::clamp(m_MoveSpeed, 0.01f, 50.0f);
 			}
 
@@ -480,7 +484,7 @@ namespace vkr::Editor
 			{
 				AssetDragDropPayload unpacked = {};
 				memcpy(&unpacked, payload->Data, payload->DataSize);
-				//HandleAssetDrop(unpacked);
+				HandleAssetDrop(unpacked);
 			}
 
 			ImGui::EndDragDropTarget();
@@ -498,6 +502,19 @@ namespace vkr::Editor
 		{
 			// TODO: handle multiple entities
 			//		 build a transform that positions itself in the middle of all of the entities
+
+			if (ImGui::IsKeyPressed(ImGuiKey_1))
+			{
+				m_SelectedGizmoOp = GizmoOperation::Translate;
+			}
+			else if (ImGui::IsKeyPressed(ImGuiKey_2))
+			{
+				m_SelectedGizmoOp = GizmoOperation::Rotate;
+			}
+			else if (ImGui::IsKeyPressed(ImGuiKey_3))
+			{
+				m_SelectedGizmoOp = GizmoOperation::Scale;
+			}
 
 			Game::TransformComponent* transformComponent = m_SelectedEntities[0].GetComponent<Game::TransformComponent>();
 
@@ -549,6 +566,44 @@ namespace vkr::Editor
 				m_SelectedEntities.insert(m_SelectedEntities.end(), selection.m_Entities, selection.m_Entities + selection.m_NumEntities);
 			}
 		}
+	}
+
+	bool ViewportPanel::HandleAssetDrop(const AssetDragDropPayload& payload)
+	{
+		const std::filesystem::path path = payload.m_Path;
+		if (path.extension() == ".gltf")
+		{
+			const std::string name = path.stem().string();
+
+			Game::Entity entity = m_World.CreateEntity(name.c_str());
+
+			Mat43 cameraTransform = m_Camera.GetWorldTransform();
+			Vector3f cameraPosition = Vector3f(cameraTransform.At(3, 0), cameraTransform.At(3, 1), cameraTransform.At(3, 2));
+			Vector3f placementPosition = cameraPosition + Normalized(Vector3f(cameraTransform.At(2, 0), cameraTransform.At(2, 1), cameraTransform.At(2, 2))) * 3.0f;
+			Game::TransformComponent& transformComponent = entity.AddComponent<Game::TransformComponent>();
+			transformComponent.m_Position = placementPosition;
+
+			Game::ModelComponent& modelComponent = entity.AddComponent<Game::ModelComponent>();
+			modelComponent.m_ModelFilePath = path;
+
+			Graphics::ModelLoader_GLTF loader;
+			modelComponent.m_Model = loader.Load(modelComponent.m_ModelFilePath);
+			m_World.GetGraphicsScene()->AddModel(modelComponent.m_Model);
+
+			BroadcastMessage msg(BROADCAST_MSG_ID_SELECTED_ENTITIES);
+			struct Selection
+			{
+				uint32_t m_NumEntities;
+				Game::Entity* m_Entities;
+			};
+			Selection selection = {};
+			selection.m_NumEntities = 1;
+			selection.m_Entities = &entity;
+			msg.SetData(selection);
+			Manager::Get()->Broadcast(msg);
+		}
+
+		return false;
 	}
 }
 

@@ -1,14 +1,9 @@
 #pragma once
 
 #if ENABLE_EDITOR
+#include "application/window.h"
 #include "broadcast.h"
 #include "icons.h"
-
-namespace vkr
-{
-	class InputManager;
-	class Window;
-}
 
 namespace vkr::Render
 {
@@ -26,20 +21,19 @@ namespace vkr::Editor
 	class Layout;
 	class Renderer;
 	class ViewportPanel;
-	class Manager
+	class Manager : public IMessageHandler
 	{
 	public:
 		Manager();
 		~Manager();
 
-		bool Init(InputManager* inputManager, const Ref<Window>& window);
+		bool Init(const Ref<Window>& window);
 
 		void Update();
 
 		void Render();
 
 		Icons* GetIcons() const;
-		InputManager* GetInputManager() const;
 
 		void Broadcast(const BroadcastMessage& message);
 
@@ -56,10 +50,11 @@ namespace vkr::Editor
 
 		void SetStyle();
 
+		void ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam) override;
+
 		UniquePtr<Renderer> m_Renderer;
 		UniquePtr<Icons> m_Icons;
 		Ref<Window> m_Window;
-		InputManager* m_InputManager;
 
 		bool m_IsTitlebarHovered = false;
 

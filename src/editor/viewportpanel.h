@@ -87,6 +87,7 @@ namespace vkr::Editor
 		Graphics::TextureTarget m_ResolvedTarget;
 	};
 
+	struct AssetDragDropPayload;
 	class ViewportPanel final : public Panel, public BroadcastListener
 	{
 	public:
@@ -98,6 +99,8 @@ namespace vkr::Editor
 		void OnDraw() override;
 
 		void ReceiveMessage(const BroadcastMessage& message) override;
+
+		bool HandleAssetDrop(const AssetDragDropPayload& payload);
 
 	private:
 		Game::World& m_World;
@@ -121,7 +124,7 @@ namespace vkr::Editor
 			Local
 		};
 		std::vector<Game::Entity> m_SelectedEntities;
-		GizmoOperation m_SelectedGizmoOp = GizmoOperation::Rotate;
+		GizmoOperation m_SelectedGizmoOp = GizmoOperation::Translate;
 		GizmoSpace m_SelectedGizmoSpace = GizmoSpace::World;
 
 		bool m_IsHovered;

@@ -1,6 +1,7 @@
 #pragma once
 
 #if ENABLE_EDITOR
+#include "broadcast.h"
 #include "game/entity.h"
 #include "panel.h"
 
@@ -11,7 +12,7 @@ namespace vkr::Game
 
 namespace vkr::Editor
 {
-	class WorldHierarchyPanel : public Panel
+	class WorldHierarchyPanel : public Panel, public BroadcastListener
 	{
 	public:
 		WorldHierarchyPanel(Game::World& world);
@@ -19,7 +20,9 @@ namespace vkr::Editor
 
 	private:
 		void OnUpdate() override;
-		void OnDraw() override;
+		void OnDraw() override; 
+		
+		void ReceiveMessage(const BroadcastMessage& message);
 
 		void DrawEntityNode(const Game::Entity& entity);
 
