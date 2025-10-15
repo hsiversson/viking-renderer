@@ -140,7 +140,8 @@ namespace vkr::Graphics
 
 		std::vector<RenderObject> m_VisibleMeshes;
 		std::vector<LocalLight> m_VisibleLights;
-		DirectionalLight m_DirectionalLights[2]; //Might want to unify all type of lights. Do we need to treat sun/moon as special
+		uint32_t m_NumDirectionalLights;
+		DirectionalLight m_DirectionalLights[2];
 		MeshPassData m_DepthPassData;
 		MeshPassData m_ForwardPassData;
 

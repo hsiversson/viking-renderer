@@ -9,6 +9,7 @@ namespace vkr::Graphics
 
 		m_VisibleMeshes.clear();
 		m_VisibleLights.clear();
+		m_NumDirectionalLights = 0;
 		m_DepthPassData = {};
 		m_ForwardPassData = {};
 

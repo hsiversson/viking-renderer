@@ -45,6 +45,7 @@ namespace vkr::Editor
 			uint32_t m_ObjectIdHighPart;
 			Render::BufferView* m_VertexBuffer;
 			Render::Buffer* m_IndexBuffer;
+			Render::PrimitiveTopology m_Topology;
 			uint32_t m_PositionByteOffset;
 			uint32_t m_VertexStride;
 			Mat44 m_Transform;
@@ -72,6 +73,7 @@ namespace vkr::Editor
 		{
 			Render::BufferView* m_VertexBuffer;
 			Render::Buffer* m_IndexBuffer;
+			Render::PrimitiveTopology m_Topology;
 			uint32_t m_PositionByteOffset;
 			uint32_t m_NormalByteOffset;
 			uint32_t m_VertexStride;

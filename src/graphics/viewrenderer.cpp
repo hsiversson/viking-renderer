@@ -193,10 +193,11 @@ namespace vkr::Graphics
 		perSceneConstantData.MaterialDataBufferDescriptorIndex = renderData.m_MaterialDataBuffer.GetBufferView()->GetIndex();
 		perSceneConstantData.RaytracingSceneDescriptorIndex = renderData.m_RaytracingTLAS->GetIndex();
 
-		perSceneConstantData.NumDirectionalLightsInUse = 1;
-
-		perSceneConstantData.DirectionalLights[0] = renderData.m_DirectionalLights[0];
-		perSceneConstantData.DirectionalLights[1] = renderData.m_DirectionalLights[1];
+		perSceneConstantData.NumDirectionalLightsInUse = renderData.m_NumDirectionalLights;
+		for (uint32_t i = 0; i < perSceneConstantData.NumDirectionalLightsInUse; ++i)
+		{
+			perSceneConstantData.DirectionalLights[i] = renderData.m_DirectionalLights[i];
+		}
 
 		renderData.m_PerSceneConstantBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(PerSceneConstantData), sizeof(PerSceneConstantData), &perSceneConstantData);
 

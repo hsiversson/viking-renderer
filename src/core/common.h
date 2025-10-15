@@ -2,8 +2,14 @@
 
 #include "globaldefines.h"
 
+#define VKR_UNUSED(x) (static_cast<void>(x))
+
 #define VKR_CONCAT_IMPL(x, y) x##y
 #define VKR_CONCAT(x, y) VKR_CONCAT_IMPL(x, y)
+#define VKR_STRINGIFY2(x) #x
+#define VKR_STRINGIFY(x) VKR_STRINGIFY2(x)
+
+#define VKR_ARRAY_SIZE(x) (sizeof(x) / sizeof(*x))
 
 namespace vkr
 {

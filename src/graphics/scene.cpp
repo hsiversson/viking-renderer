@@ -86,7 +86,12 @@ namespace vkr::Graphics
 				break;
 				case PendingAction::ObjectType::LocalLight:
 				{
-
+					m_LocalLights.push_back(action.m_LocalLight);
+				}
+				break;
+				case PendingAction::ObjectType::DirectionalLight:
+				{
+					m_DirectionalLights.push_back(action.m_DirectionalLight);
 				}
 				break;
 				}
@@ -108,7 +113,22 @@ namespace vkr::Graphics
 				break;
 				case PendingAction::ObjectType::LocalLight:
 				{
-
+					auto it = std::find(m_LocalLights.begin(), m_LocalLights.end(), action.m_LocalLight);
+					if (it != m_LocalLights.end())
+					{
+						std::swap(*it, m_LocalLights.back());
+						m_LocalLights.pop_back();
+					}
+				}
+				break;
+				case PendingAction::ObjectType::DirectionalLight:
+				{
+					auto it = std::find(m_DirectionalLights.begin(), m_DirectionalLights.end(), action.m_DirectionalLight);
+					if (it != m_DirectionalLights.end())
+					{
+						std::swap(*it, m_DirectionalLights.back());
+						m_DirectionalLights.pop_back();
+					}
 				}
 				break;
 				}
@@ -158,6 +178,50 @@ namespace vkr::Graphics
 		m_PendingActions.push(std::move(action));
 	}
 
+	void Scene::AddLight(const Ref<LocalLight>& light)
+	{
+		PendingAction action = {};
+		action.m_Type = PendingAction::Type::Add;
+		action.m_ObjectType = PendingAction::ObjectType::LocalLight;
+		action.m_LocalLight = light;
+
+		std::unique_lock<std::mutex> lock(m_PendingActionsMutex);
+		m_PendingActions.push(std::move(action));
+	}
+
+	void Scene::RemoveLight(const Ref<LocalLight>& light)
+	{
+		PendingAction action = {};
+		action.m_Type = PendingAction::Type::Remove;
+		action.m_ObjectType = PendingAction::ObjectType::LocalLight;
+		action.m_LocalLight = light;
+
+		std::unique_lock<std::mutex> lock(m_PendingActionsMutex);
+		m_PendingActions.push(std::move(action));
+	}
+
+	void Scene::AddDirectionalLight(const Ref<DirectionalLight>& light)
+	{
+		PendingAction action = {};
+		action.m_Type = PendingAction::Type::Add;
+		action.m_ObjectType = PendingAction::ObjectType::DirectionalLight;
+		action.m_DirectionalLight = light;
+
+		std::unique_lock<std::mutex> lock(m_PendingActionsMutex);
+		m_PendingActions.push(std::move(action));
+	}
+
+	void Scene::RemoveDirectionalLight(const Ref<DirectionalLight>& light)
+	{
+		PendingAction action = {};
+		action.m_Type = PendingAction::Type::Remove;
+		action.m_ObjectType = PendingAction::ObjectType::DirectionalLight;
+		action.m_DirectionalLight = light;
+
+		std::unique_lock<std::mutex> lock(m_PendingActionsMutex);
+		m_PendingActions.push(std::move(action));
+	}
+
 	const std::vector<Ref<Model>>& Scene::GetModels() const
 	{
 		return m_Models;
@@ -175,16 +239,6 @@ namespace vkr::Graphics
 
 		prepareData.m_RenderSize = view->GetRenderSize();
 		prepareData.m_OutputSize = view->GetOutputSize();
-
-		//Sun
-		prepareData.m_DirectionalLights[0].Emission = Vector3f(3.0, 3.0, 3.0);
-		prepareData.m_DirectionalLights[0].Direction = Vector3f(0.4, -0.5, 0.6);
-		prepareData.m_DirectionalLights[0].Radius = DegToRad(0.53f);
-
-		//Moon
-		prepareData.m_DirectionalLights[1].Emission = Vector3f(8.0, 2.0, 2.0);
-		prepareData.m_DirectionalLights[1].Direction = Vector3f(-0.4, -0.5, 0.6);
-		prepareData.m_DirectionalLights[1].Radius = 0.02f;
 
 		view->PrepareCameraConstants(prepareData.m_CameraData);
 
@@ -247,6 +301,21 @@ namespace vkr::Graphics
 		if (false) //(!useRaytracing)
 		{
 			CollectBatchesForPass(prepareData.m_ForwardPassData, DefaultPSOSelector);
+		}
+
+		// Process lights
+		for (uint32_t i = 0; i < m_LocalLights.size(); ++i)
+		{
+			// frustum cull
+
+			const Ref<LocalLight> light = m_LocalLights[i];
+			prepareData.m_VisibleLights.push_back(*light);
+		}
+
+		for (uint32_t i = 0; (i < m_DirectionalLights.size()) && (i < 2); ++i)
+		{
+			prepareData.m_DirectionalLights[i] = *m_DirectionalLights[i];
+			++prepareData.m_NumDirectionalLights;
 		}
 
 		m_Sky->PrepareView(view);

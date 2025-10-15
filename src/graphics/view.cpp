@@ -86,6 +86,7 @@ namespace vkr::Graphics
 		textureDesc.m_Format = m_Format;
 		textureDesc.m_ClearValue = m_ClearValue;
 		textureDesc.m_NumSamples = m_NumSamples;
+		textureDesc.m_Name = name;
 		m_Texture = Render::GetDevice()->CreateTexture(textureDesc);
 		VKR_ASSERT(m_Texture);
 

@@ -47,7 +47,8 @@ namespace vkr::Render
 
 	bool Device::Init()
 	{
-		const bool enableDebugLayer = CommandLine::Has("debug_device");
+		const bool breakOnError = CommandLine::Has("debug_device_break");
+		const bool enableDebugLayer = CommandLine::Has("debug_device") || breakOnError;
 
 		InitNvStreamline();
 
@@ -132,6 +133,35 @@ namespace vkr::Render
 			return false;
 		}
 #endif //ENABLE_PROFILING
+
+		if (enableDebugLayer)
+		{
+			if (SUCCEEDED(m_Device->QueryInterface(IID_PPV_ARGS(&m_InfoQueue))))
+			{
+				D3D12_MESSAGE_SEVERITY severities[] =
+				{
+					D3D12_MESSAGE_SEVERITY_INFO
+				};
+				D3D12_MESSAGE_ID denyIds[] =
+				{
+					D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
+					D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE
+				};
+
+				D3D12_INFO_QUEUE_FILTER newFilter = {};
+				newFilter.DenyList.NumSeverities = VKR_ARRAY_SIZE(severities);
+				newFilter.DenyList.pSeverityList = severities;
+				newFilter.DenyList.NumIDs = VKR_ARRAY_SIZE(denyIds);
+				newFilter.DenyList.pIDList = denyIds;
+				m_InfoQueue->PushStorageFilter(&newFilter);
+				if (breakOnError)
+				{
+					m_InfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
+					m_InfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
+					m_InfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, true);
+				}
+			}
+		}
 
 		return true;
 	}

@@ -2,6 +2,7 @@
 
 #include "core/types.h"
 #include "model.h"
+#include "light.h"
 
 namespace vkr::Render
 {
@@ -31,6 +32,12 @@ namespace vkr::Graphics
 		void AddModel(const Ref<Model>& model);
 		void RemoveModel(const Ref<Model>& model);
 
+		void AddLight(const Ref<LocalLight>& light);
+		void RemoveLight(const Ref<LocalLight>& light);
+
+		void AddDirectionalLight(const Ref<DirectionalLight>& light);
+		void RemoveDirectionalLight(const Ref<DirectionalLight>& light);
+
 		const std::vector<Ref<Model>>& GetModels() const;
 
 	private:
@@ -44,7 +51,8 @@ namespace vkr::Graphics
 		// but later maybe a spatial partitioning structure of scene objects?
 		// Quadtree, Octree, Grid?
 		std::vector<Ref<Model>> m_Models;
-		//std::vector<Ref<LocalLight>> m_LocalLights;
+		std::vector<Ref<LocalLight>> m_LocalLights;
+		std::vector<Ref<DirectionalLight>> m_DirectionalLights;
 
 		struct PendingAction
 		{
@@ -57,11 +65,13 @@ namespace vkr::Graphics
 			{
 				Model,
 				LocalLight,
+				DirectionalLight,
 			};
 			Type m_Type;
 			ObjectType m_ObjectType;
 			Ref<Model> m_Model;
-			//Ref<Light> m_LocalLight;
+			Ref<LocalLight> m_LocalLight;
+			Ref<DirectionalLight> m_DirectionalLight;
 		};
 
 		std::mutex m_PendingActionsMutex;

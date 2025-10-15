@@ -131,7 +131,7 @@ namespace vkr::Editor
 		psoDesc.Default.m_PixelShader = pixelShader.get();
 		m_WriteObjectIdPSO = device->CreatePipelineState(psoDesc);
 
-		m_RenderTarget.m_Format = Render::FORMAT_RG16_UINT;
+		m_RenderTarget.m_Format = Render::FORMAT_RG32_UINT;
 		m_RenderTarget.m_IsRenderTarget = true;
 
 		m_DepthStencil.m_Format = Render::FORMAT_D32_FLOAT;
@@ -174,6 +174,13 @@ namespace vkr::Editor
 
 					VKR_CONTEXT_EVENT(ctx, "Object Id");
 
+					Render::TextureBarrierDesc barrier;
+					barrier.m_Texture = m_RenderTarget.m_Texture.get();
+					barrier.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
+					barrier.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_RENDER_TARGET;
+					barrier.m_TargetSync = Render::RESOURCE_STATE_SYNC_RENDER_TARGET;
+					ctx->TextureBarrier(barrier);
+
 					ctx->ClearRenderTarget(m_RenderTarget.m_RenderTarget.get(), Vector4f(0.0f));
 					ctx->ClearDepthStencil(m_DepthStencil.m_DepthStencil.get(), 0.0f);
 
@@ -207,6 +214,7 @@ namespace vkr::Editor
 						constants.VertexPositionByteOffset = entry.m_PositionByteOffset;
 						constants.VertexStride = entry.m_VertexStride;
 						ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
+						ctx->SetPrimitiveTopology(entry.m_Topology);
 						ctx->BindIndexBuffer(entry.m_IndexBuffer);
 						ctx->DrawIndexed(entry.m_IndexBuffer->GetDesc().m_ElementCount);
 					}
@@ -222,6 +230,7 @@ namespace vkr::Editor
 		ObjectIdEntry entry = {};
 		entry.m_VertexBuffer = part.m_Mesh->GetVertexBufferView().get();
 		entry.m_IndexBuffer = part.m_Mesh->GetIndexBuffer().get();
+		entry.m_Topology = part.m_Mesh->GetTopology();
 
 		const Render::VertexLayout& vertexLayout = part.m_Mesh->GetVertexLayout();
 		entry.m_PositionByteOffset = vertexLayout.GetByteOffset(Render::VertexAttribute::TYPE_POSITION, 0);
@@ -306,6 +315,13 @@ namespace vkr::Editor
 
 					VKR_CONTEXT_EVENT(ctx, "Object Outline");
 
+					Render::TextureBarrierDesc barrier;
+					barrier.m_Texture = m_RenderTargetMS.m_Texture.get();
+					barrier.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
+					barrier.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_RENDER_TARGET;
+					barrier.m_TargetSync = Render::RESOURCE_STATE_SYNC_RENDER_TARGET;
+					ctx->TextureBarrier(barrier);
+
 					ctx->ClearRenderTarget(m_RenderTargetMS.m_RenderTarget.get(), Vector4f(0.0f));
 					ctx->ClearDepthStencil(m_DepthStencilMS.m_DepthStencil.get(), 0.0f);
 
@@ -342,7 +358,7 @@ namespace vkr::Editor
 						constants.ColorIntensity = 1.0f;
 						constants.OutlineSizeNdc = Vector2f(1.0f / viewportSize.x, 1.0f / viewportSize.y) * 2.0f * 3.0f;
 						ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
-
+						ctx->SetPrimitiveTopology(obj.m_Topology);
 						ctx->BindIndexBuffer(obj.m_IndexBuffer);
 						ctx->BindPipelineState(m_WriteObjectOutlinePSO.get());
 						ctx->DrawIndexed(obj.m_IndexBuffer->GetDesc().m_ElementCount);
@@ -361,7 +377,7 @@ namespace vkr::Editor
 						constants.OutlineSizeNdc = Vector2f(0.0f);
 						constants.ColorIntensity = 0.0f;
 						ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
-
+						ctx->SetPrimitiveTopology(obj.m_Topology);
 						ctx->BindIndexBuffer(obj.m_IndexBuffer);
 						ctx->BindPipelineState(m_DiscardObjectPixelsPSO.get());
 						ctx->DrawIndexed(obj.m_IndexBuffer->GetDesc().m_ElementCount);
@@ -394,6 +410,7 @@ namespace vkr::Editor
 		OutlinerObject obj = {};
 		obj.m_VertexBuffer = part.m_Mesh->GetVertexBufferView().get();
 		obj.m_IndexBuffer = part.m_Mesh->GetIndexBuffer().get();
+		obj.m_Topology = part.m_Mesh->GetTopology();
 
 		const Render::VertexLayout& vertexLayout = part.m_Mesh->GetVertexLayout();
 		obj.m_PositionByteOffset = vertexLayout.GetByteOffset(Render::VertexAttribute::TYPE_POSITION, 0);

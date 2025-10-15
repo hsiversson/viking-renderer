@@ -4,6 +4,7 @@
 #include "game/hierarchycomponent.h"
 #include "game/modelcomponent.h"
 #include "game/transformcomponent.h"
+#include "game/lightcomponent.h"
 #include "game/world.h"
 #include "graphics/scene.h"
 #include "propertiespanel.h"
@@ -31,15 +32,25 @@ namespace vkr::Editor
 		m_Panels.push_back(std::static_pointer_cast<Panel>(m_WorldHierarchy));
 		m_Panels.push_back(std::static_pointer_cast<Panel>(m_Properties));
 
-		Game::Entity e0 = m_World->CreateEntity("CP_Noodles");
+		{
+			Game::Entity e0 = m_World->CreateEntity("CP_Noodles");
+			Game::ModelComponent& modelComponent = e0.AddComponent<Game::ModelComponent>();
+			modelComponent.m_ModelFilePath = SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "models/cp_noodles/scene.gltf");
 
-		Game::ModelComponent& modelComponent = e0.AddComponent<Game::ModelComponent>();
-		modelComponent.m_ModelFilePath = SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "models/cp_noodles/scene.gltf");
+			// load something for now
+			Graphics::ModelLoader_GLTF loader;
+			modelComponent.m_Model = loader.Load(modelComponent.m_ModelFilePath);
+			m_World->GetGraphicsScene()->AddModel(modelComponent.m_Model);
+		}
 
-		// load something for now
-		Graphics::ModelLoader_GLTF loader;
-		modelComponent.m_Model = loader.Load(modelComponent.m_ModelFilePath);
-		m_World->GetGraphicsScene()->AddModel(modelComponent.m_Model);
+		{
+			Game::Entity sunEntity = m_World->CreateEntity("Sun");
+			Game::DirectionalLightComponent& dirLight = sunEntity.AddComponent<Game::DirectionalLightComponent>();
+			Game::TransformComponent& transform = sunEntity.AddComponent<Game::TransformComponent>();
+			transform.m_Rotation = Quaternion::FromEuler(-50.0f, -10.0f, 0.0f);
+			
+			m_World->GetGraphicsScene()->AddDirectionalLight(dirLight.m_Light);
+		}
 	}
 
 	LevelEditor::~LevelEditor()
@@ -53,14 +64,29 @@ namespace vkr::Editor
 		{
 		case Mode::Editing:
 		{
-			// for now update all model transforms here...
-			std::vector<Game::EntityHandle>* modelComponents = m_World->GetEntityRegistry().ViewEntities<Game::ModelComponent>();
-			for (const Game::EntityHandle entity : *modelComponents)
 			{
-				Game::Entity e = Game::Entity(entity, &m_World->GetEntityRegistry());
-				Game::TransformComponent* transform = e.GetComponent<Game::TransformComponent>();
-				Game::ModelComponent* model = e.GetComponent<Game::ModelComponent>();
-				model->m_Model->SetTransform(Compose(transform->m_Position, transform->m_Rotation, transform->m_Scale));
+				// for now update all model transforms here...
+				std::vector<Game::EntityHandle>* modelComponents = m_World->GetEntityRegistry().ViewEntities<Game::ModelComponent>();
+				for (const Game::EntityHandle entity : *modelComponents)
+				{
+					Game::Entity e = Game::Entity(entity, &m_World->GetEntityRegistry());
+					Game::TransformComponent* transform = e.GetComponent<Game::TransformComponent>();
+					Game::ModelComponent* model = e.GetComponent<Game::ModelComponent>();
+					model->m_Model->SetTransform(Compose(transform->m_Position, transform->m_Rotation, transform->m_Scale));
+				}
+			}
+			{
+				std::vector<Game::EntityHandle>* dirLightComponents = m_World->GetEntityRegistry().ViewEntities<Game::DirectionalLightComponent>();
+				for (const Game::EntityHandle entity : *dirLightComponents)
+				{
+					Game::Entity e = Game::Entity(entity, &m_World->GetEntityRegistry());
+					Game::TransformComponent* transformComponent = e.GetComponent<Game::TransformComponent>();
+					Game::DirectionalLightComponent* dirLight = e.GetComponent<Game::DirectionalLightComponent>();
+					Mat44 transform = Compose(transformComponent->m_Position, transformComponent->m_Rotation, transformComponent->m_Scale);
+					dirLight->m_Light->Direction = Normalized(Vector3f(transform.At(2, 0), transform.At(2, 1), transform.At(2, 2)));
+					dirLight->m_Light->Emission = dirLight->m_Color * dirLight->m_Intensity;
+					dirLight->m_Light->Radius = DegToRad(dirLight->m_Radius);
+				}
 			}
 
 			m_World->Update();
