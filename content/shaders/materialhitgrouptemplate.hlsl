@@ -109,7 +109,8 @@ void $CLOSESTHIT_IDENTIFIER$(inout RaytracingPayload payload, in BuiltInTriangle
     payload.diffuseAlbedo = resolvedMaterial.Albedo * (1.0f - resolvedMaterial.Metallic);
     payload.specularAlbedo = EnvBRDFApprox2(lerp(float3(0.04, 0.04, 0.04), resolvedMaterial.Albedo, resolvedMaterial.Metallic), resolvedMaterial.Roughness * resolvedMaterial.Roughness, dot(resolvedMaterial.WorldNormal, -WorldRayDirection()));
     payload.irradiance = ApplyLighting(resolvedMaterial, -WorldRayDirection(), payload.rngState) + resolvedMaterial.Emission;
-    
+    payload.specularHitDistance = RayTCurrent();
+
     if(payload.recursionDepth < 1)
     {
         const uint2 pixel = DispatchRaysIndex().xy;
@@ -195,6 +196,7 @@ void $CLOSESTHIT_IDENTIFIER$(inout RaytracingPayload payload, in BuiltInTriangle
                 specular = specularBRDF * Li * NdotL / pdf;
             }
             payload.irradiance += specular * RayWeight;
+            payload.specularHitDistance = specularPayload.specularHitDistance;
             payload.rngState = specularPayload.rngState;
         }
     }

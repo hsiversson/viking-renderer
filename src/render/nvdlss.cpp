@@ -70,7 +70,6 @@ namespace vkr::Render
 			m_pImpl->m_DLSSOptions.outputWidth != options.outputWidth ||
 			m_pImpl->m_DLSSOptions.outputHeight != options.outputHeight)
 		{
-			slDLSSDSetOptions(view->GetViewID(), options);
 
 			sl::DLSSDOptimalSettings optimalSettings = {};
 			slDLSSDGetOptimalSettings(options, optimalSettings);
@@ -86,6 +85,8 @@ namespace vkr::Render
 			m_pImpl->m_ResetDLSS = true;
 			view->SetRenderSize(m_pImpl->m_OptimalRenderSize);
 		}
+
+		slDLSSDSetOptions(view->GetViewID(), options);
 	}
 
 	void NvDLSS::Upscale(Graphics::View* view, Render::Context* ctx)
@@ -162,10 +163,7 @@ namespace vkr::Render
 		sl::Resource diffuseAlbedo = { sl::ResourceType::eTex2d, renderTargets.m_DiffuseAlbedo.m_Texture->GetD3DResource(), readState };
 		sl::Resource specularAlbedo = { sl::ResourceType::eTex2d, renderTargets.m_SpecularAlbedo.m_Texture->GetD3DResource(), readState };
 		sl::Resource normalRoughness = { sl::ResourceType::eTex2d, renderTargets.m_NormalRoughness.m_Texture->GetD3DResource(), readState };
-		sl::Resource specularMvec = { sl::ResourceType::eTex2d, renderTargets.m_Velocity.m_Texture->GetD3DResource(), readState };
-
-		//sl::Resource exposure	= { sl::ResourceType::eTex2d, renderTargets.mAverageExposure.mResource ? renderTargets.mAverageExposure.mResource->mD3D12Resource : nullptr, readState };
-		//sl::Resource bias		= { sl::ResourceType::eTex2d, nullptr,													readState };
+		sl::Resource specularHitDist = { sl::ResourceType::eTex2d, renderTargets.m_SpecularHitDistance.m_Texture->GetD3DResource(), readState };
 
 		const sl::Extent renderVp = { 0, 0, srcSize.x, srcSize.y }; //Do we have viewport offsets?
 		const sl::Extent targetVp = { 0, 0, dstSize.x, dstSize.y };
@@ -180,19 +178,7 @@ namespace vkr::Render
 		sl::ResourceTag diffuseAlbedoTag = sl::ResourceTag{ &diffuseAlbedo, sl::kBufferTypeAlbedo, sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
 		sl::ResourceTag specularAlbedoTag = sl::ResourceTag{ &specularAlbedo, sl::kBufferTypeSpecularAlbedo, sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
 		sl::ResourceTag normalRoughnessTag = sl::ResourceTag{ &normalRoughness, sl::kBufferTypeNormalRoughness, sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
-		sl::ResourceTag specularMvecTag = sl::ResourceTag{ &specularMvec, sl::kBufferTypeSpecularMotionVectors, sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
-
-		//sl::ResourceTag exposureTag = sl::ResourceTag{ &exposure,	sl::kBufferTypeExposure,			 sl::ResourceLifecycle::eValidUntilEvaluate, &onePxVp  };
-		//sl::ResourceTag biasTag		= sl::ResourceTag{ &bias,		sl::kBufferTypeBiasCurrentColorHint, sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
-
-		//KT_HybridArray<sl::ResourceTag, 8> globalTags;
-		//resources.Add(colorInTag);
-		//resources.Add(colorOutTag);
-		//resources.Add(depthTag);
-		//resources.Add(mvTag);
-		//resources.Add(exposureTag);
-		//resources.Add(biasTag);
-		//slSetTag(viewportHandle, resources.GetBuffer(), resources.Count(), cmdBuffer->GetD3D12CommandList());
+		sl::ResourceTag specularHitDistTag = sl::ResourceTag{ &specularHitDist, sl::kBufferTypeSpecularHitDistance , sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
 
 		std::vector<const sl::BaseStructure*> evalInputs;
 		evalInputs.reserve(8);
@@ -205,9 +191,7 @@ namespace vkr::Render
 		evalInputs.push_back(&diffuseAlbedoTag);
 		evalInputs.push_back(&specularAlbedoTag);
 		evalInputs.push_back(&normalRoughnessTag);
-		//evalInputs.push_back(&specularMvec);
-		//evalInputs.Add(&exposureTag);
-		//evalInputs.Add(&biasTag);
+		evalInputs.push_back(&specularHitDistTag);
 		
 		if (SL_FAILED(result, slEvaluateFeature(sl::kFeatureDLSS_RR, frameToken, evalInputs.data(), evalInputs.size(), ctx->GetCommandList()->GetD3DCommandList())))
 		{

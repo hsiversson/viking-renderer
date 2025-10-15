@@ -478,6 +478,10 @@ namespace vkr::Graphics
 		renderTargets.m_NormalRoughness.m_Format = Render::Format::FORMAT_RGBA16_FLOAT;
 		renderTargets.m_NormalRoughness.Update(renderData.m_RenderSize, "ViewRenderTargets::NormalRoughness");
 
+		renderTargets.m_SpecularHitDistance.m_IsWritable = true;
+		renderTargets.m_SpecularHitDistance.m_Format = Render::Format::FORMAT_R16_FLOAT;
+		renderTargets.m_SpecularHitDistance.Update(renderData.m_RenderSize, "ViewRenderTargets::SpecularHitDistance");
+
 		if (renderData.m_UpdateSkyLutEvent) //Did we need to recompute sky LUTs? Wait until sky is ready
 		{
 			ctx->InsertWait(*renderData.m_UpdateSkyLutEvent);
@@ -504,12 +508,15 @@ namespace vkr::Graphics
 			uint32_t DiffuseAlbedoTextureDescriptor;
 			uint32_t SpecularAlbedoTextureDescriptor;
 			uint32_t NormalsTextureDescriptor;
+			uint32_t SpecularHitDistanceTextureDescriptor;
+			uint32_t pad[3];
 		};
 		ConstantData data;
 		data.TargetTextureDescriptorIndex = renderTargets.m_SceneBuffer_RenderSize.m_TextureViewRW->GetIndex();
 		data.DiffuseAlbedoTextureDescriptor = renderTargets.m_DiffuseAlbedo.m_TextureViewRW->GetIndex();
 		data.SpecularAlbedoTextureDescriptor = renderTargets.m_SpecularAlbedo.m_TextureViewRW->GetIndex();
 		data.NormalsTextureDescriptor = renderTargets.m_NormalRoughness.m_TextureViewRW->GetIndex();
+		data.SpecularHitDistanceTextureDescriptor = renderTargets.m_SpecularHitDistance.m_TextureViewRW->GetIndex();
 		ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
 		ctx->DispatchRays(renderData.m_TraceRaysPipelineState.get() , renderData.m_RenderSize.x, renderData.m_RenderSize.y);

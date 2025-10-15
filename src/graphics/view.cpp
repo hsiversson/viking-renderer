@@ -7,25 +7,19 @@ namespace
 {
 	static uint32_t g_ViewIDCounter = 0;
 
-	static constexpr vkr::Vector2f JitterHaltonSequence[] = {
-	{0.5,0.333333},
-	{0.25,0.666667},
-	{0.750000, 0.111111},
-	{0.125000, 0.444444},
-	{0.625000, 0.777778},
-	{0.375000, 0.222222},
-	{0.875000, 0.555556},
-	{0.062500, 0.888889},
-	{0.562500, 0.037037},
-	{0.312500, 0.370370},
-	{0.812500, 0.703704},
-	{0.187500, 0.148148},
-	{0.687500, 0.481481},
-	{0.437500, 0.814815},
-	{0.937500, 0.259259},
-	{ 0.031250, 0.592593 }
-	};
-
+	static float Halton(uint32_t index, uint32_t base)
+	{
+		float result = 0.0f;
+		float f = 1.0f;
+		uint32_t i = index;
+		do
+		{
+			f /= static_cast<float>(base);
+			result = result + f * static_cast<float>(index % base);
+			index = static_cast<uint32_t>(floorf(static_cast<float>(index) / static_cast<float>(base)));
+		} while (index > 0);
+		return result;
+	}
 }
 
 namespace vkr::Graphics
@@ -168,9 +162,10 @@ namespace vkr::Graphics
 		Camera& cam = const_cast<Camera&>(GetCamera());
 		Mat44 ProjectionNoJitter = cam.GetProjection();
 		//Select a new jitter offset for TAA for this frame
-		int jitterIdx = m_CurrentJitterIndex++;
-		m_CurrentJitterIndex = m_CurrentJitterIndex % 16;
-		data.CurrentJitter = (JitterHaltonSequence[jitterIdx] - 0.5f) / Vector2f(GetRenderSize()) * 2.0f;
+		m_CurrentJitterFrame = (m_CurrentJitterFrame + 1) % 32;
+
+		const Vector2f halton = Vector2f(Halton(m_CurrentJitterFrame, 2), Halton(m_CurrentJitterFrame, 3)) - 0.5f;
+		data.CurrentJitter = (halton * 2.0f) / Vector2f(GetRenderSize());
 		Mat44 Projection = ProjectionNoJitter;
 		Projection[8] = data.CurrentJitter.x;
 		Projection[9] = data.CurrentJitter.y;

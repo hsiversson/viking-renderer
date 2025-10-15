@@ -8,6 +8,8 @@ struct ConstantsStruct
     uint DiffuseAlbedoTextureDescriptor;
     uint SpecularAlbedoTextureDescriptor;
     uint NormalRoughnessTextureDescriptor;
+    uint SpecularHitDistanceTextureDescriptor;
+    uint3 pad;
 };
 ConstantBuffer<ConstantsStruct> Constants : register(b0);
 
@@ -58,6 +60,9 @@ void TraceRays()
     
     RWTexture2D<float4> specularAlbedoTarget = ResourceDescriptorHeap[Constants.SpecularAlbedoTextureDescriptor];
     specularAlbedoTarget[pixel] = float4(payload.specularAlbedo, 0.0f);
+    
+    RWTexture2D<float> specularHitDistanceTarget = ResourceDescriptorHeap[Constants.SpecularHitDistanceTextureDescriptor];
+    specularHitDistanceTarget[pixel] = payload.specularHitDistance;
 }
 
 [shader("miss")]
@@ -104,4 +109,6 @@ void Miss(inout RaytracingPayload payload)
     }
         
     payload.irradiance = skyColor; // TODO: Make sky dependent on dir light intensity as well. Will be done automatically if moving to physically based sky.
+    payload.specularHitDistance = RayTCurrent();
+
 }

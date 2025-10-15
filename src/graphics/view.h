@@ -42,6 +42,7 @@ namespace vkr::Graphics
 		TextureTarget m_DepthBuffer_Linear;
 		TextureTarget m_Velocity;
 		TextureTarget m_NormalRoughness; // RGB: Normals, A: Roughness
+		TextureTarget m_SpecularHitDistance;
 
 		TextureTarget m_DiffuseAlbedo;
 		TextureTarget m_SpecularAlbedo;
@@ -111,7 +112,7 @@ namespace vkr::Graphics
 		UniquePtr<Render::NvDLSS> m_NvDLSS;
 
 		Camera m_Camera;
-		int m_CurrentJitterIndex = 0;
+		int m_CurrentJitterFrame = 0;
 		Mat44 m_PrevCameraWorld = Mat44::Identity();
 		Mat44 m_PrevView = Mat44::Identity();
 		Mat44 m_PrevProjectionUnjittered = Mat44::Identity();

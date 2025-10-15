@@ -8,41 +8,47 @@ float InterleavedGradientNoise(float2 uv, uint frameIndex)
     return frac(magic.z * frac(dot(uv, magic.xy)));
 }
 
-uint TeaHash(uint x, uint y, uint seed)
+uint xxhash32(uint p)
 {
-    uint v0 = x;
-    uint v1 = y;
-    uint s0 = seed | 1; // some seed
-    for (uint i = 0; i < 16; ++i)
-    {
-        s0 += 0x9e3779b9;
-        v0 += ((v1 << 4) + 0xa341316c) ^ (v1 + s0) ^ ((v1 >> 5) + 0xc8013ea4);
-        v1 += ((v0 << 4) + 0xad90777d) ^ (v0 + s0) ^ ((v0 >> 5) + 0x7e95761e);
-    }
-    return v0;
+    const uint PRIME32_2 = 2246822519U;
+    const uint PRIME32_3 = 3266489917U;
+    const uint PRIME32_4 = 668265263U;
+    const uint PRIME32_5 = 374761393U;
+    uint h32 = p + PRIME32_5;
+    h32 = PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
+    h32 = PRIME32_2 * (h32 ^ (h32 >> 15));
+    h32 = PRIME32_3 * (h32 ^ (h32 >> 13));
+    return h32 ^ (h32 >> 16);
 }
 
-uint PcgHash(inout uint state)
+uint xxhash32(uint x, uint y, uint seed)
 {
-    uint s = state * 747796405u + 2891336453u;
-    uint w = ((s >> ((s >> 28u) + 4u)) ^ s) * 277803737u;
-    state = (w >> 22u) ^ w;
-    return state;
+    const uint PRIME32_2 = 2246822519U;
+    const uint PRIME32_3 = 3266489917U;
+    const uint PRIME32_4 = 668265263U;
+    const uint PRIME32_5 = 374761393U;
+    uint h32 = x + PRIME32_5 + seed * PRIME32_3;
+    h32 = PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
+    h32 += y * PRIME32_3;
+    h32 = PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
+    h32 = PRIME32_2 * (h32 ^ (h32 >> 15));
+    h32 = PRIME32_3 * (h32 ^ (h32 >> 13));
+    return h32 ^ (h32 >> 16);
 }
 
 uint GenerateRandomSeed(uint x, uint y, uint seed)
 {
-    return TeaHash(x, y, seed);
+    return xxhash32(x, y, seed);
 }
 
 uint RandomUint(inout uint state)
 {
-    return PcgHash(state);
+    return xxhash32(state);
 }
 
 float RandomFloat01(inout uint state)
 {
-    return saturate(PcgHash(state) / float(uint(0xffffffff)));
+    return saturate(xxhash32(state) / float(uint(0xffffffff)));
 }
 
 #endif //RANDOM_HLSL
