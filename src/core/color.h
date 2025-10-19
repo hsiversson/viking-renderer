@@ -93,7 +93,7 @@ namespace vkr
 		static const ColorSpace Bt2020;
 		static const ColorSpace ACEScg;
 
-		static const ColorSpace& DefaultSpace() { return ACEScg; }
+		static const ColorSpace& DefaultSpace() { return Bt2020; }
 	};
 
 	Vector3f EncodeColor(const Vector3f& linearRgb, const TransferFunction& transferFunction);

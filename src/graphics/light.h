@@ -11,7 +11,7 @@ namespace vkr::Graphics
 		float _unused;
 	};
 
-	enum LocalLightType
+	enum LocalLightType : uint8_t
 	{
 		LOCAL_LIGHT_TYPE_POINT,
 		LOCAL_LIGHT_TYPE_SPOT,

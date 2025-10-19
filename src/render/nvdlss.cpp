@@ -181,7 +181,7 @@ namespace vkr::Render
 		sl::ResourceTag specularHitDistTag = sl::ResourceTag{ &specularHitDist, sl::kBufferTypeSpecularHitDistance , sl::ResourceLifecycle::eValidUntilEvaluate, &renderVp };
 
 		std::vector<const sl::BaseStructure*> evalInputs;
-		evalInputs.reserve(8);
+		evalInputs.reserve(10);
 		evalInputs.push_back(&viewportHandle);
 		evalInputs.push_back(&colorInTag);
 		evalInputs.push_back(&colorOutTag);
@@ -206,5 +206,4 @@ namespace vkr::Render
 
 	}
 	
-
 }

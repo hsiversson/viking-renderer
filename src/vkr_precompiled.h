@@ -27,6 +27,7 @@
 #include "imgui_internal.h"
 #include "imguizmo.h"
 #include "nlohmann/json.hpp"
+namespace vkr { using json = nlohmann::json; }
 
 #include "core/assert.h"
 #include "core/common.h"

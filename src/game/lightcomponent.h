@@ -16,9 +16,22 @@ namespace vkr::Game
 		void OnComponentAdded() override
 		{
 			m_Light = MakeRef<Graphics::DirectionalLight>();
-			m_Light->Direction = Normalized(Vector3f(0.0f, 0.45f, 1.0f));
-			m_Light->Emission = m_Color * m_Intensity;
-			m_Light->Radius = DegToRad(m_Radius);
+		}
+
+		void Serialize(Json& s) const
+		{
+			s["color"] = { m_Color.x, m_Color.y, m_Color.z };
+			s["intensity"] = m_Intensity;
+			s["radius"] = m_Radius;
+		}
+
+		void Deserialize(const Json& s)
+		{
+			const Json& c = s.at("color");
+			m_Color = Vector3f(c[0], c[1], c[2]);
+
+			m_Intensity = s.at("intensity");
+			m_Radius = s.at("radius");
 		}
 	};
 
@@ -26,5 +39,20 @@ namespace vkr::Game
 	{
 		Graphics::LocalLightType m_Type;
 		Ref<Graphics::LocalLight> m_Light;
+
+		void OnComponentAdded() override
+		{
+			m_Light = MakeRef<Graphics::LocalLight>();
+		}
+
+		void Serialize(Json& s) const
+		{
+			s["type"] = m_Type;
+		}
+
+		void Deserialize(const Json& s)
+		{
+			m_Type = s.at("type");
+		}
 	};
 }
