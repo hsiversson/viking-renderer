@@ -1,4 +1,5 @@
 #define SKYVIEWLUT_PASS
+#define SOURCE_DISK_ENABLED
 
 #include "skydefinitions.hlsli"
 
@@ -134,10 +135,11 @@ void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     const float DeviceZ = 0; // Inverted depth
     const bool MieRayPhase = true;
     const float AerialPespectiveViewDistanceScale = 1.0f;
+    //Note the inversion and negation of the light dirs. This is because unreal expects a light vector toward the light
     SingleScatteringResult ss = IntegrateSingleScatteredLuminance(
 		float4(PixPos, 0.0f, 1.0f), WorldPos, WorldDir,
 		Ground, Sampling, DeviceZ, MieRayPhase,
-		AtmosphereLightDirection0, AtmosphereLightDirection1,
+		-LightDir0.zxy, -LightDir1.zxy,
 		AtmosphereLightIlluminanceOuterSpace0, AtmosphereLightIlluminanceOuterSpace1,
 		AerialPespectiveViewDistanceScale);
 

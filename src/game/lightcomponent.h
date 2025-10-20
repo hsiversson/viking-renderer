@@ -11,7 +11,7 @@ namespace vkr::Game
 		Ref<Graphics::DirectionalLight> m_Light = MakeRef<Graphics::DirectionalLight>();
 		Vector3f m_Color = Vector3f(1.0f, 1.0f, 1.0f);
 		float m_Intensity = 6.0f;
-		float m_Radius = 0.5357f;
+		float m_Radius = 0.5357f/2.0f; //Sun angular diameter is 0.5357 deg
 
 		void Serialize(Json& s) const
 		{

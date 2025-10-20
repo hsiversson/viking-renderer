@@ -670,3 +670,49 @@ SingleScatteringResult IntegrateSingleScatteredLuminance(
 
     return Result;
 }
+
+#ifdef SOURCE_DISK_ENABLED
+
+float3 GetAtmosphereTransmittance(
+	float3 PlanetCenterToWorldPos, float3 WorldDir, float BottomRadius, float TopRadius,
+	Texture2D<float4> TransmittanceLutTexture, SamplerState TransmittanceLutTextureSampler)
+{
+	// For each view height entry, transmittance is only stored from zenith to horizon. Earth shadow is not accounted for.
+	// It does not contain earth shadow in order to avoid texel linear interpolation artefact when LUT is low resolution.
+	// As such, at the most shadowed point of the LUT when close to horizon, pure black with earth shadow is never hit.
+	// That is why we analytically compute the virtual planet shadow here.
+    const float2 Sol = RayIntersectSphere(PlanetCenterToWorldPos, WorldDir, float4(float3(0.0f, 0.0f, 0.0f), BottomRadius));
+    if (Sol.x > 0.0f || Sol.y > 0.0f)
+    {
+        return 0.0f;
+    }
+
+    const float PHeight = length(PlanetCenterToWorldPos);
+    const float3 UpVector = PlanetCenterToWorldPos / PHeight;
+    const float LightZenithCosAngle = dot(WorldDir, UpVector);
+    float2 TransmittanceLutUv;
+    getTransmittanceLutUvs(PHeight, LightZenithCosAngle, BottomRadius, TopRadius, TransmittanceLutUv);
+    const float3 TransmittanceToLight = GetTransmittanceLUT().SampleLevel(g_SamplerBilinearClamp, TransmittanceLutUv, 0.0f).rgb;
+    return TransmittanceToLight;
+}
+
+float3 GetLightDiskLuminance(
+	float3 PlanetCenterToWorldPos, float3 WorldDir, float BottomRadius, float TopRadius,
+	Texture2D<float4> TransmittanceLutTexture, SamplerState TransmittanceLutTextureSampler,
+	float3 AtmosphereLightDirection, float AtmosphereLightDiscCosHalfApexAngle, float3 AtmosphereLightDiscLuminance)
+{
+	const float ViewDotLight = dot(WorldDir, AtmosphereLightDirection);
+	const float CosHalfApex = AtmosphereLightDiscCosHalfApexAngle;
+	if (ViewDotLight > CosHalfApex)
+	{
+		const float3 TransmittanceToLight = GetAtmosphereTransmittance(
+			PlanetCenterToWorldPos, WorldDir, BottomRadius, TopRadius, TransmittanceLutTexture, TransmittanceLutTextureSampler);
+
+		// Soften out the sun disk to avoid bloom flickering at edge. The soften is applied on the outer part of the disk.
+		const float SoftEdge = saturate(2.0f * (ViewDotLight - CosHalfApex) / (1.0f - CosHalfApex));
+
+		return TransmittanceToLight * AtmosphereLightDiscLuminance * SoftEdge;
+	}
+	return 0.0f;
+}
+#endif

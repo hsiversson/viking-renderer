@@ -76,47 +76,29 @@ Texture2D<float4> GetTransmittanceLUT()
     return tex;
 }
 
+#define RENDERSKY_ENABLED
+#define SOURCE_DISK_ENABLED
 #include "skyutils.hlsli"
 
-float3 GetAtmosphereTransmittance(
-	float3 PlanetCenterToWorldPos, float3 WorldDir, float BottomRadius, float TopRadius,
-	Texture2D<float4> TransmittanceLutTexture, SamplerState TransmittanceLutTextureSampler)
+float3 GetLightDiskLuminance(float3 PlanetCenterToCamera, float3 WorldDir, uint LightIndex)
 {
-	// For each view height entry, transmittance is only stored from zenith to horizon. Earth shadow is not accounted for.
-	// It does not contain earth shadow in order to avoid texel linear interpolation artefact when LUT is low resolution.
-	// As such, at the most shadowed point of the LUT when close to horizon, pure black with earth shadow is never hit.
-	// That is why we analytically compute the virtual planet shadow here.
-    const float2 Sol = RayIntersectSphere(PlanetCenterToWorldPos, WorldDir, float4(float3(0.0f, 0.0f, 0.0f), BottomRadius));
-    if (Sol.x > 0.0f || Sol.y > 0.0f)
+    float t = RaySphereIntersectNearest(PlanetCenterToCamera, WorldDir, float3(0.0f, 0.0f, 0.0f), Atmosphere.BottomRadiusKm);
+    if (t < 0.0f)												// No intersection with the planet
+		//&& View.RenderingReflectionCaptureMask==0.0f)	// Do not render light disk when in reflection capture in order to avoid double specular. The sun contribution is already computed analyticaly.
     {
-        return 0.0f;
-    }
+        // Note the correction in light direction (negation as Unreal treats light dir as vector to the light, and swizzling to counter Unreal differences in coord system)
+		// GetLightDiskLuminance contains a tiny soft edge effect
+        float3 LightDiskLuminance = GetLightDiskLuminance(
+			PlanetCenterToCamera, WorldDir, Atmosphere.BottomRadiusKm, Atmosphere.TopRadiusKm,
+			GetTransmittanceLUT(), g_SamplerBilinearClamp,
+			-SceneConstants.DirectionalLights[LightIndex].Direction.zxy, cos(SceneConstants.DirectionalLights[LightIndex].Radius), SceneConstants.DirectionalLights[LightIndex].Emission);
 
-    const float PHeight = length(PlanetCenterToWorldPos);
-    const float3 UpVector = PlanetCenterToWorldPos / PHeight;
-    const float LightZenithCosAngle = dot(WorldDir, UpVector);
-    float2 TransmittanceLutUv;
-    getTransmittanceLutUvs(PHeight, LightZenithCosAngle, BottomRadius, TopRadius, TransmittanceLutUv);
-    const float3 TransmittanceToLight = GetTransmittanceLUT().SampleLevel(g_SamplerBilinearClamp, TransmittanceLutUv, 0.0f).rgb;
-    return TransmittanceToLight;
-}
+		// Clamp to avoid crazy high values (and exposed 64000.0f luminance is already crazy high, solar system sun is 1.6x10^9). Also this removes +inf float and helps TAA.
+        const float3 MaxLightLuminance = 64000.0f;
+        float3 ExposedLightLuminance = LightDiskLuminance * OutputPreExposure;
+        ExposedLightLuminance = min(ExposedLightLuminance, MaxLightLuminance);
 
-float3 GetLightDiskLuminance(
-	float3 PlanetCenterToWorldPos, float3 WorldDir, float BottomRadius, float TopRadius,
-	Texture2D<float4> TransmittanceLutTexture, SamplerState TransmittanceLutTextureSampler,
-	float3 AtmosphereLightDirection, float AtmosphereLightDiscCosHalfApexAngle, float3 AtmosphereLightDiscLuminance)
-{
-    const float ViewDotLight = dot(WorldDir, AtmosphereLightDirection);
-    const float CosHalfApex = AtmosphereLightDiscCosHalfApexAngle;
-    if (ViewDotLight > CosHalfApex)
-    {
-        const float3 TransmittanceToLight = GetAtmosphereTransmittance(
-			PlanetCenterToWorldPos, WorldDir, BottomRadius, TopRadius, TransmittanceLutTexture, TransmittanceLutTextureSampler);
-
-		// Soften out the sun disk to avoid bloom flickering at edge. The soften is applied on the outer part of the disk.
-        const float SoftEdge = saturate(2.0f * (ViewDotLight - CosHalfApex) / (1.0f - CosHalfApex));
-
-        return TransmittanceToLight * AtmosphereLightDiscLuminance * SoftEdge;
+        return ExposedLightLuminance;
     }
     return 0.0f;
 }
@@ -150,7 +132,7 @@ float4 PrepareOutput(float3 PreExposedLuminance, float3 Transmittance = float3(1
 void Miss(inout RaytracingPayload payload)
 {
     //Sky rendering
-  #define RENDERSKY_ENABLED
+  
     float4 OutLuminance = 0;
     payload.specularHitDistance = RayTCurrent();
     
@@ -206,14 +188,11 @@ void Miss(inout RaytracingPayload payload)
     {
 		// Get the light disk luminance to draw 
         LuminanceScale = float3(1, 1, 1); //Constants.Atmosphere.SkyLuminanceFactor;
-#if SOURCE_DISK_ENABLED
-		if (SourceDiskEnabled > 0)
-		{
-			PreExposedL += GetLightDiskLuminance(WorldPos, WorldDir, 0);
-#if SECOND_ATMOSPHERE_LIGHT_ENABLED
-			PreExposedL += GetLightDiskLuminance(WorldPos, WorldDir, 1);
+#ifdef SOURCE_DISK_ENABLED
+		PreExposedL += GetLightDiskLuminance(WorldPos, WorldDir, 0);
+#ifdef SECOND_ATMOSPHERE_LIGHT_ENABLED
+		PreExposedL += GetLightDiskLuminance(WorldPos, WorldDir, 1);
 #endif
-		}
 #endif
 
 #ifndef RENDERSKY_ENABLED
