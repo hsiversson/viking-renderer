@@ -27,16 +27,18 @@ namespace vkr::Game
 
 	Entity World::CreateEntity(const char* name /*= "Unnamed Entity"*/)
 	{
-		Entity newEntity = Entity(m_EntityRegistry.CreateEntity(), &m_EntityRegistry);
-		IdComponent& idComponent = newEntity.AddComponent<IdComponent>();
-		idComponent.m_Uid = newEntity.GetHandle();
+		Entity entity(m_EntityRegistry.create(), &m_EntityRegistry);
+
+		IdComponent& idComponent = entity.AddComponent<IdComponent>();
+		idComponent.m_Uid = entity.GetHandle();
 		idComponent.m_Name = name;
 		idComponent.m_Type = "Entity";
 
-		newEntity.AddComponent<Game::HierarchyComponent>();
-		newEntity.AddComponent<Game::TransformComponent>();
+		Game::HierarchyComponent& hierarchy = entity.AddComponent<Game::HierarchyComponent>();
+		hierarchy.m_World = this;
+		entity.AddComponent<Game::TransformComponent>();
 
-		return newEntity;
+		return entity;
 	}
 
 	void World::DestroyEntity(const Entity& entity)
@@ -44,11 +46,11 @@ namespace vkr::Game
 		// TODO: Need to handle destruction flow better
 		if (entity.HasComponent<Game::ModelComponent>())
 		{
-			const Game::ModelComponent* comp = entity.GetComponent<Game::ModelComponent>();
-			m_GraphicsScene->RemoveModel(comp->m_Model);
+			const Game::ModelComponent& comp = entity.GetComponent<Game::ModelComponent>();
+			m_GraphicsScene->RemoveModel(comp.m_Model);
 		}
 
-		m_EntityRegistry.DestroyEntity(entity);
+		m_EntityRegistry.destroy(entity);
 	}
 
 	Graphics::Scene* World::GetGraphicsScene() const
@@ -64,6 +66,14 @@ namespace vkr::Game
 	const EntityRegistry& World::GetEntityRegistry() const
 	{
 		return m_EntityRegistry;
+	}
+
+	void World::Serialize(Json& data) const
+	{
+	}
+
+	void World::Deserialize(const Json& data)
+	{
 	}
 
 }

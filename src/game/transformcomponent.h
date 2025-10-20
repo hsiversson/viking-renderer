@@ -21,13 +21,20 @@ namespace vkr::Game
 		void Deserialize(const Json& s)
 		{
 			const Json& position = s.at("position");
-			m_Position = Vector3f(position[0], position[1], position[2]);
+			m_Position.x = position[0].get<float>();
+			m_Position.y = position[1].get<float>();
+			m_Position.z = position[2].get<float>();
 
 			const Json& rotation = s.at("rotation");
-			m_Rotation = Quaternion(rotation[0], rotation[1], rotation[2], rotation[3]);
+			m_Rotation.w = rotation[0].get<float>();
+			m_Rotation.x = rotation[1].get<float>();
+			m_Rotation.y = rotation[2].get<float>();
+			m_Rotation.z = rotation[3].get<float>();
 
 			const Json& scale = s.at("scale");
-			m_Scale = Vector3f(scale[0], scale[1], scale[2]);
+			m_Scale.x = scale[0].get<float>();
+			m_Scale.y = scale[1].get<float>();
+			m_Scale.z = scale[2].get<float>();
 		}
 	};
 }

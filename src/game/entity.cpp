@@ -3,19 +3,6 @@
 
 namespace vkr::Game
 {
-	EntityHandle EntityRegistry::CreateEntity()
-	{
-		return m_NextEntityHandle++;
-	}
-
-	void EntityRegistry::DestroyEntity(EntityHandle handle)
-	{
-		for (auto& [type, storage] : m_ComponentStorages)
-		{
-			storage->Remove(handle);
-		}
-	}
-
 	Entity::Entity()
 		: m_Handle(EntityNullHandle)
 		, m_Registry(nullptr)
@@ -30,34 +17,34 @@ namespace vkr::Game
 
 	const Entity& Entity::GetParent() const
 	{
-		return GetComponent<HierarchyComponent>()->m_Parent;
+		return GetComponent<HierarchyComponent>().m_Parent;
 	}
 
 	const std::vector<Entity>& Entity::GetChildren() const
 	{
-		return GetComponent<HierarchyComponent>()->m_Children;
+		return GetComponent<HierarchyComponent>().m_Children;
 	}
 
 	void Entity::AddChild(Entity child)
 	{
-		HierarchyComponent* comp = GetComponent<HierarchyComponent>();
-		comp->m_Children.push_back(child);
+		HierarchyComponent& comp = GetComponent<HierarchyComponent>();
+		comp.m_Children.push_back(child);
 
-		HierarchyComponent* childComp = child.GetComponent<HierarchyComponent>();
-		childComp->m_Parent = *this;
+		HierarchyComponent& childComp = child.GetComponent<HierarchyComponent>();
+		childComp.m_Parent = *this;
 	}
 
 	void Entity::RemoveChild(Entity child)
 	{
-		HierarchyComponent* comp = GetComponent<HierarchyComponent>();
-		auto it = std::find(comp->m_Children.begin(), comp->m_Children.end(), child);
-		if (it != comp->m_Children.end())
+		HierarchyComponent& comp = GetComponent<HierarchyComponent>();
+		auto it = std::find(comp.m_Children.begin(), comp.m_Children.end(), child);
+		if (it != comp.m_Children.end())
 		{
-			comp->m_Children.erase(it);
+			comp.m_Children.erase(it);
 		}
 
-		HierarchyComponent* childComp = child.GetComponent<HierarchyComponent>();
-		childComp->m_Parent = Entity();
+		HierarchyComponent& childComp = child.GetComponent<HierarchyComponent>();
+		childComp.m_Parent = Entity();
 	}
 
 	bool Entity::IsValid() const

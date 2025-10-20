@@ -53,7 +53,7 @@ namespace vkr
 	const ColorGamut ColorGamut::Bt2020 =
 	{
 		Chromaticity::Bt2020,
-		Vector3f(0.2627066f, 0.6779996f, 0.0592938f),
+		Vector3f(0.26270021f, 0.67799807f, 0.05930172f),
 		BT2020_TO_XYZ,
 		XYZ_TO_BT2020,
 		COLOR_GAMUT_TYPE_BT2020

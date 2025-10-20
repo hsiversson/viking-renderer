@@ -21,27 +21,27 @@ namespace vkr::Editor
 	{
 		if (!m_SelectedEntities.empty())
 		{
-			Game::IdComponent* idComponent = m_SelectedEntities[0].GetComponent<Game::IdComponent>();
+			Game::IdComponent& idComponent = m_SelectedEntities[0].GetComponent<Game::IdComponent>();
 			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-			ImGui::InputText("##entityName", idComponent->m_Name.data(), idComponent->m_Name.length(), 0);
+			ImGui::InputText("##entityName", idComponent.m_Name.data(), idComponent.m_Name.length(), 0);
 			ImGui::PopItemFlag();
 
 			if (m_SelectedEntities[0].HasComponent<Game::TransformComponent>())
 			{
 				ImGui::Separator();
-				Game::TransformComponent* transform = m_SelectedEntities[0].GetComponent<Game::TransformComponent>();
+				Game::TransformComponent& transform = m_SelectedEntities[0].GetComponent<Game::TransformComponent>();
 
-				ImGui::DragFloat3("Position", &transform->m_Position.x, 0.1f);
+				ImGui::DragFloat3("Position", &transform.m_Position.x, 0.1f);
 
-				if (transform->m_Rotation != m_PrevRotation)
+				if (transform.m_Rotation != m_PrevRotation)
 				{
-					m_PrevRotation = transform->m_Rotation;
+					m_PrevRotation = transform.m_Rotation;
 					m_EulerRotationCacheInitialized = false;
 				}
 
 				if (!m_EulerRotationCacheInitialized)
 				{
-					m_EulerRotationCache = transform->m_Rotation.ToEuler();
+					m_EulerRotationCache = transform.m_Rotation.ToEuler();
 					m_EulerRotationCacheInitialized = true;
 				}
 
@@ -57,21 +57,21 @@ namespace vkr::Editor
 					}
 
 					Quaternion qDelta = Quaternion::FromEuler(delta);
-					transform->m_Rotation = transform->m_Rotation * qDelta;
-					transform->m_Rotation.Normalize();
+					transform.m_Rotation = transform.m_Rotation * qDelta;
+					transform.m_Rotation.Normalize();
 
 					m_EulerRotationCache = eulerUI;
 				}
 
-				ImGui::DragFloat3("Scale", &transform->m_Scale.x, 0.1f);
+				ImGui::DragFloat3("Scale", &transform.m_Scale.x, 0.1f);
 			}
 			if (m_SelectedEntities[0].HasComponent<Game::DirectionalLightComponent>())
 			{
 				ImGui::Separator();
-				Game::DirectionalLightComponent* dirLight = m_SelectedEntities[0].GetComponent<Game::DirectionalLightComponent>();
-				ImGui::ColorEdit3("Light Color", &dirLight->m_Color.x);
-				ImGui::DragFloat("Intensity", &dirLight->m_Intensity, 0.1f, 0.0f, 120000.0f);
-				ImGui::DragFloat("Radius", &dirLight->m_Radius, 0.01f, 0.0f, 1.0f);
+				Game::DirectionalLightComponent& dirLight = m_SelectedEntities[0].GetComponent<Game::DirectionalLightComponent>();
+				ImGui::ColorEdit3("Light Color", &dirLight.m_Color.x);
+				ImGui::DragFloat("Intensity", &dirLight.m_Intensity, 0.1f, 0.0f, 120000.0f);
+				ImGui::DragFloat("Radius", &dirLight.m_Radius, 0.01f, 0.0f, 1.0f);
 			}
 		}
 	}

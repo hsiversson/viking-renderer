@@ -50,6 +50,7 @@ namespace vkr
 
 		bool PeekMessages();
 		void AddMessageHandler(IMessageHandler* messageHandler) { m_MessageHandlers.insert(messageHandler); }
+		void RemoveMessageHandler(IMessageHandler* messageHandler) { m_MessageHandlers.erase(messageHandler); };
 
 		void Show();
 		void Hide();
