@@ -158,7 +158,7 @@ namespace vkr::Graphics
 
 		Render::TempBuffer m_PerSceneConstantBuffer;
 		
-		bool m_UpdateSkyLut;
+		bool m_UpdateSkyLut = true;
 		Ref<Render::RenderTaskEvent> m_UpdateSkyLutEvent;
 
 		AtmosphereData m_AtmosphereData;

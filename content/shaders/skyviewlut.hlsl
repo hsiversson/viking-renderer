@@ -92,6 +92,8 @@ void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     float2 PixPos = float2(dispatchThreadID.xy) + 0.5f;
     float2 UV = PixPos * SkyViewLutSizeAndInvSize.zw;
     
+    //float3 WorldPos = GetTranslatedCameraPlanetPos();
+    
 	// For the sky view lut to work, and not be distorted, we need to transform the view and light directions 
 	// into a referential with UP being perpendicular to the world sphere. And with origin at the planet center.
 
@@ -99,7 +101,7 @@ void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     float3x3 LocalReferencial = (float3x3) SkyViewLutReferential;
 
 	// This is the LUT camera height and position in the local referential
-    float ViewHeight = Atmosphere.BottomRadiusKm + 0.005; //For now fix our camera height within the atmosphere to 5 meters above bottom radius
+    float ViewHeight = Atmosphere.BottomRadiusKm + 0.005; //TODO: For now fix our camera height within the atmosphere to 5 meters above bottom radius. This used to be length(GetTranslatedCameraPlanetPos)
     float3 WorldPos = float3(0.0, 0.0, ViewHeight);
 
 	// Get the view direction in this local referential

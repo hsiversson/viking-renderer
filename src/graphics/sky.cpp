@@ -63,7 +63,7 @@ namespace vkr::Graphics
 
 		BottomRadius = EarthBottomRadius;
 		AtmosphereHeight = EarthTopRadius - EarthBottomRadius;
-		GroundAlbedo = Vector3f(0.6f, 0.6f, 0.6f); // This is an sRGB value. Corresponds to  0.4f in linear space
+		GroundAlbedo = Vector3f(170.0f/255.0f, 170.0f / 255.0f, 170.0f / 255.0f); // This is an sRGB value. Corresponds to  0.4f in linear space
 
 		// Float to a u8 rgb + float length can lose some precision but it is better UI wise.
 		const Vector3f RayleightScatteringRaw = Vector3f(0.005802f, 0.013558f, 0.033100f); //This is directly linear color
@@ -105,7 +105,7 @@ namespace vkr::Graphics
 	{
 		ViewRenderData& prepareData = view->GetPrepareData();
 
-		prepareData.m_UpdateSkyLut = (ElapsedTimer::FrameIndex() % 10) == 0; // every 10 frame for now.
+		prepareData.m_UpdateSkyLut = (ElapsedTimer::FrameIndex() % 10) == 1; // every 10 frame for now.
 
 		// Convert Tent distribution to linear curve coefficients.
 		auto TentToCoefficients = [](const TentDistribution& Tent, float& LayerWidth, float& LinTerm0, float& LinTerm1, float& ConstTerm0, float& ConstTerm1)
@@ -337,6 +337,8 @@ namespace vkr::Graphics
 // 			DistanceToPlanetCenterTranslatedWorld < (BottomRadiusWorld + Offset) ?
 // 			PlanetCenterTranslatedWorld + (BottomRadiusWorld + Offset) * (PlanetCenterToCameraTranslatedWorld / DistanceToPlanetCenterTranslatedWorld) :
 // 			WorldCameraOriginTranslatedWorld);
+
+		//TODO: This param really is part of the sceneconstants in unreal, but we dont have access to them at this point (theyre filled up in the gfx context)
 		Vector4f SkyPlanetTranslatedWorldCenterAndViewHeight = Vector4f(PlanetCenterTranslatedWorld.x,
 			PlanetCenterTranslatedWorld.y,
 			PlanetCenterTranslatedWorld.z,

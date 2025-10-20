@@ -31,6 +31,7 @@ struct SceneConstantsStruct
     float3 CameraPosition;
     uint NumDirectionalLightsInUse;
     DirectionalLightData DirectionalLights[2];
+    float4 SkyPlanetTranslatedWorldCenterAndViewHeight;
 };
 
 ConstantBuffer<SceneConstantsStruct> SceneConstants : register(b0, space1);

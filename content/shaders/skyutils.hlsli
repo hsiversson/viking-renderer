@@ -2,7 +2,8 @@
 
 //#define SECOND_ATMOSPHERE_LIGHT_ENABLED
 // View data is not available for passes running once per scene (and not once per view).
-#if !defined(TRANSMITTANCE_PASS) && !defined(MULTISCATT_PASS) && !defined(SKYLIGHT_PASS)
+#if !defined(TRANSMITTANCE_PASS) && !defined(SKYVIEWLUT_PASS)//&& !defined(MULTISCATT_PASS) && !defined(SKYLIGHT_PASS)
+//#if !defined(MULTISCATT_PASS) && !defined(SKYLIGHT_PASS)
 #define VIEWDATA_AVAILABLE //Defines if we have sceneconstants available
 #endif
 
@@ -73,7 +74,7 @@ float3 SvPositionToTranslatedWorld(float4 SvPosition)
     float4 worldPos = mul(SceneConstants.InvViewProjection, clipPos);
     worldPos /= worldPos.w;*/
     
-    float4 HomWorldPos = mul(InvViewProjection, float4(SvPosition.xyz, 1));
+    float4 HomWorldPos = mul(SceneConstants.InvViewProjection, float4(SvPosition.xyz, 1));
 
     return HomWorldPos.xyz / HomWorldPos.w;
 }
@@ -358,7 +359,7 @@ SingleScatteringResult IntegrateSingleScatteredLuminance(
 	if (DeviceZ != FarDepthValue)
 	{
 		const float3 DepthBufferTranslatedWorldPosKm = GetScreenTranslatedWorldPos(SVPos, DeviceZ).xyz * M_TO_SKY_UNIT;
-		const float3 TraceStartTranslatedWorldPosKm  = WorldPos + SkyPlanetTranslatedWorldCenterAndViewHeight.xyz * M_TO_SKY_UNIT; // apply planet offset to go back to world from planet local referencial.
+		const float3 TraceStartTranslatedWorldPosKm  = WorldPos + SceneConstants.SkyPlanetTranslatedWorldCenterAndViewHeight.xyz * M_TO_SKY_UNIT; // apply planet offset to go back to world from planet local referencial.
 		const float3 TraceStartToSurfaceWorldKm = DepthBufferTranslatedWorldPosKm - TraceStartTranslatedWorldPosKm;
 		float tDepth = length(TraceStartToSurfaceWorldKm);
 		if (tDepth < tMax)
@@ -538,13 +539,13 @@ SingleScatteringResult IntegrateSingleScatteredLuminance(
         float3 ShadowP0 = P;
         bool bUnused = false;
 #ifdef SKYVIEWLUT_PASS
-        float3 SkyCameraTranslatedWorldOrigin = float3(0.0f,0.0f,0.0f); // TODO: need to uderstand better the mess of references theyw ork with in unreal. Potential bug here
+        float3 SkyCameraTranslatedWorldOrigin = float3(0.0f,0.0f,0.0f); // TODO: need to uderstand better the mess of references they work with in unreal. Potential bug here
         float3 TranslatedCameraPlanetPos = (SkyCameraTranslatedWorldOrigin - SkyPlanetTranslatedWorldCenterAndViewHeight.xyz) * M_TO_SKY_UNIT;
 		ShadowP0 = TranslatedCameraPlanetPos + t * mul(LocalReferencial, WorldDir); // Inverse of the local SkyViewLUT referencial transform
 #endif
 #ifdef SAMPLE_OPAQUE_SHADOW
 		{
-			float3 ShadowSampleWorldPosition0 = ShadowP0 * SKY_UNIT_TO_CM + SkyPlanetTranslatedWorldCenterAndViewHeight.xyz;
+			float3 ShadowSampleWorldPosition0 = ShadowP0 * SKY_UNIT_TO_CM + SceneConstants.SkyPlanetTranslatedWorldCenterAndViewHeight.xyz;
 			PlanetShadow0 *= ComputeLight0VolumeShadowing(ShadowSampleWorldPosition0 /* - DFHackToFloat(PrimaryView.PreViewTranslation)*/, false, false, bUnused);
 
 #ifdef VIRTUAL_SHADOW_MAP
@@ -558,12 +559,12 @@ SingleScatteringResult IntegrateSingleScatteredLuminance(
 #endif
 #ifdef SAMPLE_CLOUD_SKYAO
 		float OutOpticalDepth = 0.0f;
-		MultiScatteredLuminance0 *= GetCloudVolumetricShadow(ShadowP0 * SKY_UNIT_TO_CM + View.SkyPlanetTranslatedWorldCenterAndViewHeight.xyz, VolumetricCloudCommonParameters.CloudSkyAOTranslatedWorldToLightClipMatrix,
+		MultiScatteredLuminance0 *= GetCloudVolumetricShadow(ShadowP0 * SKY_UNIT_TO_CM + SceneConstants.SkyPlanetTranslatedWorldCenterAndViewHeight.xyz, VolumetricCloudCommonParameters.CloudSkyAOTranslatedWorldToLightClipMatrix,
 			VolumetricCloudCommonParameters.CloudSkyAOFarDepthKm, VolumetricCloudSkyAOTexture, VolumetricCloudSkyAOTextureSampler, OutOpticalDepth);
 #endif
 #ifdef SAMPLE_CLOUD_SHADOW
 		float OutOpticalDepth2 = 0.0f;
-		PlanetShadow0 *= saturate(lerp(1.0f, GetCloudVolumetricShadow(ShadowP0 * SKY_UNIT_TO_CM + View.SkyPlanetTranslatedWorldCenterAndViewHeight.xyz, VolumetricCloudCommonParameters.CloudShadowmapTranslatedWorldToLightClipMatrix[0],
+		PlanetShadow0 *= saturate(lerp(1.0f, GetCloudVolumetricShadow(ShadowP0 * SKY_UNIT_TO_CM + SceneConstants.SkyPlanetTranslatedWorldCenterAndViewHeight.xyz, VolumetricCloudCommonParameters.CloudShadowmapTranslatedWorldToLightClipMatrix[0],
 			VolumetricCloudCommonParameters.CloudShadowmapFarDepthKm[0].x, VolumetricCloudShadowMapTexture0, VolumetricCloudShadowMapTexture0Sampler, OutOpticalDepth2), VolumetricCloudShadowStrength0));
 #endif
 		// MultiScatteredLuminance is already pre-exposed, atmospheric light contribution needs to be pre exposed
@@ -581,7 +582,7 @@ SingleScatteringResult IntegrateSingleScatteredLuminance(
 		ShadowP1 = GetTranslatedCameraPlanetPos() + t * mul(LocalReferencial, WorldDir); // Inverse of the local SkyViewLUT referencial transform
 #endif
 		{
-			float3 ShadowSampleWorldPosition1 = ShadowP1 * SKY_UNIT_TO_CM + View.SkyPlanetTranslatedWorldCenterAndViewHeight.xyz;
+			float3 ShadowSampleWorldPosition1 = ShadowP1 * SKY_UNIT_TO_CM + SceneConstants.SkyPlanetTranslatedWorldCenterAndViewHeight.xyz;
 			PlanetShadow1 *= ComputeLight1VolumeShadowing(ShadowSampleWorldPosition1/* - DFHackToFloat(PrimaryView.PreViewTranslation)*/, false, false, bUnused);
 #ifdef VIRTUAL_SHADOW_MAP
 			if (VirtualShadowMapId1 != INDEX_NONE)
@@ -594,7 +595,7 @@ SingleScatteringResult IntegrateSingleScatteredLuminance(
 #endif // SAMPLE_OPAQUE_SHADOW
 #ifdef SAMPLE_CLOUD_SHADOW
 		float OutOpticalDepth3 = 0.0f;
-		PlanetShadow1 *= saturate(lerp(1.0f, GetCloudVolumetricShadow(ShadowP1 * SKY_UNIT_TO_CM + View.SkyPlanetTranslatedWorldCenterAndViewHeight.xyz, VolumetricCloudCommonParameters.CloudShadowmapTranslatedWorldToLightClipMatrix[1],
+		PlanetShadow1 *= saturate(lerp(1.0f, GetCloudVolumetricShadow(ShadowP1 * SKY_UNIT_TO_CM + SceneConstants.SkyPlanetTranslatedWorldCenterAndViewHeight.xyz, VolumetricCloudCommonParameters.CloudShadowmapTranslatedWorldToLightClipMatrix[1],
 			VolumetricCloudCommonParameters.CloudShadowmapFarDepthKm[1].x, VolumetricCloudShadowMapTexture1, VolumetricCloudShadowMapTexture1Sampler, OutOpticalDepth3), VolumetricCloudShadowStrength1));
 #endif
 		//  Multi-scattering can work for the second light but it is disabled for the sake of performance.

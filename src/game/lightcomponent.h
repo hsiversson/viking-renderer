@@ -10,7 +10,7 @@ namespace vkr::Game
 	{
 		Ref<Graphics::DirectionalLight> m_Light;
 		Vector3f m_Color = Vector3f(1.0f, 1.0f, 1.0f);
-		float m_Intensity = 3.0f;
+		float m_Intensity = 6.0f;
 		float m_Radius = 0.5357f;
 
 		void OnComponentAdded() override

@@ -25,6 +25,7 @@ struct AtmosphereParameters
     uint pad1;
     // The average albedo of the ground.
     float3 GroundAlbedo;
+    uint pad2;
 };
 
 struct SamplingSetup

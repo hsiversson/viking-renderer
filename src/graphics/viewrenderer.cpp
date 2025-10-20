@@ -170,6 +170,7 @@ namespace vkr::Graphics
 			Vector3f CameraWorldPosition;
 			uint32_t NumDirectionalLightsInUse;
 			DirectionalLight DirectionalLights[2];
+			Vector4f SkyPlanetTranslatedWorldCenterAndViewHeight;
 		};
 
 		PerSceneConstantData perSceneConstantData = {};
@@ -198,6 +199,15 @@ namespace vkr::Graphics
 		{
 			perSceneConstantData.DirectionalLights[i] = renderData.m_DirectionalLights[i];
 		}
+
+		//See sky.cpp line 341. This code is duplicated there and really we should get the param there from sceneconstants as well
+		const float PlanetRadiusOffset = 0.005f; //Sky units in km
+		Vector3f PlanetCenterTranslatedWorld = Vector3f(0, -PlanetRadiusOffset + renderData.m_AtmosphereData.BottomRadiusKm, 0); //Where the planet center is relative to the camera
+		Vector4f SkyPlanetTranslatedWorldCenterAndViewHeight = Vector4f(PlanetCenterTranslatedWorld.x,
+			PlanetCenterTranslatedWorld.y,
+			PlanetCenterTranslatedWorld.z,
+			PlanetRadiusOffset + renderData.m_AtmosphereData.BottomRadiusKm);
+		perSceneConstantData.SkyPlanetTranslatedWorldCenterAndViewHeight = SkyPlanetTranslatedWorldCenterAndViewHeight;
 
 		renderData.m_PerSceneConstantBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(PerSceneConstantData), sizeof(PerSceneConstantData), &perSceneConstantData);
 
@@ -504,18 +514,23 @@ namespace vkr::Graphics
 
 		struct alignas(16) ConstantData
 		{
+			AtmosphereData AtmosphereParameters;
 			uint32_t TargetTextureDescriptorIndex;
 			uint32_t DiffuseAlbedoTextureDescriptor;
 			uint32_t SpecularAlbedoTextureDescriptor;
 			uint32_t NormalsTextureDescriptor;
 			uint32_t SpecularHitDistanceTextureDescriptor;
-			uint32_t pad[3];
+			uint32_t TransmittanceTextureDescriptorIndex;
+			uint32_t pad[2];
 		};
+
 		ConstantData data;
+		data.AtmosphereParameters = renderData.m_AtmosphereData;
 		data.TargetTextureDescriptorIndex = renderTargets.m_SceneBuffer_RenderSize.m_TextureViewRW->GetIndex();
 		data.DiffuseAlbedoTextureDescriptor = renderTargets.m_DiffuseAlbedo.m_TextureViewRW->GetIndex();
 		data.SpecularAlbedoTextureDescriptor = renderTargets.m_SpecularAlbedo.m_TextureViewRW->GetIndex();
 		data.NormalsTextureDescriptor = renderTargets.m_NormalRoughness.m_TextureViewRW->GetIndex();
+		data.TransmittanceTextureDescriptorIndex = renderTargets.m_SkyTransmittanceLUT.m_TextureView->GetIndex();
 		data.SpecularHitDistanceTextureDescriptor = renderTargets.m_SpecularHitDistance.m_TextureViewRW->GetIndex();
 		ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
