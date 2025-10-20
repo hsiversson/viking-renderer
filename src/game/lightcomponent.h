@@ -8,15 +8,10 @@ namespace vkr::Game
 {
 	struct DirectionalLightComponent : public IComponent
 	{
-		Ref<Graphics::DirectionalLight> m_Light;
+		Ref<Graphics::DirectionalLight> m_Light = MakeRef<Graphics::DirectionalLight>();
 		Vector3f m_Color = Vector3f(1.0f, 1.0f, 1.0f);
 		float m_Intensity = 3.0f;
 		float m_Radius = 0.5357f;
-
-		void OnComponentAdded() override
-		{
-			m_Light = MakeRef<Graphics::DirectionalLight>();
-		}
 
 		void Serialize(Json& s) const
 		{
@@ -28,10 +23,12 @@ namespace vkr::Game
 		void Deserialize(const Json& s)
 		{
 			const Json& c = s.at("color");
-			m_Color = Vector3f(c[0], c[1], c[2]);
+			m_Color.x = c[0].get<float>();
+			m_Color.y = c[1].get<float>();
+			m_Color.z = c[2].get<float>();
 
-			m_Intensity = s.at("intensity");
-			m_Radius = s.at("radius");
+			m_Intensity = s.at("intensity").get<float>();
+			m_Radius = s.at("radius").get<float>();
 		}
 	};
 

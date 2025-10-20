@@ -66,26 +66,26 @@ namespace vkr::Editor
 		{
 			{
 				// for now update all model transforms here...
-				std::vector<Game::EntityHandle>* modelComponents = m_World->GetEntityRegistry().ViewEntities<Game::ModelComponent>();
-				for (const Game::EntityHandle entity : *modelComponents)
+				auto modelComponents = m_World->GetEntityRegistry().view<Game::ModelComponent>();
+				for (const Game::EntityHandle entityHandle : modelComponents)
 				{
-					Game::Entity e = Game::Entity(entity, &m_World->GetEntityRegistry());
-					Game::TransformComponent* transform = e.GetComponent<Game::TransformComponent>();
-					Game::ModelComponent* model = e.GetComponent<Game::ModelComponent>();
-					model->m_Model->SetTransform(Compose(transform->m_Position, transform->m_Rotation, transform->m_Scale));
+					Game::Entity entity = Game::Entity(entityHandle, &m_World->GetEntityRegistry());
+					Game::TransformComponent& transform = entity.GetComponent<Game::TransformComponent>();
+					Game::ModelComponent& model = entity.GetComponent<Game::ModelComponent>();
+					model.m_Model->SetTransform(Compose(transform.m_Position, transform.m_Rotation, transform.m_Scale));
 				}
 			}
 			{
-				std::vector<Game::EntityHandle>* dirLightComponents = m_World->GetEntityRegistry().ViewEntities<Game::DirectionalLightComponent>();
-				for (const Game::EntityHandle entity : *dirLightComponents)
+				auto dirLightComponents = m_World->GetEntityRegistry().view<Game::DirectionalLightComponent>();
+				for (const Game::EntityHandle entityHandle : dirLightComponents)
 				{
-					Game::Entity e = Game::Entity(entity, &m_World->GetEntityRegistry());
-					Game::TransformComponent* transformComponent = e.GetComponent<Game::TransformComponent>();
-					Game::DirectionalLightComponent* dirLight = e.GetComponent<Game::DirectionalLightComponent>();
-					Mat44 transform = Compose(transformComponent->m_Position, transformComponent->m_Rotation, transformComponent->m_Scale);
-					dirLight->m_Light->Direction = Normalized(Vector3f(transform.At(2, 0), transform.At(2, 1), transform.At(2, 2)));
-					dirLight->m_Light->Emission = dirLight->m_Color * dirLight->m_Intensity;
-					dirLight->m_Light->Radius = DegToRad(dirLight->m_Radius);
+					Game::Entity entity = Game::Entity(entityHandle, &m_World->GetEntityRegistry());
+					Game::TransformComponent& transformComponent = entity.GetComponent<Game::TransformComponent>();
+					Game::DirectionalLightComponent& dirLight = entity.GetComponent<Game::DirectionalLightComponent>();
+					Mat44 transform = Compose(transformComponent.m_Position, transformComponent.m_Rotation, transformComponent.m_Scale);
+					dirLight.m_Light->Direction = Normalized(Vector3f(transform.At(2, 0), transform.At(2, 1), transform.At(2, 2)));
+					dirLight.m_Light->Emission = dirLight.m_Color * dirLight.m_Intensity;
+					dirLight.m_Light->Radius = DegToRad(dirLight.m_Radius);
 				}
 			}
 

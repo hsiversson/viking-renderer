@@ -21,9 +21,9 @@ namespace vkr::Game
 
 		void Deserialize(const Json& s)
 		{
-			m_Uid = s.at("uid");
-			m_Name = s.at("name");
-			m_Type = s.at("type");
+			m_Uid = s.at("uid").get<EntityHandle>();
+			m_Name = s.at("name").get<std::string>();
+			m_Type = s.at("type").get<std::string>();
 		}
 	};
 }

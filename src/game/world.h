@@ -1,4 +1,5 @@
 #pragma once
+#include "core/serialize.h"
 #include "entity.h"
 
 namespace vkr::Graphics
@@ -8,7 +9,7 @@ namespace vkr::Graphics
 
 namespace vkr::Game
 {
-	class World
+	class World : public ISerializable
 	{
 	public:
 		World();
@@ -23,6 +24,9 @@ namespace vkr::Game
 
 		EntityRegistry& GetEntityRegistry();
 		const EntityRegistry& GetEntityRegistry() const;
+
+		void Serialize(Json& data) const override;
+		void Deserialize(const Json& data) override;
 
 	private:
 		EntityRegistry m_EntityRegistry;

@@ -70,6 +70,9 @@ target_link_libraries(VikingRenderer PRIVATE imguizmo::imguizmo)
 find_package(nlohmann_json CONFIG REQUIRED)
 target_link_libraries(VikingRenderer PRIVATE nlohmann_json::nlohmann_json)
 
+find_package(EnTT CONFIG REQUIRED)
+target_link_libraries(VikingRenderer PRIVATE EnTT::EnTT)
+
 target_include_directories(VikingRenderer PRIVATE ${STREAMLINE_INCLUDE_DIR})
 
 # Ensure it builds after the SDK has downloaded

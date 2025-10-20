@@ -143,19 +143,17 @@ namespace vkr::Editor
 	bool ViewportWorldPicker::Run(const Vector2u& mousePosition, const Vector2u& viewportSize, Graphics::Camera& camera, const Game::World& world, std::vector<Game::Entity>& selectedEntities)
 	{
 		const Game::EntityRegistry& entityRegistry = world.GetEntityRegistry();
-		const std::vector<Game::ModelComponent>* modelComponents = entityRegistry.ViewComponents<Game::ModelComponent>();
-		const std::vector<Game::EntityHandle>* entities = entityRegistry.ViewEntities<Game::ModelComponent>();
+		auto modelComponents = entityRegistry.view<Game::ModelComponent>();
 
 		std::vector<ObjectIdEntry> objects;
-		for (uint32_t i = 0; i < modelComponents->size(); ++i)
+		for (Game::EntityHandle entityHandle : modelComponents)
 		{
-			const Game::ModelComponent& modelComponent = modelComponents->at(i);
-			const Game::EntityHandle entityHandle = entities->at(i);
-			const Game::TransformComponent* transformComponent = entityRegistry.GetComponent<Game::TransformComponent>(entityHandle);
+			const Game::ModelComponent& modelComponent = modelComponents.get<Game::ModelComponent>(entityHandle);
+			const Game::TransformComponent& transformComponent = entityRegistry.get<Game::TransformComponent>(entityHandle);
 			const std::vector<Graphics::Model::Part>& parts = modelComponent.m_Model->GetParts();
 			for (const Graphics::Model::Part& part : parts)
 			{
-				FetchPartData(entityHandle, part, Compose(transformComponent->m_Position, transformComponent->m_Rotation, transformComponent->m_Scale), objects);
+				FetchPartData(entityHandle, part, Compose(transformComponent.m_Position, transformComponent.m_Rotation, transformComponent.m_Scale), objects);
 			}
 		}
 
@@ -238,7 +236,7 @@ namespace vkr::Editor
 
 		entry.m_Transform = part.m_LocalTransform * parentWorldTransform;
 
-		entry.m_ObjectIdHighPart = static_cast<uint32_t>(entityHandle >> 32);
+		entry.m_ObjectIdHighPart = static_cast<uint32_t>((uint64_t)entityHandle >> 32);
 		entry.m_ObjectIdLowPart = static_cast<uint32_t>(entityHandle);
 
 		objects.push_back(entry);
@@ -289,12 +287,12 @@ namespace vkr::Editor
 		{
 			if (entity.HasComponent<Game::ModelComponent>())
 			{
-				const Game::TransformComponent* transformComponent = entity.GetComponent<Game::TransformComponent>();
-				const Game::ModelComponent* modelComponent = entity.GetComponent<Game::ModelComponent>();
-				const std::vector<Graphics::Model::Part>& parts = modelComponent->m_Model->GetParts();
+				const Game::TransformComponent& transformComponent = entity.GetComponent<Game::TransformComponent>();
+				const Game::ModelComponent& modelComponent = entity.GetComponent<Game::ModelComponent>();
+				const std::vector<Graphics::Model::Part>& parts = modelComponent.m_Model->GetParts();
 				for (const Graphics::Model::Part& part : parts)
 				{
-					FetchPartData(part, Compose(transformComponent->m_Position, transformComponent->m_Rotation, transformComponent->m_Scale), outlineObjects);
+					FetchPartData(part, Compose(transformComponent.m_Position, transformComponent.m_Rotation, transformComponent.m_Scale), outlineObjects);
 				}
 			}
 		}
@@ -533,11 +531,11 @@ namespace vkr::Editor
 				m_SelectedGizmoOp = GizmoOperation::Scale;
 			}
 
-			Game::TransformComponent* transformComponent = m_SelectedEntities[0].GetComponent<Game::TransformComponent>();
+			Game::TransformComponent& transformComponent = m_SelectedEntities[0].GetComponent<Game::TransformComponent>();
 
 			Mat44 cameraTransform = m_Camera.GetWorldTransform();
 
-			Mat44 objectTransform = Compose(transformComponent->m_Position, transformComponent->m_Rotation, transformComponent->m_Scale);
+			Mat44 objectTransform = Compose(transformComponent.m_Position, transformComponent.m_Rotation, transformComponent.m_Scale);
 			Vector3f objectPosition = Vector3f(objectTransform.At(3, 0), objectTransform.At(3, 1), objectTransform.At(3, 2));
 
 			Vector3f cameraForward = Normalized(Vector3f(cameraTransform.At(2, 0), cameraTransform.At(2, 1), cameraTransform.At(2, 2)));
@@ -558,7 +556,7 @@ namespace vkr::Editor
 				const IMGUIZMO_NAMESPACE::MODE mode = m_SelectedGizmoSpace == GizmoSpace::Local ? IMGUIZMO_NAMESPACE::LOCAL : IMGUIZMO_NAMESPACE::WORLD;
 				if (ImGuizmo::Manipulate(&view[0], &proj[0], op, mode, &objectTransform[0]))
 				{
-					Decompose(objectTransform, transformComponent->m_Position, transformComponent->m_Rotation, transformComponent->m_Scale);
+					Decompose(objectTransform, transformComponent.m_Position, transformComponent.m_Rotation, transformComponent.m_Scale);
 				}
 				ImGui::PopClipRect();
 			}

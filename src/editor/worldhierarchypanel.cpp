@@ -36,17 +36,14 @@ namespace vkr::Editor
 
 			Game::EntityRegistry& entityRegistry = m_World.GetEntityRegistry();
 
-			const std::vector<Game::IdComponent>* allEntities = entityRegistry.ViewComponents<Game::IdComponent>();
-			if (allEntities)
+			auto allEntities = entityRegistry.view<Game::IdComponent>();
+			for (Game::EntityHandle e : allEntities)
 			{
-				for (uint32_t i = 0; i < allEntities->size(); i++)
-				{
-					Game::Entity entity = Game::Entity((*allEntities)[i].m_Uid, &entityRegistry);
-					if (entity.GetParent()) // skip non roots
-						continue;
+				Game::Entity entity = Game::Entity(allEntities.get<Game::IdComponent>(e).m_Uid, &entityRegistry);
+				if (entity.GetParent()) // skip non roots
+					continue;
 
-					DrawEntityNode(entity);
-				}
+				DrawEntityNode(entity);
 			}
 
 			ImGui::EndTable();
@@ -92,9 +89,9 @@ namespace vkr::Editor
 	{
 		ImGui::TableNextRow();
 
-		const Game::IdComponent* idComponent = entity.GetComponent<Game::IdComponent>();
+		const Game::IdComponent& idComponent = entity.GetComponent<Game::IdComponent>();
 		///Gfw_VisibleComponent& visibleComponent = aEntity.GetComponent<Gfw_VisibleComponent>();
-		ImGui::PushID(idComponent->m_Name.c_str());
+		ImGui::PushID(idComponent.m_Name.c_str());
 
 		// Visible toggle
 		ImGui::TableSetColumnIndex(0);
@@ -122,7 +119,7 @@ namespace vkr::Editor
 		if (!hasChildren)
 			treeNodeFlags |= ImGuiTreeNodeFlags_Leaf;
 
-		bool opened = ImGui::TreeNodeEx(idComponent->m_Name.c_str(), treeNodeFlags);
+		bool opened = ImGui::TreeNodeEx(idComponent.m_Name.c_str(), treeNodeFlags);
 
 		if (ImGui::BeginDragDropSource())
 		{
@@ -182,7 +179,7 @@ namespace vkr::Editor
 
 		// Type
 		ImGui::TableSetColumnIndex(1);
-		ImGui::TextDisabled(idComponent->m_Type.c_str());
+		ImGui::TextDisabled(idComponent.m_Type.c_str());
 
 		if (opened)
 		{

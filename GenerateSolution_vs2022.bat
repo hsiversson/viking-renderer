@@ -27,6 +27,7 @@ vcpkg\vcpkg.exe install cgltf
 vcpkg\vcpkg.exe install nlohmann-json
 vcpkg\vcpkg.exe install imgui[core,docking-experimental]
 vcpkg\vcpkg.exe install imguizmo
+vcpkg\vcpkg.exe install entt
 if errorlevel 1 goto ERROR_END
 
 :: CMAKE BUILD
