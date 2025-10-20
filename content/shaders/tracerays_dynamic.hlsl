@@ -340,7 +340,7 @@ void Miss(inout RaytracingPayload payload)
     SingleScatteringResult ss = IntegrateSingleScatteredLuminance(
 		float4(PixPos, 0.0f, 1.0f), WorldPos, WorldDir,
 		Ground, Sampling, DeviceZ, MieRayPhase,
-		SceneConstants.DirectionalLights[0].Direction, SceneConstants.DirectionalLights[1].Direction,
+		-SceneConstants.DirectionalLights[0].Direction.zxy, -SceneConstants.DirectionalLights[1].Direction.zxy,
 		SceneConstants.DirectionalLights[0].Emission, SceneConstants.DirectionalLights[1].Emission,
 		AerialPespectiveViewDistanceScale);
 
