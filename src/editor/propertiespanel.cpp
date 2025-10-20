@@ -71,7 +71,7 @@ namespace vkr::Editor
 				Game::DirectionalLightComponent& dirLight = m_SelectedEntities[0].GetComponent<Game::DirectionalLightComponent>();
 				ImGui::ColorEdit3("Light Color", &dirLight.m_Color.x);
 				ImGui::DragFloat("Intensity", &dirLight.m_Intensity, 0.1f, 0.0f, 120000.0f);
-				ImGui::DragFloat("Radius", &dirLight.m_Radius, 0.01f, 0.0f, 1.0f);
+				ImGui::DragFloat("Radius", &dirLight.m_Radius, 0.01f, 0.0f, 90.0f);
 			}
 		}
 	}
