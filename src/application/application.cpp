@@ -198,6 +198,12 @@ namespace vkr
 
 	ReturnCode Application::Exit()
 	{
+		if (m_EditorManager)
+		{
+			m_Window->RemoveMessageHandler(m_EditorManager.get());
+		}
+		m_Window->RemoveMessageHandler(m_InputManager.get());
+
 		return RETURN_OK;
 	}
 
