@@ -6,13 +6,16 @@
 cbuffer Constants : register(b0)
 {
     AtmosphereParameters Atmosphere;
+    float4x4 SkyViewLutReferential;
+    float4 SkyViewLutSizeAndInvSize;
     uint TargetTextureDescriptorIndex;
     uint DiffuseAlbedoTextureDescriptor;
     uint SpecularAlbedoTextureDescriptor;
     uint NormalRoughnessTextureDescriptor;
     uint SpecularHitDistanceTextureDescriptor;
     uint TransmittanceTextureDescriptorIndex;
-    uint2 pad;
+    uint SkyViewLutTextureDescriptorIndex;
+    uint pad;
 };
 
 SamplerState g_SamplerPointClamp : register(s0);
@@ -78,6 +81,7 @@ Texture2D<float4> GetTransmittanceLUT()
 
 #define RENDERSKY_ENABLED
 #define SOURCE_DISK_ENABLED
+#define FASTSKY_ENABLED
 #include "skyutils.hlsli"
 
 float3 GetLightDiskLuminance(float3 PlanetCenterToCamera, float3 WorldDir, uint LightIndex)
@@ -217,40 +221,42 @@ void Miss(inout RaytracingPayload payload)
 
     float ViewHeight = length(WorldPos);
 #if defined(FASTSKY_ENABLED) && defined(RENDERSKY_ENABLED)
-	if (ViewHeight < (Atmosphere.TopRadiusKm * PLANET_RADIUS_RATIO_SAFE_EDGE) && DeviceZ == FarDepthValue
-		&& (View.RenderingReflectionCaptureMask > 0.0f || IsSkyAtmosphereRenderedInMain(View.EnvironmentComponentsFlags)))
-	{
-		float2 UV;
+    if (ViewHeight < (Atmosphere.TopRadiusKm * PLANET_RADIUS_RATIO_SAFE_EDGE) && DeviceZ == FarDepthValue)
+		//&& (View.RenderingReflectionCaptureMask > 0.0f || IsSkyAtmosphereRenderedInMain(View.EnvironmentComponentsFlags)))
+    {
+        float2 UV;
 
 		// The referencial used to build the Sky View lut
-		float3x3 LocalReferencial = GetSkyViewLutReferential(View.SkyViewLutReferential);
+        float3x3 LocalReferencial = GetUEReferential(SkyViewLutReferential);
 
 		// Input vectors expressed in this referencial: Up is always Z. Also note that ViewHeight is unchanged in this referencial.
-		float3 WorldPosLocal = float3(0.0, 0.0, ViewHeight);
-		float3 UpVectorLocal = float3(0.0, 0.0, 1.0);
-		float3 WorldDirLocal = mul(LocalReferencial, WorldDir);
-		float ViewZenithCosAngle = dot(WorldDirLocal, UpVectorLocal);
+        float3 WorldPosLocal = float3(0.0, 0.0, ViewHeight);
+        float3 UpVectorLocal = float3(0.0, 0.0, 1.0);
+        float3 WorldDirLocal = mul(LocalReferencial, WorldDir);
+        float ViewZenithCosAngle = dot(WorldDirLocal, UpVectorLocal);
 
 		// Now evaluate inputs in the referential
-		bool IntersectGround = RaySphereIntersectNearest(WorldPosLocal, WorldDirLocal, float3(0, 0, 0), Atmosphere.BottomRadiusKm) >= 0.0f;
+        bool IntersectGround = RaySphereIntersectNearest(WorldPosLocal, WorldDirLocal, float3(0, 0, 0), Atmosphere.BottomRadiusKm) >= 0.0f;
 
-		SkyViewLutParamsToUv(IntersectGround, ViewZenithCosAngle, WorldDirLocal, ViewHeight, Atmosphere.BottomRadiusKm, SkyAtmosphere.SkyViewLutSizeAndInvSize, UV);
-		float4 SkyLuminanceTransmittance = SkyViewLutTexture.SampleLevel(SkyViewLutTextureSampler, UV, 0);
-		float3 SkyLuminance = SkyLuminanceTransmittance.rgb;
+        SkyViewLutParamsToUv(IntersectGround, ViewZenithCosAngle, WorldDirLocal, ViewHeight, Atmosphere.BottomRadiusKm, SkyViewLutSizeAndInvSize, UV);
+        Texture2D<float4> SkyViewLutTexture = ResourceDescriptorHeap[SkyViewLutTextureDescriptorIndex];
+        float4 SkyLuminanceTransmittance = SkyViewLutTexture.SampleLevel(g_SamplerBilinearClamp, UV, 0);
+        float3 SkyLuminance = SkyLuminanceTransmittance.rgb;
 
-		float3 SkyGreyTransmittance = 1.0f;
-		FLATTEN
-		if(bPropagateAlphaNonReflection > 0)
-		{
-			SkyGreyTransmittance = SkyLuminanceTransmittance.aaa;
-		}
+        float3 SkyGreyTransmittance = 1.0f;
+        
+        //FLATTEN
+        //if (bPropagateAlphaNonReflection > 0)
+        //{
+        //    SkyGreyTransmittance = SkyLuminanceTransmittance.aaa;
+        //}
 
-		PreExposedL += SkyLuminance * LuminanceScale * (ViewOneOverPreExposure * OutputPreExposure);
+        PreExposedL += SkyLuminance * LuminanceScale * (ViewOneOverPreExposure * OutputPreExposure);
 	
-		OutLuminance = PrepareOutput(PreExposedL, SkyGreyTransmittance);
-		UpdateVisibleSkyAlpha(DeviceZ, OutLuminance);
-		return;
-	}
+        payload.irradiance = PrepareOutput(PreExposedL, SkyGreyTransmittance);
+        //UpdateVisibleSkyAlpha(DeviceZ, OutLuminance);
+        return;
+    }
 #endif
 
 #if FASTAERIALPERSPECTIVE_ENABLED

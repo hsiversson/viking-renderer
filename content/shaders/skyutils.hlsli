@@ -13,6 +13,60 @@
 
 static const float FarDepthValue = 0.0f; //We use inverted depth
 static const float OutputPreExposure = 1.0f; //TODO: What do we do about this?
+static const float ViewPreExposure = 1.0f;
+static const float ViewOneOverPreExposure = 1.0f;
+
+//This function converts the float4x4 referential we get from constants that is in viking renderer space into a referential in unreal space with Z up
+float3x3 GetUEReferential(float4x4 Source)
+{
+    float3x3 Result;
+    Result[0] = Source[0].zxy;
+    Result[1] = Source[1].zxy;
+    Result[2] = Source[2].zxy;
+    return Result;
+}
+
+float2 FromUnitToSubUvs(float2 uv, float4 SizeAndInvSize)
+{
+    return (uv + 0.5f * SizeAndInvSize.zw) * (SizeAndInvSize.xy / (SizeAndInvSize.xy + 1.0f));
+}
+float2 FromSubUvsToUnit(float2 uv, float4 SizeAndInvSize)
+{
+    return (uv - 0.5f * SizeAndInvSize.zw) * (SizeAndInvSize.xy / (SizeAndInvSize.xy - 1.0f));
+}
+
+void SkyViewLutParamsToUv(
+	in bool IntersectGround, in float ViewZenithCosAngle, in float3 ViewDir, in float ViewHeight, in float BottomRadius, in float4 SkyViewLutSizeAndInvSize,
+	out float2 UV)
+{
+    float Vhorizon = sqrt(ViewHeight * ViewHeight - BottomRadius * BottomRadius);
+    float CosBeta = Vhorizon / ViewHeight; // GroundToHorizonCos
+    float Beta = acosFast4(CosBeta);
+    float ZenithHorizonAngle = PI - Beta;
+    float ViewZenithAngle = acosFast4(ViewZenithCosAngle);
+
+    if (!IntersectGround)
+    {
+        float Coord = ViewZenithAngle / ZenithHorizonAngle;
+        Coord = 1.0f - Coord;
+        Coord = sqrt(Coord);
+        Coord = 1.0f - Coord;
+        UV.y = Coord * 0.5f;
+    }
+    else
+    {
+        float Coord = (ViewZenithAngle - ZenithHorizonAngle) / Beta;
+        Coord = sqrt(Coord);
+        UV.y = Coord * 0.5f + 0.5f;
+    }
+
+	{
+        UV.x = (atan2Fast(-ViewDir.y, -ViewDir.x) + PI) / (2.0f * PI);
+    }
+
+	// Constrain uvs to valid sub texel range (avoid zenith derivative issue making LUT usage visible)
+    UV = FromUnitToSubUvs(UV, SkyViewLutSizeAndInvSize);
+}
 
 void fromTransmittanceLutUVs(
 	out float ViewHeight, out float ViewZenithCosAngle,

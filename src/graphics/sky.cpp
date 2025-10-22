@@ -105,7 +105,7 @@ namespace vkr::Graphics
 	{
 		ViewRenderData& prepareData = view->GetPrepareData();
 
-		prepareData.m_UpdateSkyLut = (ElapsedTimer::FrameIndex() % 10) == 1; // every 10 frame for now.
+		//prepareData.m_UpdateSkyLut = (ElapsedTimer::FrameIndex() % 10) == 1; // every 10 frame for now.
 
 		// Convert Tent distribution to linear curve coefficients.
 		auto TentToCoefficients = [](const TentDistribution& Tent, float& LayerWidth, float& LinTerm0, float& LinTerm1, float& ConstTerm0, float& ConstTerm1)
@@ -199,6 +199,81 @@ namespace vkr::Graphics
 		}
 
 		//prepareData.m_AtmosphereData.TransmittanceMinLightElevationAngle = m_AtmosphereParams.TransmittanceMinLightElevationAngle;
+
+		// Where are we in relation to our "virtual planet"? For atmosphere calculations we need to know where the observer/camera sits within the atmosphere
+		// Were gonna consider a flat world in our scene and that that Y = 0 is where our earth surface is
+		// The constants below should match the one in SkyAtmosphereCommon.ush
+		// Always force to be 5 meters above the ground/sea level (to always see the sky and not be under the virtual planet occluding ray tracing) and lower for small planet radius
+		const float PlanetRadiusOffset = 0.005f; //Sky units in km
+		Vector3 CameraWorldPos = Vector3f(prepareData.m_CameraData.CameraWorldMatrix[9], prepareData.m_CameraData.CameraWorldMatrix[10], prepareData.m_CameraData.CameraWorldMatrix[11]);
+		//This will consider the planet center is always positioned such that the camera is always considered for sky purposes to be 5m above ground level (for now)
+		Vector3f PlanetCenterWorld =  CameraWorldPos - Vector3f(0, PlanetRadiusOffset + prepareData.m_AtmosphereData.BottomRadiusKm, 0);
+		Vector3f PlanetCenterTranslatedWorld = PlanetCenterWorld - CameraWorldPos; //Where the planet center is relative to the camera
+
+		// 		const float Offset = PlanetRadiusOffset * SkyUnitToCm;
+		// 		const float BottomRadiusWorld = BottomRadiusKm * SkyUnitToCm;
+		// 		const Vector3f PlanetCenterWorld = PlanetCenterKm * SkyUnitToCm;
+		// 		const Vector3f PlanetCenterTranslatedWorld = PlanetCenterWorld + PreViewTranslation;
+		// 		const Vector3f WorldCameraOriginTranslatedWorld = WorldCameraOrigin + PreViewTranslation;
+		// 		const Vector3f PlanetCenterToCameraTranslatedWorld = WorldCameraOriginTranslatedWorld - PlanetCenterTranslatedWorld;
+		// 		const float DistanceToPlanetCenterTranslatedWorld = vkr::Length(PlanetCenterToCameraTranslatedWorld);
+		// 		// If the camera is below the planet surface, we snap it back onto the surface.
+		// 		// This is to make sure the sky is always visible even if the camera is inside the virtual planet.
+		// 		Vector3f SkyCameraTranslatedWorldOriginTranslatedWorld = Vector3f(
+		// 			DistanceToPlanetCenterTranslatedWorld < (BottomRadiusWorld + Offset) ?
+		// 			PlanetCenterTranslatedWorld + (BottomRadiusWorld + Offset) * (PlanetCenterToCameraTranslatedWorld / DistanceToPlanetCenterTranslatedWorld) :
+		// 			WorldCameraOriginTranslatedWorld);
+
+		prepareData.m_SkyData.SkyPlanetTranslatedWorldCenterAndViewHeight = Vector4f(PlanetCenterTranslatedWorld.x,
+			PlanetCenterTranslatedWorld.y,
+			PlanetCenterTranslatedWorld.z,
+			Length(PlanetCenterTranslatedWorld));
+
+		// Compute the basis vectors for the frame of reference of the sky view LUT. This is a frame of reference tangent to the earth surface at the point the camera is
+		// Our world is flat and not curved so we consider +Y  the up vector
+		Mat44 SkyViewLutReferential = Mat44::Identity();
+		Vector3f ViewForward = Vector3f(prepareData.m_CameraData.CameraWorldMatrix[6], prepareData.m_CameraData.CameraWorldMatrix[7], prepareData.m_CameraData.CameraWorldMatrix[8]);
+		Vector3f ViewRight = Vector3f(prepareData.m_CameraData.CameraWorldMatrix[0], prepareData.m_CameraData.CameraWorldMatrix[1], prepareData.m_CameraData.CameraWorldMatrix[2]);
+		
+		Vector3f Up = CameraWorldPos - PlanetCenterWorld;
+		vkr::Normalize(Up);
+		Vector3f Forward = ViewForward;		// This can make texel visible when the camera is rotating. Use constant world direction instead?
+		//FVector3f	Left = normalize(cross(Forward, Up)); 
+		Vector3f	Left;
+		Left = vkr::Cross(Forward, Up);
+		vkr::Normalize(Left);
+		const float DotMainDir = abs(vkr::Dot(Up, Forward));
+		if (DotMainDir > 0.999f)
+		{
+			// When it becomes hard to generate a referential, generate it procedurally.
+			// [ Duff et al. 2017, "Building an Orthonormal Basis, Revisited" ]
+			const float Sign = Up.z >= 0.0f ? 1.0f : -1.0f;
+			const float a = -1.0f / (Sign + Up.z);
+			const float b = Up.x * Up.y * a;
+			Forward = Vector3f(1 + Sign * a * pow(Up.x, 2.0f), Sign * b, -Sign * Up.x);
+			Left = Vector3f(b, Sign + a * pow(Up.y, 2.0f), -Up.y);
+
+			SkyViewLutReferential = vkr::Compose(
+				Vector4f(Forward.x, Forward.y, Forward.z, 0),
+				Vector4f(Left.x, Left.y, Left.z, 0),
+				Vector4f(Up.x, Up.y, Up.z, 0),
+				Vector4f(0, 0, 0, 1)
+			);
+			//SkyViewLutReferential = SkyViewLutReferential.GetTransposed();
+		}
+		else
+		{
+			// This is better as it should be more stable with respect to camera forward.
+			Forward = vkr::Cross(Up, Left);
+			vkr::Normalize(Forward);
+			SkyViewLutReferential[0] = Forward.x; SkyViewLutReferential[1] = Forward.y; SkyViewLutReferential[2] = Forward.z;
+			SkyViewLutReferential[4] = Left.x; SkyViewLutReferential[5] = Left.y; SkyViewLutReferential[6] = Left.z;
+			SkyViewLutReferential[8] = Up.x; SkyViewLutReferential[9] = Up.y; SkyViewLutReferential[10] = Up.z;
+			SkyViewLutReferential = SkyViewLutReferential.GetTransposed();
+		}
+
+		prepareData.m_SkyData.SkyViewLutReferential = SkyViewLutReferential;
+		prepareData.m_SkyData.SkyViewLutSizeAndInvSize = Vector4f(SKYVIEW_TEXTURE_WIDTH, SKYVIEW_TEXTURE_HEIGHT, 1.0f / SKYVIEW_TEXTURE_WIDTH, 1.0f / SKYVIEW_TEXTURE_HEIGHT);
 
 		// TODO: Add other sky related prepare data here
 	}
@@ -312,81 +387,12 @@ namespace vkr::Graphics
 		//skyViewConstantData.MultiScatteringTextureDescriptorIndex = renderTargets.m_SkyMultiScatteringLUT.m_TextureView->GetIndex();
 		skyViewConstantData.TransmittanceTextureDescriptorIndex = renderTargets.m_SkyTransmittanceLUT.m_TextureView->GetIndex();
 		skyViewConstantData.SkyViewTextureDescriptorIndex = renderTargets.m_SkyViewLUT.m_TextureViewRW->GetIndex();
-		skyViewConstantData.SkyViewLutSizeAndInvSize = Vector4f(SKYVIEW_TEXTURE_WIDTH, SKYVIEW_TEXTURE_HEIGHT, 1.0f / SKYVIEW_TEXTURE_WIDTH, 1.0f / SKYVIEW_TEXTURE_HEIGHT);
+		skyViewConstantData.SkyViewLutSizeAndInvSize = renderData.m_SkyData.SkyViewLutSizeAndInvSize;
 
-		// Where are we in relation to our "virtual planet"? For atmosphere calculations we need to know where the observer/camera sits within the atmosphere
-		// Were gonna consider a flat world in our scene and that that Y = 0 is where our earth surface is
-		// The constants below should match the one in SkyAtmosphereCommon.ush
-		// Always force to be 5 meters above the ground/sea level (to always see the sky and not be under the virtual planet occluding ray tracing) and lower for small planet radius
-		const float PlanetRadiusOffset = 0.005f; //Sky units in km
+		
 
-// 		Vector3f PlanetCenterTranslatedWorld = Vector3f(renderData.m_CameraData.CameraWorldMatrix[9] / 1000.0f, renderData.m_CameraData.CameraWorldMatrix[10] / 1000.0f, renderData.m_CameraData.CameraWorldMatrix[11] / 1000.0f);
-// 		PlanetCenterTranslatedWorld = PlanetCenterTranslatedWorld - Vector3f(0, PlanetRadiusOffset + renderData.m_AtmosphereData.BottomRadiusKm, 0);
-		Vector3f PlanetCenterTranslatedWorld = Vector3f(0, -PlanetRadiusOffset + renderData.m_AtmosphereData.BottomRadiusKm, 0); //Where the planet center is relative to the camera
-
-// 		const float Offset = PlanetRadiusOffset * SkyUnitToCm;
-// 		const float BottomRadiusWorld = BottomRadiusKm * SkyUnitToCm;
-// 		const Vector3f PlanetCenterWorld = PlanetCenterKm * SkyUnitToCm;
-// 		const Vector3f PlanetCenterTranslatedWorld = PlanetCenterWorld + PreViewTranslation;
-// 		const Vector3f WorldCameraOriginTranslatedWorld = WorldCameraOrigin + PreViewTranslation;
-// 		const Vector3f PlanetCenterToCameraTranslatedWorld = WorldCameraOriginTranslatedWorld - PlanetCenterTranslatedWorld;
-// 		const float DistanceToPlanetCenterTranslatedWorld = vkr::Length(PlanetCenterToCameraTranslatedWorld);
-// 		// If the camera is below the planet surface, we snap it back onto the surface.
-// 		// This is to make sure the sky is always visible even if the camera is inside the virtual planet.
-// 		Vector3f SkyCameraTranslatedWorldOriginTranslatedWorld = Vector3f(
-// 			DistanceToPlanetCenterTranslatedWorld < (BottomRadiusWorld + Offset) ?
-// 			PlanetCenterTranslatedWorld + (BottomRadiusWorld + Offset) * (PlanetCenterToCameraTranslatedWorld / DistanceToPlanetCenterTranslatedWorld) :
-// 			WorldCameraOriginTranslatedWorld);
-
-		//TODO: This param really is part of the sceneconstants in unreal, but we dont have access to them at this point (theyre filled up in the gfx context)
-		Vector4f SkyPlanetTranslatedWorldCenterAndViewHeight = Vector4f(PlanetCenterTranslatedWorld.x,
-			PlanetCenterTranslatedWorld.y,
-			PlanetCenterTranslatedWorld.z,
-			PlanetRadiusOffset + renderData.m_AtmosphereData.BottomRadiusKm);
-
-		// Compute the basis vectors for the frame of reference of the sky view LUT. This is a frame of reference tangent to the earth surface at the point the camera is
-		// Our world is flat and not curved so we consider +Y  the up vector
-		Mat44 SkyViewLutReferential = Mat44::Identity();
-		Vector3f ViewForward = Vector3f(renderData.m_CameraData.ViewMatrix[8], renderData.m_CameraData.ViewMatrix[9], renderData.m_CameraData.ViewMatrix[10]);
-		Vector3f ViewRight = Vector3f(renderData.m_CameraData.ViewMatrix[0], renderData.m_CameraData.ViewMatrix[1], renderData.m_CameraData.ViewMatrix[2]);
-		Vector3f Up = Vector3f(0,1,0);
-		Vector3f Forward = ViewForward;		// This can make texel visible when the camera is rotating. Use constant world direction instead?
-		//FVector3f	Left = normalize(cross(Forward, Up)); 
-		Vector3f	Left;
-		Left = vkr::Cross(Forward, Up);
-		vkr::Normalize(Left);
-		const float DotMainDir = abs(vkr::Dot(Up, Forward));
-		if (DotMainDir > 0.999f)
-		{
-			// When it becomes hard to generate a referential, generate it procedurally.
-			// [ Duff et al. 2017, "Building an Orthonormal Basis, Revisited" ]
-			const float Sign = Up.z >= 0.0f ? 1.0f : -1.0f;
-			const float a = -1.0f / (Sign + Up.z);
-			const float b = Up.x * Up.y * a;
-			Forward = Vector3f(1 + Sign * a * pow(Up.x, 2.0f), Sign * b, -Sign * Up.x);
-			Left = Vector3f(b, Sign + a * pow(Up.y, 2.0f), -Up.y);
-
-			SkyViewLutReferential = vkr::Compose(
-				Vector4f(Forward.x,Forward.y,Forward.z,0),
-				Vector4f(Left.x, Left.y, Left.z,0),
-				Vector4f(Up.x, Up.y, Up.z,0),
-				Vector4f(0,0,0,1)
-			);
-			SkyViewLutReferential = SkyViewLutReferential.GetTransposed();
-		}
-		else
-		{
-			// This is better as it should be more stable with respect to camera forward.
-			Forward = vkr::Cross(Up, Left);
-			vkr::Normalize(Forward);
-			SkyViewLutReferential[0] = Forward.x; SkyViewLutReferential[1] = Forward.y; SkyViewLutReferential[2] = Forward.z;
-			SkyViewLutReferential[4] = Left.x; SkyViewLutReferential[5] = Left.y; SkyViewLutReferential[6] = Left.z; 
-			SkyViewLutReferential[8] = Up.x; SkyViewLutReferential[9] = Up.y; SkyViewLutReferential[10] = Up.z;
-			SkyViewLutReferential = SkyViewLutReferential.GetTransposed();
-		}
-
-		skyViewConstantData.SkyViewLutReferential = SkyViewLutReferential;
-		skyViewConstantData.SkyPlanetTranslatedWorldCenterAndViewHeight = SkyPlanetTranslatedWorldCenterAndViewHeight;
+		skyViewConstantData.SkyViewLutReferential = renderData.m_SkyData.SkyViewLutReferential;
+		skyViewConstantData.SkyPlanetTranslatedWorldCenterAndViewHeight = renderData.m_SkyData.SkyPlanetTranslatedWorldCenterAndViewHeight;
 		skyViewConstantData.AtmosphereLightDirection0 = renderData.m_DirectionalLights[0].Direction;
 		skyViewConstantData.AtmosphereLightIlluminanceOuterSpace0 = renderData.m_DirectionalLights[0].Emission;
 		skyViewConstantData.AtmosphereLightDirection1 = renderData.m_DirectionalLights[1].Direction;

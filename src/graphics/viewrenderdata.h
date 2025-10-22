@@ -123,6 +123,14 @@ namespace vkr::Graphics
 		uint32_t _pad2;
 	};
 
+	struct SkyData
+	{
+		Mat44 SkyViewLutReferential;
+		Vector4f SkyViewLutSizeAndInvSize;
+		Vector4f SkyPlanetTranslatedWorldCenterAndViewHeight;
+	};
+
+
 	struct ViewRenderData
 	{
 		void Clear();
@@ -162,6 +170,7 @@ namespace vkr::Graphics
 		Ref<Render::RenderTaskEvent> m_UpdateSkyLutEvent;
 
 		AtmosphereData m_AtmosphereData;
+		SkyData m_SkyData;
 
 		uint32_t m_TotalInstanceCount = 0;
 	};

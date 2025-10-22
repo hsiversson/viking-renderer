@@ -33,11 +33,6 @@ SamplerState g_SamplerBilinearClamp : register(s1);
 
 #include "skyutils.hlsli"
 
-float2 FromSubUvsToUnit(float2 uv, float4 SizeAndInvSize)
-{
-    return (uv - 0.5f * SizeAndInvSize.zw) * (SizeAndInvSize.xy / (SizeAndInvSize.xy - 1.0f));
-}
-
 // SkyViewLut is a new texture used for fast sky rendering.
 // It is low resolution of the sky rendering around the camera,
 // basically a lat/long parameterisation with more texel close to the horizon for more accuracy during sun set.
@@ -99,20 +94,20 @@ void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 	// into a referential with UP being perpendicular to the world sphere. And with origin at the planet center.
 
 	// This is the local referencial
-    float3x3 LocalReferencial = (float3x3) SkyViewLutReferential;
+    float3x3 LocalReferencial = GetUEReferential(SkyViewLutReferential);
 
 	// This is the LUT camera height and position in the local referential
-    float ViewHeight = Atmosphere.BottomRadiusKm + 0.005; //TODO: For now fix our camera height within the atmosphere to 5 meters above bottom radius. This used to be length(GetTranslatedCameraPlanetPos)
+    float ViewHeight = SkyPlanetTranslatedWorldCenterAndViewHeight.w;
     float3 WorldPos = float3(0.0, 0.0, ViewHeight);
 
 	// Get the view direction in this local referential
     float3 WorldDir;
     UvToSkyViewLutParams(WorldDir, ViewHeight, UV);
 	// And also both light source direction
-    float3 LightDir0 = AtmosphereLightDirection0.xyz;
-    LightDir0 = mul(LocalReferencial, AtmosphereLightDirection0);
-    float3 LightDir1 = AtmosphereLightDirection1.xyz;
-    LightDir1 = mul(LocalReferencial, AtmosphereLightDirection1);
+    float3 LightDir0 = -AtmosphereLightDirection0.zxy; //Negate as should be vector TO the light. Swizzling to account for unreal coord system
+    LightDir0 = mul(LocalReferencial, LightDir0);
+    float3 LightDir1 = -AtmosphereLightDirection1.zxy;
+    LightDir1 = mul(LocalReferencial, LightDir1);
 
 
 	// Move to top atmospehre
@@ -135,11 +130,11 @@ void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     const float DeviceZ = 0; // Inverted depth
     const bool MieRayPhase = true;
     const float AerialPespectiveViewDistanceScale = 1.0f;
-    //Note the inversion and negation of the light dirs. This is because unreal expects a light vector toward the light
+    
     SingleScatteringResult ss = IntegrateSingleScatteredLuminance(
 		float4(PixPos, 0.0f, 1.0f), WorldPos, WorldDir,
 		Ground, Sampling, DeviceZ, MieRayPhase,
-		-LightDir0.zxy, -LightDir1.zxy,
+		LightDir0, LightDir1,
 		AtmosphereLightIlluminanceOuterSpace0, AtmosphereLightIlluminanceOuterSpace1,
 		AerialPespectiveViewDistanceScale);
 

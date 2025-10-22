@@ -1,6 +1,10 @@
 #include "common.hlsli"
 #include "random.hlsli"
 
+// Planet radius safe edge to make sure ray does intersect with the atmosphere, for it to traverse the atmosphere. Must match the one in FSceneRenderer::RenderSkyAtmosphereInternal.
+// This is (0.01km/6420km).
+#define PLANET_RADIUS_RATIO_SAFE_EDGE 1.00000155763f
+
 struct AtmosphereParameters
 {
     float MultiScatteringFactor;

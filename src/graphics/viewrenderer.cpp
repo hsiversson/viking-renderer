@@ -515,23 +515,29 @@ namespace vkr::Graphics
 		struct alignas(16) ConstantData
 		{
 			AtmosphereData AtmosphereParameters;
+			Mat44 SkyViewLutReferential;
+			Vector4f SkyViewLutSizeAndInvSize;
 			uint32_t TargetTextureDescriptorIndex;
 			uint32_t DiffuseAlbedoTextureDescriptor;
 			uint32_t SpecularAlbedoTextureDescriptor;
 			uint32_t NormalsTextureDescriptor;
 			uint32_t SpecularHitDistanceTextureDescriptor;
 			uint32_t TransmittanceTextureDescriptorIndex;
-			uint32_t pad[2];
+			uint32_t SkyViewLutTextureDescriptorIndex;
+			uint32_t pad[1];
 		};
 
 		ConstantData data;
 		data.AtmosphereParameters = renderData.m_AtmosphereData;
+		data.SkyViewLutReferential = renderData.m_SkyData.SkyViewLutReferential;
+		data.SkyViewLutSizeAndInvSize = renderData.m_SkyData.SkyViewLutSizeAndInvSize;
 		data.TargetTextureDescriptorIndex = renderTargets.m_SceneBuffer_RenderSize.m_TextureViewRW->GetIndex();
 		data.DiffuseAlbedoTextureDescriptor = renderTargets.m_DiffuseAlbedo.m_TextureViewRW->GetIndex();
 		data.SpecularAlbedoTextureDescriptor = renderTargets.m_SpecularAlbedo.m_TextureViewRW->GetIndex();
 		data.NormalsTextureDescriptor = renderTargets.m_NormalRoughness.m_TextureViewRW->GetIndex();
 		data.TransmittanceTextureDescriptorIndex = renderTargets.m_SkyTransmittanceLUT.m_TextureView->GetIndex();
 		data.SpecularHitDistanceTextureDescriptor = renderTargets.m_SpecularHitDistance.m_TextureViewRW->GetIndex();
+		data.SkyViewLutTextureDescriptorIndex = renderTargets.m_SkyViewLUT.m_TextureView->GetIndex();
 		ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
 		ctx->DispatchRays(renderData.m_TraceRaysPipelineState.get() , renderData.m_RenderSize.x, renderData.m_RenderSize.y);
