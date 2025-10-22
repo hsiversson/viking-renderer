@@ -259,7 +259,7 @@ namespace vkr::Graphics
 				Vector4f(Up.x, Up.y, Up.z, 0),
 				Vector4f(0, 0, 0, 1)
 			);
-			//SkyViewLutReferential = SkyViewLutReferential.GetTransposed();
+			SkyViewLutReferential = SkyViewLutReferential.GetTransposed();
 		}
 		else
 		{
