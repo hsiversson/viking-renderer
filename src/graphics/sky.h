@@ -101,10 +101,10 @@ namespace vkr::Graphics
 
 	private:
 		Ref<Render::Shader> m_SkyTransmittanceLUTComputeShader;
-		//Ref<Render::Shader> m_SkyMultiScatterLUTComputeShader;
+		Ref<Render::Shader> m_SkyMultiScatterLUTComputeShader;
 		Ref<Render::Shader> m_SkyViewLUTComputeShader;
 		Ref<Render::PipelineState> m_SkyTransmittanceLUTPSO;
-		//Ref<Render::PipelineState> m_SkyMultiScatterLUTPSO;
+		Ref<Render::PipelineState> m_SkyMultiScatterLUTPSO;
 		Ref<Render::PipelineState> m_SkyViewLUTPSO;
 	};
 }

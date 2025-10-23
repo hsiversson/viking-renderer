@@ -15,7 +15,7 @@ cbuffer Constants : register(b0)
     uint SpecularHitDistanceTextureDescriptor;
     uint TransmittanceTextureDescriptorIndex;
     uint SkyViewLutTextureDescriptorIndex;
-    uint pad;
+    uint MultiScatteringLutTextureDescriptorIndex;
 };
 
 SamplerState g_SamplerPointClamp : register(s0);
@@ -79,9 +79,16 @@ Texture2D<float4> GetTransmittanceLUT()
     return tex;
 }
 
+Texture2D<float4> GetMultiScatteringLUT()
+{
+    Texture2D<float4> tex = ResourceDescriptorHeap[MultiScatteringLutTextureDescriptorIndex];
+    return tex;
+}
+
 #define RENDERSKY_ENABLED
 #define SOURCE_DISK_ENABLED
 #define FASTSKY_ENABLED
+#define MULTISCATTERING_APPROX_SAMPLING_ENABLED
 #include "skyutils.hlsli"
 
 float3 GetLightDiskLuminance(float3 PlanetCenterToCamera, float3 WorldDir, uint LightIndex)

@@ -524,7 +524,7 @@ namespace vkr::Graphics
 			uint32_t SpecularHitDistanceTextureDescriptor;
 			uint32_t TransmittanceTextureDescriptorIndex;
 			uint32_t SkyViewLutTextureDescriptorIndex;
-			uint32_t pad[1];
+			uint32_t MultiScatteringLutTextureDescriptorIndex;
 		};
 
 		ConstantData data;
@@ -538,6 +538,7 @@ namespace vkr::Graphics
 		data.TransmittanceTextureDescriptorIndex = renderTargets.m_SkyTransmittanceLUT.m_TextureView->GetIndex();
 		data.SpecularHitDistanceTextureDescriptor = renderTargets.m_SpecularHitDistance.m_TextureViewRW->GetIndex();
 		data.SkyViewLutTextureDescriptorIndex = renderTargets.m_SkyViewLUT.m_TextureView->GetIndex();
+		data.MultiScatteringLutTextureDescriptorIndex = renderTargets.m_SkyMultiScatteringLUT.m_TextureView->GetIndex();
 		ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
 		ctx->DispatchRays(renderData.m_TraceRaysPipelineState.get() , renderData.m_RenderSize.x, renderData.m_RenderSize.y);

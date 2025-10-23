@@ -2,7 +2,7 @@
 
 //#define SECOND_ATMOSPHERE_LIGHT_ENABLED
 // View data is not available for passes running once per scene (and not once per view).
-#if !defined(TRANSMITTANCE_PASS) && !defined(SKYVIEWLUT_PASS)//&& !defined(MULTISCATT_PASS) && !defined(SKYLIGHT_PASS)
+#if !defined(TRANSMITTANCE_PASS) && !defined(SKYVIEWLUT_PASS) && !defined(MULTISCATT_PASS)// && !defined(SKYLIGHT_PASS)
 //#if !defined(MULTISCATT_PASS) && !defined(SKYLIGHT_PASS)
 #define VIEWDATA_AVAILABLE //Defines if we have sceneconstants available
 #endif
@@ -292,6 +292,16 @@ MediumSampleRGB SampleAtmosphereMediumRGB(in float3 WorldPos)
 
     return s;
 }
+
+#ifdef MULTISCATTERING_APPROX_SAMPLING_ENABLED
+float3 GetMultipleScattering(float3 WorlPos, float ViewZenithCosAngle)
+{
+    float2 UV = saturate(float2(ViewZenithCosAngle * 0.5f + 0.5f, (length(WorlPos) - Atmosphere.BottomRadiusKm) / (Atmosphere.TopRadiusKm - Atmosphere.BottomRadiusKm)));
+	// We do no apply UV transform to sub range here as it has minimal impact.
+    float3 MultiScatteredLuminance = GetMultiScatteringLUT().SampleLevel(g_SamplerBilinearClamp, UV, 0).rgb;
+    return MultiScatteredLuminance;
+}
+#endif
 
 float3 GetTransmittance(in float LightZenithCosAngle, in float PHeight)
 {
@@ -658,13 +668,13 @@ SingleScatteringResult IntegrateSingleScatteredLuminance(
 		SRayOnly += ExposedLight1Illuminance * (PlanetShadow1 * TransmittanceToLight1 * PhaseTimesScattering1RayOnly + MultiScatteredLuminance1 * Medium.ScatteringRay);
 #endif
 
-		// When using the power serie to accumulate all sattering order, serie r must be <1 for a serie to converge. 
+		// When using the power serie to accumulate all scattering order, serie r must be <1 for a serie to converge. 
 		// Under extreme coefficient, MultiScatAs1 can grow larger and thus results in broken visuals. 
 		// The way to fix that is to use a proper analytical integration as porposed in slide 28 of http://www.frostbite.com/2015/08/physically-based-unified-volumetric-rendering-in-frostbite/ 
 		// However, it is possible to disable as it can also work using simple power serie sum unroll up to 5th order. The rest of the orders has a really low contribution. 
-#define MULTI_SCATTERING_POWER_SERIE 0 
+#undef MULTI_SCATTERING_POWER_SERIE
         const float3 SafeMediumExtinction = max(Medium.Extinction, 1.e-9);
-#if MULTI_SCATTERING_POWER_SERIE==0 
+#ifdef MULTI_SCATTERING_POWER_SERIE
 		// 1 is the integration of luminance over the 4pi of a sphere, and assuming an isotropic phase function of 1.0/(4*PI) 
         Result.MultiScatAs1 += Throughput * Medium.Scattering * 1.0f * dt;
 #else 

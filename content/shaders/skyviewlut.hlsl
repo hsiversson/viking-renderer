@@ -1,5 +1,6 @@
 #define SKYVIEWLUT_PASS
 #define SOURCE_DISK_ENABLED
+#define MULTISCATTERING_APPROX_SAMPLING_ENABLED
 
 #include "skydefinitions.hlsli"
 
@@ -17,14 +18,20 @@ cbuffer Constants : register(b0)
     float3 AtmosphereLightDirection1;
     uint pad2;
     float3 AtmosphereLightIlluminanceOuterSpace1;
-    uint TransmittanceTextureDescriptorIndex;
-    uint MultiScatteringTextureDescriptorIndex;
-    uint SkyViewTextureDescriptorIndex;
+    uint TransmittanceLutTextureDescriptorIndex;
+    uint MultiScatteringLutTextureDescriptorIndex;
+    uint SkyViewLutTextureDescriptorIndex;
 }
 
 Texture2D<float4> GetTransmittanceLUT()
 {
-    Texture2D<float4> tex = ResourceDescriptorHeap[TransmittanceTextureDescriptorIndex];
+    Texture2D<float4> tex = ResourceDescriptorHeap[TransmittanceLutTextureDescriptorIndex];
+    return tex;
+}
+
+Texture2D<float4> GetMultiScatteringLUT()
+{
+    Texture2D<float4> tex = ResourceDescriptorHeap[MultiScatteringLutTextureDescriptorIndex];
     return tex;
 }
 
@@ -81,9 +88,7 @@ void UvToSkyViewLutParams(out float3 ViewDir, in float ViewHeight, in float2 UV)
 [numthreads(8, 8, 1)]
 void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    Texture2D<float4> TransmittanceLUT = ResourceDescriptorHeap[TransmittanceTextureDescriptorIndex];
-    //Texture2D<float4> MultiScatteringLUT = ResourceDescriptorHeap[TransmittanceTextureDescriptorIndex];
-    RWTexture2D<float4> SkyView = ResourceDescriptorHeap[SkyViewTextureDescriptorIndex];
+    RWTexture2D<float4> SkyView = ResourceDescriptorHeap[SkyViewLutTextureDescriptorIndex];
     
     float2 PixPos = float2(dispatchThreadID.xy) + 0.5f;
     float2 UV = PixPos * SkyViewLutSizeAndInvSize.zw;

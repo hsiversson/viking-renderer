@@ -10,33 +10,6 @@ using namespace vkr;
 
 namespace
 {
-	struct alignas(16) TransmittanceConstantData
-	{
-		vkr::Graphics::AtmosphereData atmosphere;
-		Vector4f transmittanceLutSizeAndInvSize;
-		uint32_t transmittanceTextureDescriptorIndex;
-	};
-
-	struct alignas(16) SkyViewConstantData
-	{
-		vkr::Graphics::AtmosphereData atmosphere;
-		Mat44 SkyViewLutReferential;
-		Mat44 InvViewProjection;
-		Vector4f SkyViewLutSizeAndInvSize;
-		Vector4f SkyPlanetTranslatedWorldCenterAndViewHeight;
-		Vector3f AtmosphereLightDirection0;
-		uint32_t _pad0;
-		Vector3f AtmosphereLightIlluminanceOuterSpace0;
-		uint32_t _pad1;
-		Vector3f AtmosphereLightDirection1;
-		uint32_t _pad2;
-		Vector3f AtmosphereLightIlluminanceOuterSpace1;
-		uint32_t TransmittanceTextureDescriptorIndex;
-		uint32_t MultiScatteringTextureDescriptorIndex;
-		uint32_t SkyViewTextureDescriptorIndex;
-		uint32_t _pad3[2];
-	};
-
 	constexpr uint32_t TRANSMITTANCE_TEXTURE_WIDTH = 256;
 	constexpr uint32_t TRANSMITTANCE_TEXTURE_HEIGHT = 64;
 
@@ -287,6 +260,11 @@ namespace vkr::Graphics
 		skyTransmittanceLUTPSODesc.Compute.m_ComputeShader = m_SkyTransmittanceLUTComputeShader.get();
 		m_SkyTransmittanceLUTPSO = device->CreatePipelineState(skyTransmittanceLUTPSODesc);
 
+		m_SkyMultiScatterLUTComputeShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/skymultiscatteringlut.hlsl"), L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
+		Render::PipelineStateDesc skyMultiscatterLUTPSODesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
+		skyMultiscatterLUTPSODesc.Compute.m_ComputeShader = m_SkyMultiScatterLUTComputeShader.get();
+		m_SkyMultiScatterLUTPSO = device->CreatePipelineState(skyMultiscatterLUTPSODesc);
+
 		m_SkyViewLUTComputeShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/skyviewlut.hlsl"), L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
 		Render::PipelineStateDesc skyViewLUTPSODesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
 		skyViewLUTPSODesc.Compute.m_ComputeShader = m_SkyViewLUTComputeShader.get();
@@ -307,10 +285,10 @@ namespace vkr::Graphics
 		renderTargets.m_SkyTransmittanceLUT.m_Format = Render::FORMAT_RGBA32_FLOAT;
 		renderTargets.m_SkyTransmittanceLUT.Update(Vector2u(TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT), "TransmittanceLUT");
 
-// 		renderTargets.m_SkyMultiScatteringLUT.m_IsWritable = true;
-// 		renderTargets.m_SkyMultiScatteringLUT.m_Format = Render::FORMAT_RGBA32_FLOAT;
-// 		renderTargets.m_SkyMultiScatteringLUT.Update(Vector2u(MULTISCATTERING_TEXTURE_WIDTH, MULTISCATTERING_TEXTURE_HEIGHT), "MultiScatteringLUT");
-// 
+ 		renderTargets.m_SkyMultiScatteringLUT.m_IsWritable = true;
+ 		renderTargets.m_SkyMultiScatteringLUT.m_Format = Render::FORMAT_RGBA32_FLOAT;
+ 		renderTargets.m_SkyMultiScatteringLUT.Update(Vector2u(MULTISCATTERING_TEXTURE_WIDTH, MULTISCATTERING_TEXTURE_HEIGHT), "MultiScatteringLUT");
+ 
 		renderTargets.m_SkyViewLUT.m_IsWritable = true;
 		renderTargets.m_SkyViewLUT.m_Format = Render::FORMAT_RGBA32_FLOAT;
 		renderTargets.m_SkyViewLUT.Update(Vector2u(SKYVIEW_TEXTURE_WIDTH, SKYVIEW_TEXTURE_HEIGHT), "SkyViewLUT");
@@ -321,6 +299,7 @@ namespace vkr::Graphics
 
 		VKR_CONTEXT_EVENT_FUNCTION(ctx);
 
+		//Transmittance
 		{
 			std::vector<Render::TextureBarrierDesc> barriers;
 			{
@@ -335,9 +314,14 @@ namespace vkr::Graphics
 			ctx->TextureBarrier(barriers.size(), barriers.data());
 		}
 
-		//Transmittance
-
 		ctx->BindPipelineState(m_SkyTransmittanceLUTPSO.get());
+
+		struct alignas(16) TransmittanceConstantData
+		{
+			vkr::Graphics::AtmosphereData atmosphere;
+			Vector4f transmittanceLutSizeAndInvSize;
+			uint32_t transmittanceTextureDescriptorIndex;
+		};
 
 		TransmittanceConstantData constantData;
 		constantData.atmosphere = renderData.m_AtmosphereData;
@@ -347,12 +331,55 @@ namespace vkr::Graphics
 		ctx->BindLocalConstantBuffer(sizeof(TransmittanceConstantData), &constantData, 0);
 
 		ctx->DispatchThreads(Vector3u(TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT, 1));
+
+		//Multiscattering
+		{
+			std::vector<Render::TextureBarrierDesc> barriers;
+			{
+				//Transition multiscattering LUT to write
+				Render::TextureBarrierDesc barrierDesc;
+				barrierDesc.m_Texture = renderTargets.m_SkyMultiScatteringLUT.m_Texture.get();
+				barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
+				barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
+				barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
+				barriers.push_back(barrierDesc);
+
+				//Transition transmittance LUT to read
+				Render::TextureBarrierDesc transmittanceBarrierDesc;
+				transmittanceBarrierDesc.m_Texture = renderTargets.m_SkyTransmittanceLUT.m_Texture.get();
+				transmittanceBarrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
+				transmittanceBarrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_READ;
+				transmittanceBarrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
+				barriers.push_back(transmittanceBarrierDesc);
+			}
+			ctx->TextureBarrier(barriers.size(), barriers.data());
+		}
+
+		ctx->BindPipelineState(m_SkyMultiScatterLUTPSO.get());
+
+		struct alignas(16) MultiScatteringConstantData
+		{
+			vkr::Graphics::AtmosphereData atmosphere;
+			Vector4f multiscatteringLutSizeAndInvSize;
+			uint32_t transmittanceTextureDescriptorIndex;
+			uint32_t multiscatteringTextureDescriptorIndex;
+			uint32_t _pad[2];
+		};
+
+		MultiScatteringConstantData multiscatteringConstantData;
+		multiscatteringConstantData.atmosphere = renderData.m_AtmosphereData;
+		multiscatteringConstantData.multiscatteringLutSizeAndInvSize = Vector4f(MULTISCATTERING_TEXTURE_WIDTH, MULTISCATTERING_TEXTURE_HEIGHT, 1.0f / MULTISCATTERING_TEXTURE_WIDTH, 1.0f / MULTISCATTERING_TEXTURE_HEIGHT);
+		multiscatteringConstantData.transmittanceTextureDescriptorIndex = renderTargets.m_SkyTransmittanceLUT.m_TextureView->GetIndex();
+		multiscatteringConstantData.multiscatteringTextureDescriptorIndex = renderTargets.m_SkyMultiScatteringLUT.m_TextureViewRW->GetIndex();
+
+		ctx->BindLocalConstantBuffer(sizeof(MultiScatteringConstantData), &multiscatteringConstantData, 0);
+
+		ctx->DispatchThreads(Vector3u(MULTISCATTERING_TEXTURE_WIDTH, MULTISCATTERING_TEXTURE_HEIGHT, 1));
 		
 		// Sky view
 		{
 			std::vector<Render::TextureBarrierDesc> barriers;
 			
-
 			//Transition sky view LUT to write
 			Render::TextureBarrierDesc skyViewBarrierDesc;
 			skyViewBarrierDesc.m_Texture = renderTargets.m_SkyViewLUT.m_Texture.get();
@@ -361,35 +388,44 @@ namespace vkr::Graphics
 			skyViewBarrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
 			barriers.push_back(skyViewBarrierDesc);
 
-			//Transition transmittance LUT to read
-			Render::TextureBarrierDesc transmittanceBarrierDesc;
-			transmittanceBarrierDesc.m_Texture = renderTargets.m_SkyTransmittanceLUT.m_Texture.get();
-			transmittanceBarrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
-			transmittanceBarrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_READ;
-			transmittanceBarrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
-			barriers.push_back(transmittanceBarrierDesc);
-
 			//Transition multiscattering LUT to read
-// 			Render::TextureBarrierDesc multiScatteringBarrierDesc;
-// 			multiScatteringBarrierDesc.m_Texture = renderTargets.m_SkyMultiScatteringLUT.m_Texture.get();
-// 			multiScatteringBarrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
-// 			multiScatteringBarrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_READ;
-// 			multiScatteringBarrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
-// 			barriers.push_back(multiScatteringBarrierDesc);
+ 			Render::TextureBarrierDesc multiScatteringBarrierDesc;
+ 			multiScatteringBarrierDesc.m_Texture = renderTargets.m_SkyMultiScatteringLUT.m_Texture.get();
+ 			multiScatteringBarrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
+ 			multiScatteringBarrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_READ;
+ 			multiScatteringBarrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_RESOURCE;
+ 			barriers.push_back(multiScatteringBarrierDesc);
 			ctx->TextureBarrier(barriers.size(), barriers.data());
 		}
 
 		ctx->BindPipelineState(m_SkyViewLUTPSO.get());
 
+		struct alignas(16) SkyViewConstantData
+		{
+			vkr::Graphics::AtmosphereData atmosphere;
+			Mat44 SkyViewLutReferential;
+			Mat44 InvViewProjection;
+			Vector4f SkyViewLutSizeAndInvSize;
+			Vector4f SkyPlanetTranslatedWorldCenterAndViewHeight;
+			Vector3f AtmosphereLightDirection0;
+			uint32_t _pad0;
+			Vector3f AtmosphereLightIlluminanceOuterSpace0;
+			uint32_t _pad1;
+			Vector3f AtmosphereLightDirection1;
+			uint32_t _pad2;
+			Vector3f AtmosphereLightIlluminanceOuterSpace1;
+			uint32_t TransmittanceTextureDescriptorIndex;
+			uint32_t MultiScatteringTextureDescriptorIndex;
+			uint32_t SkyViewTextureDescriptorIndex;
+			uint32_t _pad3[2];
+		};
 		
 		SkyViewConstantData skyViewConstantData;
 		skyViewConstantData.atmosphere = renderData.m_AtmosphereData;
-		//skyViewConstantData.MultiScatteringTextureDescriptorIndex = renderTargets.m_SkyMultiScatteringLUT.m_TextureView->GetIndex();
+		skyViewConstantData.MultiScatteringTextureDescriptorIndex = renderTargets.m_SkyMultiScatteringLUT.m_TextureView->GetIndex();
 		skyViewConstantData.TransmittanceTextureDescriptorIndex = renderTargets.m_SkyTransmittanceLUT.m_TextureView->GetIndex();
 		skyViewConstantData.SkyViewTextureDescriptorIndex = renderTargets.m_SkyViewLUT.m_TextureViewRW->GetIndex();
 		skyViewConstantData.SkyViewLutSizeAndInvSize = renderData.m_SkyData.SkyViewLutSizeAndInvSize;
-
-		
 
 		skyViewConstantData.SkyViewLutReferential = renderData.m_SkyData.SkyViewLutReferential;
 		skyViewConstantData.SkyPlanetTranslatedWorldCenterAndViewHeight = renderData.m_SkyData.SkyPlanetTranslatedWorldCenterAndViewHeight;
