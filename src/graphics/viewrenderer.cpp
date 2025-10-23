@@ -93,19 +93,30 @@ namespace vkr::Graphics
 
 		ViewRenderData& renderData = view->GetMutableRenderData();
 
+		Render::QueueGraphicsTask([this, view]() mutable
+			{
+				PreRenderUpdates(view);
+			});
+
 		if (renderData.m_UpdateSkyLut)
 		{
 			//Precalculate LUTs for sky rendering (Brute force it into a single stage. Do we need to divide between multiple frames?)
 			renderData.m_UpdateSkyLutEvent = Render::QueueComputeTask(std::bind(&SkyRenderer::ComputeLuts, m_SkyRenderer.get(), view));
 		}
 
-		// no need to split into multiple tasks yet...
 		Render::QueueGraphicsTask([this, view]() mutable
-			{ 
-				PreRenderUpdates(view);
+			{
 				DepthPrepass(view);
 				StaticVelocity(view);
+			});
+
+		Render::QueueGraphicsTask([this, view]() mutable
+			{
 				TraceRadiance(view);
+			});
+
+		Render::QueueGraphicsTask([this, view]() mutable
+			{
 				ApplyUpscaling(view);
 				ApplyPostEffects(view);
 				FinalizeFrame(view);
@@ -232,7 +243,6 @@ namespace vkr::Graphics
 		renderTargets.m_DepthBuffer.m_Format = Render::Format::FORMAT_D32_FLOAT;
 		renderTargets.m_DepthBuffer.Update(renderData.m_RenderSize, "ViewRenderTargets::DepthBuffer");
 
-		ctx->InsertWait(renderData.m_RaytracingTLAS->GetBuffer()->GetGpuPending());
 		VKR_CONTEXT_EVENT_FUNCTION(ctx);
 
 		//Depth prepass Transitions
@@ -279,7 +289,6 @@ namespace vkr::Graphics
 
 			ctx->DrawIndexedInstanced(batch.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount, batch.m_Count);
 		}
-		
 	}
 
 	void ViewRenderer::StaticVelocity(View* view)
@@ -474,6 +483,7 @@ namespace vkr::Graphics
 
 		ViewRenderTargets& renderTargets = view->GetRenderTargets();
 		Render::Context* ctx = Render::Context::GetCurrentContext();
+		ctx->InsertWait(renderData.m_RaytracingTLAS->GetBuffer()->GetGpuPending());
 		VKR_CONTEXT_EVENT_FUNCTION(ctx);
 
 		renderTargets.m_DiffuseAlbedo.m_IsWritable = true;
