@@ -41,26 +41,26 @@ namespace vkr::Editor
 
 				if (!m_EulerRotationCacheInitialized)
 				{
-					m_EulerRotationCache = transform.m_Rotation.ToEuler();
+					m_EulerRotationCache = transform.m_Rotation;
 					m_EulerRotationCacheInitialized = true;
 				}
 
-				Vector3f eulerUI = m_EulerRotationCache;
-				if (ImGui::DragFloat3("Rotation", &eulerUI.x, 0.5f))
+				Rotator eulerUI = m_EulerRotationCache;
+				if (ImGui::DragFloat3("Rotation", &transform.m_Rotation.m_Pitch, 0.5f))
 				{
-					Vector3f delta = eulerUI - m_EulerRotationCache;
-
-					for (int i = 0; i < 3; ++i)
-					{
-						while (delta[i] > 180.f) delta[i] -= 360.f;
-						while (delta[i] < -180.f) delta[i] += 360.f;
-					}
-
-					Quaternion qDelta = Quaternion::FromEuler(delta);
-					transform.m_Rotation = transform.m_Rotation * qDelta;
-					transform.m_Rotation.Normalize();
-
-					m_EulerRotationCache = eulerUI;
+					//Vector3f delta;
+					//for (uint32_t i = 0; i < 3; ++i)
+					//{
+					//	delta[i] = eulerUI[i] - m_EulerRotationCache[i];
+					//	while (delta[i] > 180.f) delta[i] -= 360.f;
+					//	while (delta[i] < -180.f) delta[i] += 360.f;
+					//}
+					//
+					//Quaternion qDelta = Quaternion::FromEuler(delta);
+					//transform.m_Rotation = transform.m_Rotation * qDelta;
+					//transform.m_Rotation.Normalize();
+					//
+					//m_EulerRotationCache = eulerUI;
 				}
 
 				ImGui::DragFloat3("Scale", &transform.m_Scale.x, 0.1f);

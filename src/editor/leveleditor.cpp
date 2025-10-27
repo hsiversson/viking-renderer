@@ -47,7 +47,7 @@ namespace vkr::Editor
 			Game::Entity sunEntity = m_World->CreateEntity("Sun");
 			Game::DirectionalLightComponent& dirLight = sunEntity.AddComponent<Game::DirectionalLightComponent>();
 			Game::TransformComponent& transform = sunEntity.AddComponent<Game::TransformComponent>();
-			transform.m_Rotation = Quaternion::FromEuler(-50.0f, -10.0f, 0.0f);
+			transform.m_Rotation = Rotator(-50.0f, -10.0f, 0.0f);
 			
 			m_World->GetGraphicsScene()->AddDirectionalLight(dirLight.m_Light);
 		}
@@ -72,7 +72,7 @@ namespace vkr::Editor
 					Game::Entity entity = Game::Entity(entityHandle, &m_World->GetEntityRegistry());
 					Game::TransformComponent& transform = entity.GetComponent<Game::TransformComponent>();
 					Game::ModelComponent& model = entity.GetComponent<Game::ModelComponent>();
-					model.m_Model->SetTransform(Compose(transform.m_Position, transform.m_Rotation, transform.m_Scale));
+					model.m_Model->SetTransform(Compose(transform.m_Position, transform.m_Rotation.ToQuaternion(), transform.m_Scale));
 				}
 			}
 			{
@@ -82,7 +82,7 @@ namespace vkr::Editor
 					Game::Entity entity = Game::Entity(entityHandle, &m_World->GetEntityRegistry());
 					Game::TransformComponent& transformComponent = entity.GetComponent<Game::TransformComponent>();
 					Game::DirectionalLightComponent& dirLight = entity.GetComponent<Game::DirectionalLightComponent>();
-					Mat44 transform = Compose(transformComponent.m_Position, transformComponent.m_Rotation, transformComponent.m_Scale);
+					Mat44 transform = Compose(transformComponent.m_Position, transformComponent.m_Rotation.ToQuaternion(), transformComponent.m_Scale);
 					dirLight.m_Light->Direction = Normalized(Vector3f(transform.At(2, 0), transform.At(2, 1), transform.At(2, 2)));
 					dirLight.m_Light->Emission = dirLight.m_Color * dirLight.m_Intensity;
 					dirLight.m_Light->Radius = DegToRad(dirLight.m_Radius);

@@ -23,6 +23,9 @@
 #include <unordered_set>
 #include <vector>
 
+#define PROPERTY(...)
+#define REFLECT()
+
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "imguizmo.h"

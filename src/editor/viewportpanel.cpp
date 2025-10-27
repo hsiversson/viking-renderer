@@ -153,7 +153,7 @@ namespace vkr::Editor
 			const std::vector<Graphics::Model::Part>& parts = modelComponent.m_Model->GetParts();
 			for (const Graphics::Model::Part& part : parts)
 			{
-				FetchPartData(entityHandle, part, Compose(transformComponent.m_Position, transformComponent.m_Rotation, transformComponent.m_Scale), objects);
+				FetchPartData(entityHandle, part, Compose(transformComponent.m_Position, transformComponent.m_Rotation.ToQuaternion(), transformComponent.m_Scale), objects);
 			}
 		}
 
@@ -292,7 +292,7 @@ namespace vkr::Editor
 				const std::vector<Graphics::Model::Part>& parts = modelComponent.m_Model->GetParts();
 				for (const Graphics::Model::Part& part : parts)
 				{
-					FetchPartData(part, Compose(transformComponent.m_Position, transformComponent.m_Rotation, transformComponent.m_Scale), outlineObjects);
+					FetchPartData(part, Compose(transformComponent.m_Position, transformComponent.m_Rotation.ToQuaternion(), transformComponent.m_Scale), outlineObjects);
 				}
 			}
 		}
@@ -535,7 +535,7 @@ namespace vkr::Editor
 
 			Mat44 cameraTransform = m_Camera.GetWorldTransform();
 
-			Mat44 objectTransform = Compose(transformComponent.m_Position, transformComponent.m_Rotation, transformComponent.m_Scale);
+			Mat44 objectTransform = Compose(transformComponent.m_Position, transformComponent.m_Rotation.ToQuaternion(), transformComponent.m_Scale);
 			Vector3f objectPosition = Vector3f(objectTransform.At(3, 0), objectTransform.At(3, 1), objectTransform.At(3, 2));
 
 			Vector3f cameraForward = Normalized(Vector3f(cameraTransform.At(2, 0), cameraTransform.At(2, 1), cameraTransform.At(2, 2)));
@@ -556,7 +556,9 @@ namespace vkr::Editor
 				const IMGUIZMO_NAMESPACE::MODE mode = m_SelectedGizmoSpace == GizmoSpace::Local ? IMGUIZMO_NAMESPACE::LOCAL : IMGUIZMO_NAMESPACE::WORLD;
 				if (ImGuizmo::Manipulate(&view[0], &proj[0], op, mode, &objectTransform[0]))
 				{
-					Decompose(objectTransform, transformComponent.m_Position, transformComponent.m_Rotation, transformComponent.m_Scale);
+					Quaternion rotation;
+					Decompose(objectTransform, transformComponent.m_Position, rotation, transformComponent.m_Scale);
+					transformComponent.m_Rotation.FromQuaternion(rotation);
 				}
 				ImGui::PopClipRect();
 			}
