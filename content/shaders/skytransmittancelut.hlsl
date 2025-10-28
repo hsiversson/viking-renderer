@@ -41,7 +41,7 @@ void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     const bool MieRayPhase = false;
     const float3 NullLightDirection = float3(0.0f, 0.0f, 1.0f);
     const float3 NullLightIlluminance = float3(0.0f, 0.0f, 0.0f);
-    const float AerialPespectiveViewDistanceScale = 1.0f;
+    const float AerialPespectiveViewDistanceScale = 1.0f; //TODO: Get from sky constants
     SingleScatteringResult ss = IntegrateSingleScatteredLuminance(
 		float4(PixPos, 0.0f, 1.0f), WorldPos, WorldDir,
 		Ground, Sampling, DeviceZ, MieRayPhase,

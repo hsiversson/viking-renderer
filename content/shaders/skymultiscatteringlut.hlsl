@@ -49,7 +49,7 @@ void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     const bool Ground = true;
     const float DeviceZ = FarDepthValue;
     const bool MieRayPhase = false;
-    const float AerialPespectiveViewDistanceScale = 1.0f;
+    const float AerialPespectiveViewDistanceScale = 1.0f; //TODO: Get from sky constants
 
     const float SphereSolidAngle = 4.0f * PI;
     const float IsotropicPhase = 1.0f / SphereSolidAngle;

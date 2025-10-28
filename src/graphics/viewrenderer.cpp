@@ -211,14 +211,7 @@ namespace vkr::Graphics
 			perSceneConstantData.DirectionalLights[i] = renderData.m_DirectionalLights[i];
 		}
 
-		//See sky.cpp line 341. This code is duplicated there and really we should get the param there from sceneconstants as well
-		const float PlanetRadiusOffset = 0.005f; //Sky units in km
-		Vector3f PlanetCenterTranslatedWorld = Vector3f(0, -PlanetRadiusOffset + renderData.m_AtmosphereData.BottomRadiusKm, 0); //Where the planet center is relative to the camera
-		Vector4f SkyPlanetTranslatedWorldCenterAndViewHeight = Vector4f(PlanetCenterTranslatedWorld.x,
-			PlanetCenterTranslatedWorld.y,
-			PlanetCenterTranslatedWorld.z,
-			PlanetRadiusOffset + renderData.m_AtmosphereData.BottomRadiusKm);
-		perSceneConstantData.SkyPlanetTranslatedWorldCenterAndViewHeight = SkyPlanetTranslatedWorldCenterAndViewHeight;
+		perSceneConstantData.SkyPlanetTranslatedWorldCenterAndViewHeight = renderData.m_SkyData.SkyPlanetTranslatedWorldCenterAndViewHeight;
 
 		renderData.m_PerSceneConstantBuffer = Render::GetDevice()->GetTempBuffer(Render::TEMP_BUFFER_USAGE_CONSTANTS, sizeof(PerSceneConstantData), sizeof(PerSceneConstantData), &perSceneConstantData);
 
@@ -525,12 +518,21 @@ namespace vkr::Graphics
 		struct alignas(16) ConstantData
 		{
 			AtmosphereData AtmosphereParameters;
+
 			Mat44 SkyViewLutReferential;
+
 			Vector4f SkyViewLutSizeAndInvSize;
+
+			Vector4f SkyPlanetTranslatedWorldCenterAndViewHeight;
+
+			float AerialPerspectiveStartDepthKm;
+			uint32_t _pad0[3];
+
 			uint32_t TargetTextureDescriptorIndex;
 			uint32_t DiffuseAlbedoTextureDescriptor;
 			uint32_t SpecularAlbedoTextureDescriptor;
 			uint32_t NormalsTextureDescriptor;
+
 			uint32_t SpecularHitDistanceTextureDescriptor;
 			uint32_t TransmittanceTextureDescriptorIndex;
 			uint32_t SkyViewLutTextureDescriptorIndex;
@@ -541,6 +543,8 @@ namespace vkr::Graphics
 		data.AtmosphereParameters = renderData.m_AtmosphereData;
 		data.SkyViewLutReferential = renderData.m_SkyData.SkyViewLutReferential;
 		data.SkyViewLutSizeAndInvSize = renderData.m_SkyData.SkyViewLutSizeAndInvSize;
+		data.SkyPlanetTranslatedWorldCenterAndViewHeight = renderData.m_SkyData.SkyPlanetTranslatedWorldCenterAndViewHeight;
+		data.AerialPerspectiveStartDepthKm = renderData.m_SkyData.AerialPerspectiveStartDepthKm;
 		data.TargetTextureDescriptorIndex = renderTargets.m_SceneBuffer_RenderSize.m_TextureViewRW->GetIndex();
 		data.DiffuseAlbedoTextureDescriptor = renderTargets.m_DiffuseAlbedo.m_TextureViewRW->GetIndex();
 		data.SpecularAlbedoTextureDescriptor = renderTargets.m_SpecularAlbedo.m_TextureViewRW->GetIndex();

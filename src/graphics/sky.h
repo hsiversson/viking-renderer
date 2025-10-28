@@ -18,9 +18,12 @@ namespace vkr::Graphics
 		float Width = 1.0f;
 	};
 
+	//This struct holds all user configurable parameters from the sky and atmosphere
 	struct AtmosphereParams
 	{
 		AtmosphereParams();
+		//This float defines at what height do we consider that the plane y=0 is relative to the bottom earth radius (in kilometers)
+		float XZPlaneDatum = 0.0f;
 		/** The radius in kilometers from the center of the planet to the ground level. */
 		float BottomRadius;
 		/** The ground albedo in sRGB space that will tint the atmosphere when the sun light will bounce on it. Only taken into account when MultiScattering>0.0. */
@@ -65,14 +68,17 @@ namespace vkr::Graphics
 		TentDistribution OtherTentDistribution;
 		/** Scales the luminance of pixels representing the sky. This will impact the captured sky light. */
 		Vector3f SkyLuminanceFactor;
-		/** Makes the aerial perspective look thicker by scaling distances from view to surfaces (opaque and translucent). */
-		float AerialPespectiveViewDistanceScale;
 		/** Scale the sky and atmosphere lights contribution to the height fog when SupportSkyAtmosphereAffectsHeightFog project setting is true.*/
 		float HeightFogContribution;
 		/** The minimum elevation angle in degree that should be used to evaluate the sun transmittance to the ground. Useful to maintain a visible sun light and shadow on meshes even when the sun has started going below the horizon. This does not affect the aerial perspective.*/
 		float TransmittanceMinLightElevationAngle;
+		bool EnableAerialPerspective = true;
 		/** The distance (kilometers) at which we start evaluating the aerial perspective. Having the aerial perspective starts away from the camera can help with performance: pixels not affected by the aerial perspective will have their computation skipped using early depth test.*/
 		float AerialPerspectiveStartDepth;
+		//The length of the LUT in kilometers (default = 96km to get nice cloud/atmosphere interactions in the distance for default sky). Further than this distance, the last slice is used.
+		float AerialPerspectiveVolumeDepth;
+		/** Makes the aerial perspective look thicker by scaling distances from view to surfaces (opaque and translucent). */
+		float AerialPespectiveViewDistanceScale;
 	};
 
 	class Sky

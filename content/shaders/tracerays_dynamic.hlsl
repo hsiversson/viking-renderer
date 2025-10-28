@@ -6,12 +6,21 @@
 cbuffer Constants : register(b0)
 {
     AtmosphereParameters Atmosphere;
+    
     float4x4 SkyViewLutReferential;
+    
     float4 SkyViewLutSizeAndInvSize;
+    
+    float4 SkyPlanetTranslatedWorldCenterAndViewHeight;
+    
+    float AerialPerspectiveStartDepthKm;
+    uint3 pad0;
+    
     uint TargetTextureDescriptorIndex;
     uint DiffuseAlbedoTextureDescriptor;
     uint SpecularAlbedoTextureDescriptor;
     uint NormalRoughnessTextureDescriptor;
+    
     uint SpecularHitDistanceTextureDescriptor;
     uint TransmittanceTextureDescriptorIndex;
     uint SkyViewLutTextureDescriptorIndex;
@@ -139,6 +148,14 @@ float4 PrepareOutput(float3 PreExposedLuminance, float3 Transmittance = float3(1
 
 }
 
+// This is the camera position relative to the virtual planet center.
+// This is convenient because for all the math in this file using world position relative to the virtual planet center.
+float3 GetTranslatedCameraPlanetPos()
+{
+    //Consider planet center is always directly underneath the camera (we always consider a flat world for now)
+    return float3(0.0, 0.0, SkyPlanetTranslatedWorldCenterAndViewHeight.w);
+}
+
 [shader("miss")]
 void Miss(inout RaytracingPayload payload)
 {
@@ -160,9 +177,10 @@ void Miss(inout RaytracingPayload payload)
     //Were using for sky calculations the Unreal coordinate system. Which is a left handed system but with Z up , X forward and Y right
     //Our reference system uses Y up, Z forward and X right instead
     WorldDir = WorldDir.zxy;
-    //float3 WorldPos = GetTranslatedCameraPlanetPos();
-    // TODO: Lets assume planet center is below us and were always 5 meters above surface. In the future we need to set a reference to count camera height
-    float3 WorldPos = float3(0, 0, Atmosphere.BottomRadiusKm + 0.005f);
+    
+    float3 WorldPos = GetTranslatedCameraPlanetPos();
+    // This is the LUT camera height and position in the local referential
+    
     //if (IsOrthoProjection())
     //{
     //    WorldPos += GetTranslatedWorldCameraPosFromView(SVPos.xy, true);
@@ -260,7 +278,7 @@ void Miss(inout RaytracingPayload payload)
 
         PreExposedL += SkyLuminance * LuminanceScale * (ViewOneOverPreExposure * OutputPreExposure);
 	
-        payload.irradiance = PrepareOutput(PreExposedL, SkyGreyTransmittance);
+        payload.irradiance = PrepareOutput(PreExposedL, SkyGreyTransmittance).xyz;
         //UpdateVisibleSkyAlpha(DeviceZ, OutLuminance);
         return;
     }
@@ -278,7 +296,7 @@ void Miss(inout RaytracingPayload payload)
 	const float NearFadeOutRangeInvDepthKm = 1.0 / 0.00001f; // 1 centimeter fade region
 	float4 AP = GetAerialPerspectiveLuminanceTransmittance(
 		ResolvedView.RealTimeReflectionCapture, ResolvedView.SkyAtmosphereCameraAerialPerspectiveVolumeSizeAndInvSize,
-		NDCPosition, (DepthBufferTranslatedWorldPos - GetCameraTranslatedWorldPos()) * CM_TO_SKY_UNIT,
+		NDCPosition, (DepthBufferTranslatedWorldPos - GetCameraTranslatedWorldPos()) * M_TO_SKY_UNIT,
 		CameraAerialPerspectiveVolumeTexture, CameraAerialPerspectiveVolumeTextureSampler,
 		SkyAtmosphere.CameraAerialPerspectiveVolumeDepthResolutionInv,
 		SkyAtmosphere.CameraAerialPerspectiveVolumeDepthResolution,
@@ -308,7 +326,6 @@ void Miss(inout RaytracingPayload payload)
     }
 
 	// Apply the start depth offset after moving to the top of atmosphere for consistency (and to avoid wrong out-of-atmosphere test resulting in black pixels).
-    const float AerialPerspectiveStartDepthKm = 0.1; //TODO: Take from atmosphere constants
     WorldPos += WorldDir * AerialPerspectiveStartDepthKm;
     
     //TODO: Get these constants from the atmosphere uniform buffer 
@@ -328,7 +345,7 @@ void Miss(inout RaytracingPayload payload)
     const bool Ground = false;
     const bool MieRayPhase = true;
     //const float AerialPespectiveViewDistanceScale = DeviceZ == FarDepthValue ? 1.0f : SkyAtmosphere.AerialPespectiveViewDistanceScale;
-    const float AerialPespectiveViewDistanceScale = 1.0f;
+    const float AerialPespectiveViewDistanceScale = 1.0f; //TODO: Get from sky constants
     SingleScatteringResult ss = IntegrateSingleScatteredLuminance(
 		float4(PixPos, 0.0f, 1.0f), WorldPos, WorldDir,
 		Ground, Sampling, DeviceZ, MieRayPhase,

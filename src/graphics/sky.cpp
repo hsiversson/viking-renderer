@@ -19,9 +19,11 @@ namespace
 	constexpr uint32_t SKYVIEW_TEXTURE_WIDTH = 192;
 	constexpr uint32_t SKYVIEW_TEXTURE_HEIGHT = 104;
 
-	constexpr uint32_t AERIAL_PERSPECTIVE_TEXTURE_WIDTH = 32;
-	constexpr uint32_t AERIAL_PERSPECTIVE_TEXTURE_HEIGHT = 32;
+	constexpr uint32_t AERIAL_PERSPECTIVE_TEXTURE_WIDTHHEIGHT = 32;
 	constexpr uint32_t AERIAL_PERSPECTIVE_TEXTURE_DEPTH = 16;
+
+	static constexpr float SkyUnitToVkrUnits = 1000.0f; //Kilometers to meters
+	static constexpr float VkrUnitsToSkyUnits = 0.001f; //Meters to kilometers
 }
 
 namespace vkr::Graphics
@@ -65,6 +67,7 @@ namespace vkr::Graphics
 		HeightFogContribution = 1.0f;
 		TransmittanceMinLightElevationAngle = -90.0f;
 		AerialPerspectiveStartDepth = 0.1f;
+		AerialPerspectiveVolumeDepth = 96.0f;
 
 		TraceSampleCountScale = 1.0f;
 	}
@@ -176,11 +179,9 @@ namespace vkr::Graphics
 		// Where are we in relation to our "virtual planet"? For atmosphere calculations we need to know where the observer/camera sits within the atmosphere
 		// Were gonna consider a flat world in our scene and that that Y = 0 is where our earth surface is
 		// The constants below should match the one in SkyAtmosphereCommon.ush
-		// Always force to be 5 meters above the ground/sea level (to always see the sky and not be under the virtual planet occluding ray tracing) and lower for small planet radius
-		const float PlanetRadiusOffset = 0.005f; //Sky units in km
-		Vector3 CameraWorldPos = Vector3f(prepareData.m_CameraData.CameraWorldMatrix[9], prepareData.m_CameraData.CameraWorldMatrix[10], prepareData.m_CameraData.CameraWorldMatrix[11]);
-		//This will consider the planet center is always positioned such that the camera is always considered for sky purposes to be 5m above ground level (for now)
-		Vector3f PlanetCenterWorld =  CameraWorldPos - Vector3f(0, PlanetRadiusOffset + prepareData.m_AtmosphereData.BottomRadiusKm, 0);
+		Vector3 CameraWorldPos = Vector3f(prepareData.m_CameraData.CameraWorldMatrix[9], prepareData.m_CameraData.CameraWorldMatrix[10], prepareData.m_CameraData.CameraWorldMatrix[11]) * VkrUnitsToSkyUnits;
+		//This will consider the planet center always directly under the camera (flat world)
+		Vector3f PlanetCenterWorld =  Vector3f(CameraWorldPos.x, -(m_AtmosphereParams.XZPlaneDatum + prepareData.m_AtmosphereData.BottomRadiusKm), CameraWorldPos.z);
 		Vector3f PlanetCenterTranslatedWorld = PlanetCenterWorld - CameraWorldPos; //Where the planet center is relative to the camera
 
 		// 		const float Offset = PlanetRadiusOffset * SkyUnitToCm;
@@ -248,6 +249,10 @@ namespace vkr::Graphics
 		prepareData.m_SkyData.SkyViewLutReferential = SkyViewLutReferential;
 		prepareData.m_SkyData.SkyViewLutSizeAndInvSize = Vector4f(SKYVIEW_TEXTURE_WIDTH, SKYVIEW_TEXTURE_HEIGHT, 1.0f / SKYVIEW_TEXTURE_WIDTH, 1.0f / SKYVIEW_TEXTURE_HEIGHT);
 
+		prepareData.m_SkyData.FogShowFlagFactor = m_AtmosphereParams.EnableAerialPerspective ? 1.0 : 0.0f;
+		prepareData.m_SkyData.AerialPerspectiveStartDepthKm = m_AtmosphereParams.AerialPerspectiveStartDepth;
+		prepareData.m_SkyData.AerialPerspectiveLutSizeAndInvSize = Vector4f(AERIAL_PERSPECTIVE_TEXTURE_WIDTHHEIGHT, AERIAL_PERSPECTIVE_TEXTURE_WIDTHHEIGHT, 1.0f / AERIAL_PERSPECTIVE_TEXTURE_WIDTHHEIGHT, 1.0f / AERIAL_PERSPECTIVE_TEXTURE_WIDTHHEIGHT);
+		prepareData.m_SkyData.AerialPerspectiveLutDepthResolution = AERIAL_PERSPECTIVE_TEXTURE_DEPTH;
 		// TODO: Add other sky related prepare data here
 	}
 

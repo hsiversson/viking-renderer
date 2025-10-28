@@ -96,6 +96,7 @@ namespace vkr::Graphics
 		std::vector<RenderBatch> m_InstanceBatches;
 	};
 
+	//This structure strictly only holds physical parameters of the sky, not configuration parameters
 	struct alignas(16) AtmosphereData
 	{
 		float MultiScatteringFactor;
@@ -123,11 +124,17 @@ namespace vkr::Graphics
 		uint32_t _pad2;
 	};
 
+	//This struct contains other data needed for the sky render, that are not strictly physical parameters.
 	struct SkyData
 	{
 		Mat44 SkyViewLutReferential;
 		Vector4f SkyViewLutSizeAndInvSize;
 		Vector4f SkyPlanetTranslatedWorldCenterAndViewHeight;
+		float FogShowFlagFactor;
+		float AerialPerspectiveStartDepthKm;
+		float AerialPerspectiveVolumeDepthKm;
+		float AerialPerspectiveLutDepthResolution;
+		Vector4f AerialPerspectiveLutSizeAndInvSize;
 	};
 
 

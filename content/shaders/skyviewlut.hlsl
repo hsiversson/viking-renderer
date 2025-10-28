@@ -98,7 +98,7 @@ void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 	// For the sky view lut to work, and not be distorted, we need to transform the view and light directions 
 	// into a referential with UP being perpendicular to the world sphere. And with origin at the planet center.
 
-	// This is the local referencial
+	// This is the local referencial. A coordinate system tangent to the earth at the position of the camera
     float3x3 LocalReferencial = GetUEReferential(SkyViewLutReferential);
 
 	// This is the LUT camera height and position in the local referential
@@ -134,7 +134,7 @@ void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     const bool Ground = false;
     const float DeviceZ = 0; // Inverted depth
     const bool MieRayPhase = true;
-    const float AerialPespectiveViewDistanceScale = 1.0f;
+    const float AerialPespectiveViewDistanceScale = 1.0f; //TODO: Get from sky constants
     
     SingleScatteringResult ss = IntegrateSingleScatteredLuminance(
 		float4(PixPos, 0.0f, 1.0f), WorldPos, WorldDir,

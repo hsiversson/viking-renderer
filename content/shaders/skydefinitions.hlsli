@@ -13,20 +13,27 @@ struct AtmosphereParameters
     // The distance between the ground and the top of the atmosphere.
     float TopRadiusKm;
     float RayleighDensityExpScale;
+    
     float3 RayleighScattering;
     uint pad0;
+    
     float3 MieScattering;
     float MieDensityExpScale;
+    
     float3 MieExtinction;
     float MiePhaseG;
+    
     float3 MieAbsorption;
     float AbsorptionDensity0LayerWidth;
+    
     float AbsorptionDensity0ConstantTerm;
     float AbsorptionDensity0LinearTerm;
     float AbsorptionDensity1ConstantTerm;
     float AbsorptionDensity1LinearTerm;
+    
     float3 AbsorptionExtinction;
     uint pad1;
+    
     // The average albedo of the ground.
     float3 GroundAlbedo;
     uint pad2;

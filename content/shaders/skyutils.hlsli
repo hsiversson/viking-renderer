@@ -423,7 +423,7 @@ SingleScatteringResult IntegrateSingleScatteredLuminance(
 	if (DeviceZ != FarDepthValue)
 	{
 		const float3 DepthBufferTranslatedWorldPosKm = GetScreenTranslatedWorldPos(SVPos, DeviceZ).xyz * M_TO_SKY_UNIT;
-		const float3 TraceStartTranslatedWorldPosKm  = WorldPos + SceneConstants.SkyPlanetTranslatedWorldCenterAndViewHeight.xyz * M_TO_SKY_UNIT; // apply planet offset to go back to world from planet local referencial.
+		const float3 TraceStartTranslatedWorldPosKm  = WorldPos + SceneConstants.SkyPlanetTranslatedWorldCenterAndViewHeight.xyz; // apply planet offset to go back to world from planet local referencial.
 		const float3 TraceStartToSurfaceWorldKm = DepthBufferTranslatedWorldPosKm - TraceStartTranslatedWorldPosKm;
 		float tDepth = length(TraceStartToSurfaceWorldKm);
 		if (tDepth < tMax)
@@ -603,13 +603,12 @@ SingleScatteringResult IntegrateSingleScatteredLuminance(
         float3 ShadowP0 = P;
         bool bUnused = false;
 #ifdef SKYVIEWLUT_PASS
-        float3 SkyCameraTranslatedWorldOrigin = float3(0.0f,0.0f,0.0f); // TODO: need to uderstand better the mess of references they work with in unreal. Potential bug here
-        float3 TranslatedCameraPlanetPos = (SkyCameraTranslatedWorldOrigin - SkyPlanetTranslatedWorldCenterAndViewHeight.xyz) * M_TO_SKY_UNIT;
+        float3 TranslatedCameraPlanetPos = (-SkyPlanetTranslatedWorldCenterAndViewHeight.zxy);
 		ShadowP0 = TranslatedCameraPlanetPos + t * mul(LocalReferencial, WorldDir); // Inverse of the local SkyViewLUT referencial transform
 #endif
 #ifdef SAMPLE_OPAQUE_SHADOW
 		{
-			float3 ShadowSampleWorldPosition0 = ShadowP0 * SKY_UNIT_TO_CM + SceneConstants.SkyPlanetTranslatedWorldCenterAndViewHeight.xyz;
+			float3 ShadowSampleWorldPosition0 = ShadowP0 * SKY_UNIT_TO_CM + SceneConstants.SkyPlanetTranslatedWorldCenterAndViewHeight.zxy;
 			PlanetShadow0 *= ComputeLight0VolumeShadowing(ShadowSampleWorldPosition0 /* - DFHackToFloat(PrimaryView.PreViewTranslation)*/, false, false, bUnused);
 
 #ifdef VIRTUAL_SHADOW_MAP
@@ -623,12 +622,12 @@ SingleScatteringResult IntegrateSingleScatteredLuminance(
 #endif
 #ifdef SAMPLE_CLOUD_SKYAO
 		float OutOpticalDepth = 0.0f;
-		MultiScatteredLuminance0 *= GetCloudVolumetricShadow(ShadowP0 * SKY_UNIT_TO_CM + SceneConstants.SkyPlanetTranslatedWorldCenterAndViewHeight.xyz, VolumetricCloudCommonParameters.CloudSkyAOTranslatedWorldToLightClipMatrix,
+		MultiScatteredLuminance0 *= GetCloudVolumetricShadow(ShadowP0 * SKY_UNIT_TO_CM + SceneConstants.SkyPlanetTranslatedWorldCenterAndViewHeight.zxy, VolumetricCloudCommonParameters.CloudSkyAOTranslatedWorldToLightClipMatrix,
 			VolumetricCloudCommonParameters.CloudSkyAOFarDepthKm, VolumetricCloudSkyAOTexture, VolumetricCloudSkyAOTextureSampler, OutOpticalDepth);
 #endif
 #ifdef SAMPLE_CLOUD_SHADOW
 		float OutOpticalDepth2 = 0.0f;
-		PlanetShadow0 *= saturate(lerp(1.0f, GetCloudVolumetricShadow(ShadowP0 * SKY_UNIT_TO_CM + SceneConstants.SkyPlanetTranslatedWorldCenterAndViewHeight.xyz, VolumetricCloudCommonParameters.CloudShadowmapTranslatedWorldToLightClipMatrix[0],
+		PlanetShadow0 *= saturate(lerp(1.0f, GetCloudVolumetricShadow(ShadowP0 * SKY_UNIT_TO_CM + SceneConstants.SkyPlanetTranslatedWorldCenterAndViewHeight.zxy, VolumetricCloudCommonParameters.CloudShadowmapTranslatedWorldToLightClipMatrix[0],
 			VolumetricCloudCommonParameters.CloudShadowmapFarDepthKm[0].x, VolumetricCloudShadowMapTexture0, VolumetricCloudShadowMapTexture0Sampler, OutOpticalDepth2), VolumetricCloudShadowStrength0));
 #endif
 		// MultiScatteredLuminance is already pre-exposed, atmospheric light contribution needs to be pre exposed
