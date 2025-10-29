@@ -6,13 +6,13 @@ namespace vkr::Game
 {
 	struct TransformComponent
 	{
-		PROPERTY(Editable);
+		PROPERTY(Editable)
 		Vector3f m_Position = Vector3f(0.0f, 0.0f, 0.0f);
 
-		PROPERTY(Editable);
+		PROPERTY(Editable)
 		Rotator m_Rotation;
 
-		PROPERTY(Editable);
+		PROPERTY(Editable)
 		Vector3f m_Scale = Vector3f(1.0f, 1.0f, 1.0f);
 	};
 }

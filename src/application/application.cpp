@@ -17,6 +17,8 @@
 
 #include "graphics/modelloader_gltf.h"
 
+#include "register_reflections.generated.h"
+
 // TEMP
 #include "editor/editor.h"
 // TEMP
@@ -136,6 +138,8 @@ namespace vkr
 
 			m_Window->AddMessageHandler(m_EditorManager.get());
 		}
+
+		vkr::RegisterReflections::RegisterAll();
 
 		return InitInternal();
 	}

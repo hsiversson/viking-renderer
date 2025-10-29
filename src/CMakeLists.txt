@@ -28,6 +28,9 @@ source_group(Game FILES ${VKR_GAME_SOURCES})
 file(GLOB VKR_PRECOMPILED_HEADER ${VKR_SRC_DIR}/vkr_precompiled.h)
 source_group("Precompiled Header" FILES ${VKR_PRECOMPILED_HEADER})
 
+file(GLOB VKR_GENERATED_SOURCES ${VKR_GENERATED_SRC_DIR}/register_reflections.generated.h ${VKR_GENERATED_SRC_DIR}/register_reflections.generated.cpp)
+source_group("Generated Files" FILES ${VKR_GENERATED_SOURCES})
+
 add_library(VikingRenderer 
 			${VKR_CORE_SOURCES}
 			${VKR_APPLICATION_SOURCES}
@@ -37,7 +40,8 @@ add_library(VikingRenderer
             ${VKR_UTILS_SOURCES}
             ${VKR_EDITOR_SOURCES}
 			${VKR_GAME_SOURCES}
-			${VKR_PRECOMPILED_HEADER}) 
+			${VKR_PRECOMPILED_HEADER}
+			${VKR_GENERATED_SOURCES}) 
 
 target_precompile_headers(VikingRenderer PRIVATE ${VKR_PRECOMPILED_HEADER})
 source_group("Generated Files" FILES ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}.dir/cmake_pch.cxx)
@@ -75,10 +79,11 @@ target_link_libraries(VikingRenderer PRIVATE EnTT::EnTT)
 
 target_include_directories(VikingRenderer PRIVATE ${STREAMLINE_INCLUDE_DIR})
 
-# Ensure it builds after the SDK has downloaded
 add_dependencies(VikingRenderer StreamlineSDK)
+add_dependencies(VikingRenderer VikingHeaderTool)
 
 target_include_directories(VikingRenderer PUBLIC ${VKR_SRC_DIR})
+target_include_directories(VikingRenderer PUBLIC ${VKR_GENERATED_SRC_DIR})
 
 if(MSVC)
 	target_compile_options(VikingRenderer PRIVATE "/MP")

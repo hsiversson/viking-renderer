@@ -1,25 +1,6 @@
 cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 
-project("VikingRenderer")
-
-include(ExternalProject)
-
-set(STREAMLINE_VERSION "v2.8.0")
-set(STREAMLINE_URL "https://github.com/NVIDIA-RTX/Streamline/releases/download/${STREAMLINE_VERSION}/streamline-sdk-${STREAMLINE_VERSION}.zip")
-set(STREAMLINE_DIR "${CMAKE_BINARY_DIR}/external/Streamline")
-set(STREAMLINE_INCLUDE_DIR "${STREAMLINE_DIR}/include")
-set(STREAMLINE_DLL_DIR "${STREAMLINE_DIR}/bin/x64")
-set(STREAMLINE_LIB_DIR "${STREAMLINE_DIR}/lib/x64")
-
-ExternalProject_Add(StreamlineSDK
-    URL ${STREAMLINE_URL}
-    DOWNLOAD_DIR ${CMAKE_BINARY_DIR}/downloads
-    SOURCE_DIR ${STREAMLINE_DIR}
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-    LOG_DOWNLOAD ON
-)
+project("VikingHeaderTool")
 
 # Declare custom configurations for multi-config generators (e.g. Visual Studio)
 set(CMAKE_CONFIGURATION_TYPES Debug Development Shipping CACHE TYPE INTERNAL FORCE)
@@ -72,17 +53,6 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
-set(VKR_VCPKG_ROOT_DIR "${PROJECT_SOURCE_DIR}/vcpkg")
+set(VKR_HEADER_TOOL_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 
-set(VKR_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
-set(VKR_GENERATED_SRC_DIR "${PROJECT_SOURCE_DIR}/build/generated")
-set(VKR_ICON_RESOURCE "${VKR_SRC_DIR}/core/resource/resource.rc" "${VKR_SRC_DIR}/core/resource/resource.h")
 add_subdirectory(src)
-
-set(VKR_SAMPLES_DIR "${PROJECT_SOURCE_DIR}/samples")
-
-add_custom_target(VikingHeaderTool ALL
-                  COMMAND "${PROJECT_SOURCE_DIR}/tools/HeaderTool/VikingHeaderTool.exe" "${VKR_SRC_DIR}"
-                  COMMENT "Running VikingHeaderTool...")
-
-add_subdirectory(samples)

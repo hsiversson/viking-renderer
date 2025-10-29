@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
+
+file(GLOB_RECURSE VKR_HEADER_TOOL_SOURCES ${VKR_HEADER_TOOL_SRC_DIR}/*.cpp ${VKR_HEADER_TOOL_SRC_DIR}/*.h)
+source_group(HeaderTool FILES ${VKR_HEADER_TOOL_SOURCES})
+
+
+add_executable(VikingHeaderTool ${VKR_HEADER_TOOL_SOURCES})

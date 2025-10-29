@@ -32,11 +32,16 @@
 *.out
 *.app
 
+# Generated files
+*.generated.h
+*.generated.cpp
+
 build/
 bin/
 lib/
 vcpkg/
 !tools/vswhere.exe
+!tools/HeaderTool/VikingHeaderTool.exe
 
 /downloads/
 /external/Streamline/
