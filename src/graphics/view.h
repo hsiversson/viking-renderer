@@ -56,7 +56,7 @@ namespace vkr::Graphics
 		TextureTarget m_SkyTransmittanceLUT;
 		TextureTarget m_SkyMultiScatteringLUT;
 		TextureTarget m_SkyViewLUT;
-		TextureTarget m_SkyAerialPerspective;
+		TextureTarget m_SkyAerialPerspectiveLUT;
 		
 		TextureTarget m_Exposure; // 1x1 with adapted exposure value
 		Ref<Render::BufferView> m_ExposureHistogram;

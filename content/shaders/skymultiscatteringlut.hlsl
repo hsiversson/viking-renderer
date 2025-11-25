@@ -1,4 +1,3 @@
-//#define WHITE_TRANSMITTANCE
 #define MULTISCATT_PASS
 
 #include "skydefinitions.hlsli"

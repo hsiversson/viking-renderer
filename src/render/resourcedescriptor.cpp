@@ -96,6 +96,14 @@ namespace vkr::Render
 					uavDesc.Texture2D.PlaneSlice = 0;
 					uavDesc.Texture2D.MipSlice = desc.m_Mip;
 				}
+				else if (textureDesc.m_Dimension == ResourceDimension::Texture3D)
+				{
+					uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
+					uavDesc.Texture3D.MipSlice = desc.m_Mip;
+					//Use all slices in depth for now
+					uavDesc.Texture3D.FirstWSlice = 0;
+					uavDesc.Texture3D.WSize = -1;
+				}
 				GetDevice()->GetD3DDevice()->CreateUnorderedAccessView(resource->GetD3DResource(), nullptr, &uavDesc, m_D3DHandle);
 			}
 			else
@@ -123,6 +131,13 @@ namespace vkr::Render
 						srvDesc.Texture2D.MostDetailedMip = desc.m_Mip;
 						srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 					}
+				}
+				else if (textureDesc.m_Dimension == ResourceDimension::Texture3D)
+				{
+					srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+					srvDesc.Texture3D.MipLevels = textureDesc.m_MipLevels;
+					srvDesc.Texture3D.MostDetailedMip = desc.m_Mip;
+					srvDesc.Texture3D.ResourceMinLODClamp = 0.0f;
 				}
 				GetDevice()->GetD3DDevice()->CreateShaderResourceView(resource->GetD3DResource(), &srvDesc, m_D3DHandle);
 			}

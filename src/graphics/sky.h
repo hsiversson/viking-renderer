@@ -104,13 +104,18 @@ namespace vkr::Graphics
 		bool Init();
 
 		void ComputeLuts(View* view);
+		void ApplyAerialPerspective(View* view);
 
 	private:
 		Ref<Render::Shader> m_SkyTransmittanceLUTComputeShader;
 		Ref<Render::Shader> m_SkyMultiScatterLUTComputeShader;
 		Ref<Render::Shader> m_SkyViewLUTComputeShader;
+		Ref<Render::Shader> m_SkyAerialPerspectiveLUTComputeShader;
+		Ref<Render::Shader> m_SkyAerialPerspectiveShader;
 		Ref<Render::PipelineState> m_SkyTransmittanceLUTPSO;
 		Ref<Render::PipelineState> m_SkyMultiScatterLUTPSO;
 		Ref<Render::PipelineState> m_SkyViewLUTPSO;
+		Ref<Render::PipelineState> m_SkyAerialPerspectiveLUTPSO;
+		Ref<Render::PipelineState> m_SkyAerialPerspectivePSO;
 	};
 }

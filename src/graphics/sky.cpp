@@ -275,6 +275,17 @@ namespace vkr::Graphics
 		skyViewLUTPSODesc.Compute.m_ComputeShader = m_SkyViewLUTComputeShader.get();
 		m_SkyViewLUTPSO = device->CreatePipelineState(skyViewLUTPSODesc);
 
+		m_SkyAerialPerspectiveLUTComputeShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/skyaerialperspectivelut.hlsl"), L"MainCS", vkr::Render::SHADER_STAGE_COMPUTE);
+		Render::PipelineStateDesc skyAerialPerspectiveLUTPSODesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_COMPUTE);
+		skyAerialPerspectiveLUTPSODesc.Compute.m_ComputeShader = m_SkyAerialPerspectiveLUTComputeShader.get();
+		m_SkyAerialPerspectiveLUTPSO = device->CreatePipelineState(skyAerialPerspectiveLUTPSODesc);
+
+// 		m_SkyAerialPerspectiveShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/skyaerialperspective.hlsl"), L"Main", vkr::Render::SHADER_STAGE_PIXEL);
+// 		Render::PipelineStateDesc skyAerialPerspectivePSODesc = Render::PipelineStateDesc(Render::PIPELINE_STATE_TYPE_DEFAULT);
+// 		skyAerialPerspectivePSODesc.Default.m_VertexShader = m_SkyAerialPerspectiveShader.get();
+// 		skyAerialPerspectivePSODesc.Default.m_PixelShader = m_SkyAerialPerspectiveShader.get();
+// 		m_SkyAerialPerspectivePSO = device->CreatePipelineState(skyAerialPerspectivePSODesc);
+
 		return true;
 	}
 
@@ -297,10 +308,10 @@ namespace vkr::Graphics
 		renderTargets.m_SkyViewLUT.m_IsWritable = true;
 		renderTargets.m_SkyViewLUT.m_Format = Render::FORMAT_RGBA32_FLOAT;
 		renderTargets.m_SkyViewLUT.Update(Vector2u(SKYVIEW_TEXTURE_WIDTH, SKYVIEW_TEXTURE_HEIGHT), "SkyViewLUT");
-// 
-// 		renderTargets.m_SkyAerialPerspective.m_IsWritable = true;
-// 		renderTargets.m_SkyAerialPerspective.m_Format = Render::FORMAT_RGBA32_FLOAT;
-// 		renderTargets.m_SkyAerialPerspective.Update(Vector3u(AERIAL_PERSPECTIVE_TEXTURE_WIDTH, AERIAL_PERSPECTIVE_TEXTURE_HEIGHT, AERIAL_PERSPECTIVE_TEXTURE_DEPTH), "AerialPerspectiveCameraVolume");
+ 
+ 		renderTargets.m_SkyAerialPerspectiveLUT.m_IsWritable = true;
+ 		renderTargets.m_SkyAerialPerspectiveLUT.m_Format = Render::FORMAT_RGBA32_FLOAT;
+ 		renderTargets.m_SkyAerialPerspectiveLUT.Update(Vector3u(AERIAL_PERSPECTIVE_TEXTURE_WIDTHHEIGHT, AERIAL_PERSPECTIVE_TEXTURE_WIDTHHEIGHT, AERIAL_PERSPECTIVE_TEXTURE_DEPTH), "AerialPerspectiveCameraVolume");
 
 		VKR_CONTEXT_EVENT_FUNCTION(ctx);
 
@@ -444,10 +455,91 @@ namespace vkr::Graphics
 
 		ctx->DispatchThreads(Vector3u(SKYVIEW_TEXTURE_WIDTH, SKYVIEW_TEXTURE_HEIGHT, 1));
 
-		//Direct scattering
-		
+		//Aerial perspective
+		{
+			std::vector<Render::TextureBarrierDesc> barriers;
+			{
+				//Transition aerial perspective LUT to write
+				Render::TextureBarrierDesc barrierDesc;
+				barrierDesc.m_Texture = renderTargets.m_SkyAerialPerspectiveLUT.m_Texture.get();
+				barrierDesc.m_TargetSync = Render::RESOURCE_STATE_SYNC_COMPUTE;
+				barrierDesc.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_WRITE;
+				barrierDesc.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_READ_WRITE_RESOURCE;
+				barriers.push_back(barrierDesc);
+			}
+			ctx->TextureBarrier(barriers.size(), barriers.data());
+		}
+
+		ctx->BindPipelineState(m_SkyAerialPerspectiveLUTPSO.get());
+
+		struct alignas(16) AerialPerspectiveLUTConstantData
+		{
+			vkr::Graphics::AtmosphereData Atmosphere;
+
+			Mat44 InvViewProjection;
+
+			Vector4f AerialPerspectiveLutSizeAndInvSize;
+
+			Vector4f SkyPlanetTranslatedWorldCenterAndViewHeight;
+
+			Vector4f CameraPosition;
+
+			Vector4f ViewSizeAndInvSize;
+
+			Vector3f AtmosphereLightDirection0;
+			uint32_t _pad0;
+
+			Vector3f AtmosphereLightIlluminanceOuterSpace0;
+			uint32_t _pad1;
+
+			Vector3f AtmosphereLightDirection1;
+			uint32_t _pad2;
+
+			Vector3f AtmosphereLightIlluminanceOuterSpace1;
+			uint32_t _pad3;
+
+			float FogShowFlagFactor;
+			Vector2f AerialPerspectiveLutDepthAndInvDepth;
+			float AerialPerspectiveStartDepthKm;
+
+			float CameraAerialPerspectiveVolumeDepthSliceLengthKm;
+			uint32_t TransmittanceLUTTextureDescriptorIndex;
+			uint32_t MultiscatterLUTTextureDescriptorIndex;
+			uint32_t AerialPerspectiveTextureDescriptorIndex;
+		};
+
+		AerialPerspectiveLUTConstantData aerialPerspectiveLUTConstantData;
+		aerialPerspectiveLUTConstantData.Atmosphere = renderData.m_AtmosphereData;
+		aerialPerspectiveLUTConstantData.InvViewProjection = renderData.m_CameraData.InvViewProjectionMatrix;
+		aerialPerspectiveLUTConstantData.AerialPerspectiveLutSizeAndInvSize = Vector4f(AERIAL_PERSPECTIVE_TEXTURE_WIDTHHEIGHT, AERIAL_PERSPECTIVE_TEXTURE_WIDTHHEIGHT, 1.0f / AERIAL_PERSPECTIVE_TEXTURE_WIDTHHEIGHT, 1.0f / AERIAL_PERSPECTIVE_TEXTURE_WIDTHHEIGHT);
+		aerialPerspectiveLUTConstantData.SkyPlanetTranslatedWorldCenterAndViewHeight = renderData.m_SkyData.SkyPlanetTranslatedWorldCenterAndViewHeight;
+		aerialPerspectiveLUTConstantData.CameraPosition = Vector4f(renderData.m_CameraData.CameraWorldMatrix[9], renderData.m_CameraData.CameraWorldMatrix[10], renderData.m_CameraData.CameraWorldMatrix[11],1.0f);
+		aerialPerspectiveLUTConstantData.ViewSizeAndInvSize = Vector4f(renderData.m_RenderSize.x, renderData.m_RenderSize.y, 1.0f / renderData.m_RenderSize.x, 1.0f / renderData.m_RenderSize.y);
+		aerialPerspectiveLUTConstantData.AtmosphereLightDirection0 = renderData.m_DirectionalLights[0].Direction;
+		aerialPerspectiveLUTConstantData.AtmosphereLightIlluminanceOuterSpace0 = renderData.m_DirectionalLights[0].Emission;
+		aerialPerspectiveLUTConstantData.AtmosphereLightDirection1 = renderData.m_DirectionalLights[1].Direction;
+		aerialPerspectiveLUTConstantData.AtmosphereLightIlluminanceOuterSpace1 = renderData.m_DirectionalLights[1].Emission;
+		aerialPerspectiveLUTConstantData.FogShowFlagFactor = renderData.m_SkyData.FogShowFlagFactor;
+		aerialPerspectiveLUTConstantData.AerialPerspectiveLutDepthAndInvDepth = Vector2f((float)AERIAL_PERSPECTIVE_TEXTURE_DEPTH, 1.0f / AERIAL_PERSPECTIVE_TEXTURE_DEPTH);
+		aerialPerspectiveLUTConstantData.AerialPerspectiveStartDepthKm = renderData.m_SkyData.AerialPerspectiveStartDepthKm;
+		aerialPerspectiveLUTConstantData.CameraAerialPerspectiveVolumeDepthSliceLengthKm = renderData.m_SkyData.AerialPerspectiveVolumeDepthKm / renderData.m_SkyData.AerialPerspectiveLutDepthResolution;
+		aerialPerspectiveLUTConstantData.TransmittanceLUTTextureDescriptorIndex = renderTargets.m_SkyTransmittanceLUT.m_TextureView->GetIndex();
+		aerialPerspectiveLUTConstantData.MultiscatterLUTTextureDescriptorIndex = renderTargets.m_SkyMultiScatteringLUT.m_TextureView->GetIndex();
+		aerialPerspectiveLUTConstantData.AerialPerspectiveTextureDescriptorIndex = renderTargets.m_SkyAerialPerspectiveLUT.m_TextureViewRW->GetIndex();
+
+		ctx->BindLocalConstantBuffer(sizeof(AerialPerspectiveLUTConstantData), &aerialPerspectiveLUTConstantData, 0);
+
+		ctx->DispatchThreads(Vector3u(AERIAL_PERSPECTIVE_TEXTURE_WIDTHHEIGHT, AERIAL_PERSPECTIVE_TEXTURE_WIDTHHEIGHT, AERIAL_PERSPECTIVE_TEXTURE_DEPTH));
 	}
 
+	void SkyRenderer::ApplyAerialPerspective(View* view)
+	{
+		const ViewRenderData& renderData = view->GetRenderData();
+		ViewRenderTargets& renderTargets = view->GetRenderTargets();
+		Render::Context* ctx = Render::Context::GetCurrentContext();
+
+		VKR_CONTEXT_EVENT_FUNCTION(ctx);
+	}
 	
 
 }

@@ -115,6 +115,8 @@ namespace vkr::Graphics
 				TraceRadiance(view);
 			});
 
+		Render::QueueGraphicsTask(std::bind(&SkyRenderer::ApplyAerialPerspective, m_SkyRenderer.get(), view));
+
 		Render::QueueGraphicsTask([this, view]() mutable
 			{
 				ApplyUpscaling(view);
@@ -881,7 +883,5 @@ namespace vkr::Graphics
 			ctx->TextureBarrier(barrierDesc);
 		}
 	}
-
-	
 
 }

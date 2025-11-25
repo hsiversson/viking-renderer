@@ -2,7 +2,7 @@
 
 //#define SECOND_ATMOSPHERE_LIGHT_ENABLED
 // View data is not available for passes running once per scene (and not once per view).
-#if !defined(TRANSMITTANCE_PASS) && !defined(SKYVIEWLUT_PASS) && !defined(MULTISCATT_PASS)// && !defined(SKYLIGHT_PASS)
+#if !defined(TRANSMITTANCE_PASS) && !defined(SKYVIEWLUT_PASS) && !defined(MULTISCATT_PASS) && !defined(AERIALPERSPECTIVE_PASS)
 //#if !defined(MULTISCATT_PASS) && !defined(SKYLIGHT_PASS)
 #define VIEWDATA_AVAILABLE //Defines if we have sceneconstants available
 #endif

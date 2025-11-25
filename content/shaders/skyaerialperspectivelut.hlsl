@@ -1,5 +1,8 @@
+#define AERIALPERSPECTIVE_PASS
 
 #include "skydefinitions.hlsli"
+
+#define MULTISCATTERING_APPROX_SAMPLING_ENABLED
 
 cbuffer Constants : register(b0)
 {
@@ -9,31 +12,53 @@ cbuffer Constants : register(b0)
     
     float4 AerialPerspectiveLutSizeAndInvSize;
     
+    float4 SkyPlanetTranslatedWorldCenterAndViewHeight;
+    
     float4 CameraPosition;
     
     float4 ViewSizeAndInvSize;
     
     float3 AtmosphereLightDirection0;
     uint pad0;
+    
     float3 AtmosphereLightIlluminanceOuterSpace0;
     uint pad1;
+    
     float3 AtmosphereLightDirection1;
     uint pad2;
-    float3 AtmosphereLightIlluminanceOuterSpace1;
     
-    float4 SkyPlanetTranslatedWorldCenterAndViewHeight;
+    float3 AtmosphereLightIlluminanceOuterSpace1;
+    uint pad3;
     
     float FogShowFlagFactor;
     float2 AerialPerspectiveLutDepthAndInvDepth;
     float AerialPerspectiveStartDepthKm;
     
     float CameraAerialPerspectiveVolumeDepthSliceLengthKm;
+    uint TransmittanceLUTTextureDescriptorIndex;
+    uint MultiscatterLUTTextureDescriptorIndex;
     uint AerialPerspectiveTextureDescriptorIndex;
+    
 #if SEPARATE_MIE_RAYLEIGH_SCATTERING // Relevant only in conjuntion with volumetric cloud rendering
     uint CameraAerialPerspectiveVolumeMieOnlyUAV;
     uint CameraAerialPerspectiveVolumeRayOnlyUAV;
 #endif
 }
+
+Texture2D<float4> GetTransmittanceLUT()
+{
+    Texture2D<float4> tex = ResourceDescriptorHeap[TransmittanceLUTTextureDescriptorIndex];
+    return tex;
+}
+
+Texture2D<float4> GetMultiScatteringLUT()
+{
+    Texture2D<float4> tex = ResourceDescriptorHeap[MultiscatterLUTTextureDescriptorIndex];
+    return tex;
+}
+
+SamplerState g_SamplerPointClamp : register(s0);
+SamplerState g_SamplerBilinearClamp : register(s1);
 
 #include "skyutils.hlsli"
 
