@@ -23,9 +23,6 @@
 #include <unordered_set>
 #include <vector>
 
-#define PROPERTY(...)
-#define REFLECT()
-
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "imguizmo.h"
@@ -38,3 +35,6 @@ namespace vkr { using json = nlohmann::json; }
 #include "core/types.h"
 #include "core/systempaths.h"
 #include "core/threadpool.h"
+#include "core/reflection.h"
+
+#include "register_reflections.generated.h"

@@ -51,6 +51,8 @@ namespace vkr::Editor
 			
 			m_World->GetGraphicsScene()->AddDirectionalLight(dirLight.m_Light);
 		}
+
+		ForEachProperty<Game::TransformComponent>([](auto& property) { VKR_LOG("Transform property: {}", property.m_Name); });
 	}
 
 	LevelEditor::~LevelEditor()

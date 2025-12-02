@@ -170,7 +170,7 @@ bool ProcessHeader(const std::filesystem::path& sourcePath, const std::filesyste
                 out << "    struct Reflection<" << s.namespaceName << s.name << "> \n";
                 out << "    {\n";
                 out << "        static constexpr bool m_IsReflected = true;\n";
-                out << "        static constexpr std::string_view m_TypeName = \"" << s.name << "\";\n";
+                out << "        static constexpr const char* m_TypeName = \"" << s.name << "\";\n";
                 out << "        static constexpr auto m_Properties = std::make_tuple(\n";
 
                 for (size_t k = 0; k < s.props.size(); ++k)
@@ -262,6 +262,14 @@ int main(int argc, char** argv)
         std::ofstream registerAllHeader(registerAllPath);
 
         registerAllHeader << "// Auto-generated reflection register.\n";
+        // Include all reflection headers
+        for (const HeaderInfo& header : g_AllHeaders)
+        {
+            std::string includePath = std::filesystem::relative(header.path, outputDir).string();
+            std::replace(includePath.begin(), includePath.end(), '\\', '/');
+            registerAllHeader << "#include \"" << includePath << "\"\n";
+        }
+
         registerAllHeader << "namespace vkr::RegisterReflections\n";
         registerAllHeader << "{\n";
         registerAllHeader << "   void RegisterAll();\n";
@@ -275,14 +283,6 @@ int main(int argc, char** argv)
         registerAllSrc << "// Auto-generated reflection register.\n";
         registerAllSrc << "#include \"register_reflections.generated.h\"\n";
         registerAllSrc << "#include \"core/reflection.h\"\n";
-
-        // Include all reflection headers
-        for (const HeaderInfo& header : g_AllHeaders)
-        {
-            std::string includePath = std::filesystem::relative(header.path, outputDir).string();
-            std::replace(includePath.begin(), includePath.end(), '\\', '/');
-            registerAllSrc << "#include \"" << includePath << "\"\n";
-        }
 
         registerAllSrc << "\n";
         registerAllSrc << "namespace vkr::RegisterReflections\n";

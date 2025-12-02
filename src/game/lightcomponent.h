@@ -9,14 +9,14 @@ namespace vkr::Game
 	{
 		Ref<Graphics::DirectionalLight> m_Light = MakeRef<Graphics::DirectionalLight>();
 
-		PROPERTY(Editable)
+		PROPERTY(editable, min=0.0, default=(1.0, 1.0, 1.0))
 		Vector3f m_Color = Vector3f(1.0f, 1.0f, 1.0f);
 
-		PROPERTY(Editable)
+		PROPERTY(editable, min=0.0, step=0.1, default = 6.0)
 		float m_Intensity = 6.0f;
 
-		PROPERTY(Editable)
-		float m_Radius = 0.5357f/2.0f; //Sun angular diameter is 0.5357 deg
+		PROPERTY(editable, min=0.0, max=10.0, step=0.01, default=0.27)
+		float m_Radius = 0.27f; //Sun angular diameter is 0.5357 deg
 	};
 
 	struct LocalLightComponent : public IComponent

@@ -17,6 +17,124 @@ namespace vkr::Editor
 
 	}
 
+	static void DrawProperty(const char* name, float& property)
+	{
+		ImGui::PushID(name);
+		ImGui::PushID(&property);
+
+		ImGui::Columns(2);
+		ImGui::SetColumnWidth(0, 128.0f);
+		ImGui::Text("%s", name);
+		ImGui::NextColumn();
+
+		ImGui::DragFloat("##X", &property, 0.1f, 0.0f, 0.0f, "%.2f");
+		//if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+		//	aValue = aResetValue;
+
+		ImGui::Columns(1);
+		ImGui::PopID();
+		ImGui::PopID();
+	}
+
+	static void DrawProperty(const char* name, Vector2f& property)
+	{
+		ImGui::PushID(name);
+
+		ImGui::Columns(2);
+		ImGui::SetColumnWidth(0, 128.0f);
+		ImGui::Text("%s", name);
+		ImGui::NextColumn();
+
+		ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0, 0 });
+
+		float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+		ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
+
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.25f, 0.1f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.35f, 0.9f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.25f, 0.1f, 1.0f });
+		ImGui::Button("X", buttonSize);
+		ImGui::PopStyleColor(3);
+		ImGui::SameLine();
+		ImGui::DragFloat("##X", &property.x, 0.1f, 0.0f, 0.0f, "%.2f");
+		ImGui::PopItemWidth();
+		ImGui::SameLine();
+
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+		ImGui::Button("Y", buttonSize);
+		ImGui::PopStyleColor(3);
+		ImGui::SameLine();
+		ImGui::DragFloat("##Y", &property.y, 0.1f, 0.0f, 0.0f, "%.2f");
+		ImGui::PopItemWidth();
+
+		ImGui::PopStyleVar();
+
+		ImGui::Columns(1);
+
+		ImGui::PopID();
+	}
+
+	static void DrawProperty(const char* name, Vector3f& property)
+	{
+		ImGui::PushID(name);
+
+		ImGui::Columns(2);
+		ImGui::SetColumnWidth(0, 128.0f);
+		ImGui::Text("%s", name);
+		ImGui::NextColumn();
+
+		ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0, 0 });
+
+		float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+		ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
+
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.25f, 0.1f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.35f, 0.9f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.25f, 0.1f, 1.0f });
+		ImGui::Button("X", buttonSize);
+		ImGui::PopStyleColor(3);
+		ImGui::SameLine();
+		ImGui::DragFloat("##X", &property.x, 0.1f, 0.0f, 0.0f, "%.2f");
+		ImGui::PopItemWidth();
+		ImGui::SameLine();
+
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+		ImGui::Button("Y", buttonSize);
+		ImGui::PopStyleColor(3);
+		ImGui::SameLine();
+		ImGui::DragFloat("##Y", &property.y, 0.1f, 0.0f, 0.0f, "%.2f");
+		ImGui::PopItemWidth();
+		ImGui::SameLine();
+
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.15f, 0.1f, 0.8f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.2f, 0.9f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.15f, 0.1f, 0.8f, 1.0f });
+		ImGui::Button("Z", buttonSize);
+		ImGui::PopStyleColor(3);
+		ImGui::SameLine();
+		ImGui::DragFloat("##Z", &property.z, 0.1f, 0.0f, 0.0f, "%.2f");
+		ImGui::PopItemWidth();
+
+		ImGui::PopStyleVar();
+
+		ImGui::Columns(1);
+
+		ImGui::PopID();
+	}
+
+	static void DrawProperty(const char* name, Rotator& property)
+	{
+		Vector3f rot = Vector3f(property.m_Pitch, property.m_Yaw, property.m_Roll);
+		DrawProperty(name, rot);
+		property = Rotator(rot);
+	}
+
 	void PropertiesPanel::OnDraw()
 	{
 		if (!m_SelectedEntities.empty())
@@ -30,48 +148,19 @@ namespace vkr::Editor
 			{
 				ImGui::Separator();
 				Game::TransformComponent& transform = m_SelectedEntities[0].GetComponent<Game::TransformComponent>();
-
-				ImGui::DragFloat3("Position", &transform.m_Position.x, 0.1f);
-
-				if (transform.m_Rotation != m_PrevRotation)
-				{
-					m_PrevRotation = transform.m_Rotation;
-					m_EulerRotationCacheInitialized = false;
-				}
-
-				if (!m_EulerRotationCacheInitialized)
-				{
-					m_EulerRotationCache = transform.m_Rotation;
-					m_EulerRotationCacheInitialized = true;
-				}
-
-				Rotator eulerUI = m_EulerRotationCache;
-				if (ImGui::DragFloat3("Rotation", &transform.m_Rotation.m_Pitch, 0.5f))
-				{
-					//Vector3f delta;
-					//for (uint32_t i = 0; i < 3; ++i)
-					//{
-					//	delta[i] = eulerUI[i] - m_EulerRotationCache[i];
-					//	while (delta[i] > 180.f) delta[i] -= 360.f;
-					//	while (delta[i] < -180.f) delta[i] += 360.f;
-					//}
-					//
-					//Quaternion qDelta = Quaternion::FromEuler(delta);
-					//transform.m_Rotation = transform.m_Rotation * qDelta;
-					//transform.m_Rotation.Normalize();
-					//
-					//m_EulerRotationCache = eulerUI;
-				}
-
-				ImGui::DragFloat3("Scale", &transform.m_Scale.x, 0.1f);
+				ForEachProperty<Game::TransformComponent>([&](auto&& property)
+					{
+						DrawProperty(property.m_Name, transform.*(property.m_Member));
+					});
 			}
 			if (m_SelectedEntities[0].HasComponent<Game::DirectionalLightComponent>())
 			{
 				ImGui::Separator();
 				Game::DirectionalLightComponent& dirLight = m_SelectedEntities[0].GetComponent<Game::DirectionalLightComponent>();
-				ImGui::ColorEdit3("Light Color", &dirLight.m_Color.x);
-				ImGui::DragFloat("Intensity", &dirLight.m_Intensity, 0.1f, 0.0f, 120000.0f);
-				ImGui::DragFloat("Radius", &dirLight.m_Radius, 0.01f, 0.0f, 90.0f);
+				ForEachProperty<Game::DirectionalLightComponent>([&](auto&& property)
+					{
+						DrawProperty(property.m_Name, dirLight.*(property.m_Member));
+					});
 			}
 		}
 	}

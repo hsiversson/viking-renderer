@@ -8,12 +8,12 @@ namespace vkr
 		return instance;
 	}
 
-	void ReflectionRegistry::Register(std::string_view name, UniquePtr<IReflectionTypeInfo> info)
+	void ReflectionRegistry::Register(const char* name, UniquePtr<IReflectionTypeInfo> info)
 	{
 		m_Types[name] = std::move(info);
 	}
 
-	IReflectionTypeInfo* ReflectionRegistry::Find(std::string_view name) const
+	IReflectionTypeInfo* ReflectionRegistry::Find(const char* name) const
 	{
 		if (auto it = m_Types.find(name); it != m_Types.end())
 		{

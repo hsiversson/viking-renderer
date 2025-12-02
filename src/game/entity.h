@@ -63,6 +63,21 @@ namespace vkr::Game
 			return m_Registry->remove<ComponentType>(m_Handle);
 		}
 
+		template<typename Fn>
+		void ForEachComponent(Fn&& func)
+		{
+			for (auto&& curr : m_Registry->storage())
+			{
+				entt::id_type cid = curr.first;
+				entt::sparse_set& storage = curr.second;
+
+				if (storage.contains(m_Handle))
+				{
+					func(storage.value(m_Handle));
+				}
+			}
+		}
+
 		const Entity& GetParent() const;
 		const std::vector<Entity>& GetChildren() const;
 		void AddChild(Entity child);

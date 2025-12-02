@@ -1,8 +1,10 @@
 #pragma once
-#include <string_view>
+#include <string>
 #include <tuple>
 #include <unordered_map>
 #include "memory.h"
+
+#define PROPERTY(...)
 
 namespace vkr
 {
@@ -15,22 +17,22 @@ namespace vkr
 	template<typename T, typename PropertyType>
 	struct ReflectedProperty
 	{
-		constexpr ReflectedProperty(std::string_view name, PropertyType T::* member) : m_Name(name), m_Member(member) {}
+		constexpr ReflectedProperty(const char* name, PropertyType T::* member) : m_Name(name), m_Member(member) {}
 
-		std::string_view m_Name;
+		const char* m_Name;
 		PropertyType T::*m_Member;
 	};
 
 	struct IReflectionTypeInfo 
 	{
 		virtual ~IReflectionTypeInfo() = default;
-		virtual std::string_view GetName() const = 0;
+		virtual const char* GetName() const = 0;
 	};
 
 	template<typename T>
 	struct ReflectionTypeInfo : IReflectionTypeInfo
 	{
-		std::string_view GetName() const override { return Reflection<T>::m_TypeName; }
+		const const char* GetName() const override { return Reflection<T>::m_TypeName; }
 		// Add more metadata here later (size, default instance, etc)
 	};
 
@@ -39,12 +41,19 @@ namespace vkr
 	public:
 		static ReflectionRegistry& Get();
 
-		void Register(std::string_view name, UniquePtr<IReflectionTypeInfo> info);
-		IReflectionTypeInfo* Find(std::string_view name) const;
+		void Register(const char* name, UniquePtr<IReflectionTypeInfo> info);
+		IReflectionTypeInfo* Find(const char* name) const;
 
 	private:
-		std::unordered_map<std::string_view, UniquePtr<IReflectionTypeInfo>> m_Types;
+		std::unordered_map<std::string, UniquePtr<IReflectionTypeInfo>> m_Types;
 	};
+
+	template<typename T, typename Fn>
+	constexpr void ForEachProperty(Fn&& func)
+	{
+		constexpr auto& properties = Reflection<T>::m_Properties;
+		std::apply([&](auto&&... property) { (func(property), ...); }, properties);
+	}
 
 	template<typename T>
 	struct AutoRegister_t

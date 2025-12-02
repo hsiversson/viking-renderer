@@ -19,9 +19,6 @@ namespace vkr::Editor
 		void ReceiveMessage(const BroadcastMessage& message) override;
 
 		std::vector<Game::Entity> m_SelectedEntities;
-		Rotator m_EulerRotationCache;
-		Rotator m_PrevRotation;
-		bool m_EulerRotationCacheInitialized = false;
 	};
 }
 
