@@ -28,7 +28,7 @@ source_group(Game FILES ${VKR_GAME_SOURCES})
 file(GLOB VKR_PRECOMPILED_HEADER ${VKR_SRC_DIR}/vkr_precompiled.h)
 source_group("Precompiled Header" FILES ${VKR_PRECOMPILED_HEADER})
 
-file(GLOB VKR_GENERATED_SOURCES ${VKR_GENERATED_SRC_DIR}/register_reflections.generated.h ${VKR_GENERATED_SRC_DIR}/register_reflections.generated.cpp)
+file(GLOB_RECURSE VKR_GENERATED_SOURCES ${VKR_GENERATED_SRC_DIR}/*.generated.h ${VKR_GENERATED_SRC_DIR}/*.generated.cpp)
 source_group("Generated Files" FILES ${VKR_GENERATED_SOURCES})
 
 add_library(VikingRenderer 

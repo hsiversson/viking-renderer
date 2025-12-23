@@ -2,25 +2,40 @@
 
 namespace vkr
 {
-	enum AntialiasingMethod
+	enum UpscalingType : uint8_t
 	{
-		TAA,
-		DLSS
+		UPSCALING_TYPE_TAA,
+		UPSCALING_TYPE_DLSS
 	};
 
-	enum DLSSMode
+	struct TAASettings
 	{
-		UltraPerformance = 0,
-		MaxPerformance,
-		Balanced,
-		MaxQuality,
-		DLAA
+		uint32_t m_QualityMode;
+	};
+
+	enum DLSSQualityMode : uint8_t
+	{
+		DLSS_QUALITY_MODE_ULTRA_PERFORMANCE = 0,
+		DLSS_QUALITY_MODE_MAX_PERFORMANCE,
+		DLSS_QUALITY_MODE_BALANCED,
+		DLSS_QUALITY_MODE_MAX_QUALITY,
+		DLSS_QUALITY_MODE_DLAA
+	};
+
+	struct DLSSSettings
+	{
+		DLSSQualityMode m_QualityMode = DLSS_QUALITY_MODE_BALANCED;
+		bool m_UseRayReconstruction = true;
 	};
 
 	struct GraphicsSettings
 	{
-		AntialiasingMethod m_AAMethod = AntialiasingMethod::DLSS;
-		DLSSMode m_DLSSMode = DLSSMode::Balanced;
+		UpscalingType m_UpscalingType = UPSCALING_TYPE_DLSS;
+		union
+		{
+			TAASettings m_TAA;
+			DLSSSettings m_DLSS;
+		};
 	};
 
 	class AppSettings

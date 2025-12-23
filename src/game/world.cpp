@@ -68,12 +68,4 @@ namespace vkr::Game
 		return m_EntityRegistry;
 	}
 
-	void World::Serialize(Json& data) const
-	{
-	}
-
-	void World::Deserialize(const Json& data)
-	{
-	}
-
 }

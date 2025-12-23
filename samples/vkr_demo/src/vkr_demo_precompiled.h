@@ -27,3 +27,5 @@
 #include "core/common.h"
 #include "core/timer.h"
 #include "core/systempaths.h"
+
+#include "register_reflections.generated.h"

@@ -641,7 +641,7 @@ namespace vkr::Graphics
 			ctx->TextureBarrier(barriers.size(), barriers.data());
 		}
 
-		if (ElapsedTimer::FrameIndex() > 10 && AppSettings::GetAppSettings()->GetGraphicsSettings().m_AAMethod == DLSS)
+		if (ElapsedTimer::FrameIndex() > 10 && AppSettings::GetAppSettings()->GetGraphicsSettings().m_UpscalingType == UPSCALING_TYPE_DLSS)
 		{
 			view->GetDLSS().Upscale(view, ctx);
 			{

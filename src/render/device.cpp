@@ -122,7 +122,7 @@ namespace vkr::Render
 
 		if(m_NvStreamline && !m_NvStreamline->IsFeatureAvailable(Render::DLSS_RR))
 		{
-			vkr::AppSettings::GetAppSettings()->GetGraphicsSettings().m_AAMethod = vkr::TAA;
+			vkr::AppSettings::GetAppSettings()->GetGraphicsSettings().m_UpscalingType = UPSCALING_TYPE_TAA;
 		}
 
 #if ENABLE_PROFILING

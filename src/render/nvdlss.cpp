@@ -36,6 +36,7 @@ namespace vkr::Render
 		Graphics::ViewRenderTargets& renderTargets = view->GetRenderTargets();
 		const Graphics::ViewRenderData& prepareData = view->GetPrepareData();
 		const Graphics::CameraData& cameraConstants = prepareData.m_CameraData;
+		const DLSSSettings& dlssSettings = AppSettings::GetAppSettings()->GetGraphicsSettings().m_DLSS;
 
 		Vector2u dstSize = prepareData.m_OutputSize;
 
@@ -63,7 +64,7 @@ namespace vkr::Render
 
 		//Must match the DLSSModes in appsettings.h
 		static constexpr sl::DLSSMode modes[] = { sl::DLSSMode::eUltraPerformance, sl::DLSSMode::eMaxPerformance, sl::DLSSMode::eBalanced, sl::DLSSMode::eMaxQuality, sl::DLSSMode::eDLAA };
-		options.mode = modes[AppSettings::GetAppSettings()->GetGraphicsSettings().m_DLSSMode];
+		options.mode = modes[dlssSettings.m_QualityMode];
 		options.preExposure = 1.0f;
 
 		if (m_pImpl->m_DLSSOptions.mode != options.mode ||

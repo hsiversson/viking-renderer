@@ -32,7 +32,7 @@ namespace vkr
 	template<typename T>
 	struct ReflectionTypeInfo : IReflectionTypeInfo
 	{
-		const const char* GetName() const override { return Reflection<T>::m_TypeName; }
+		const char* GetName() const override { return Reflection<T>::m_TypeName; }
 		// Add more metadata here later (size, default instance, etc)
 	};
 

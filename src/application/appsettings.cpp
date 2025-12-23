@@ -5,6 +5,7 @@ namespace vkr
 	AppSettings* AppSettings::g_Instance = nullptr;
 
 	AppSettings::AppSettings()
+		: m_GraphicsSettings{}
 	{
 		VKR_ASSERT(g_Instance == nullptr);
 		g_Instance = this;
