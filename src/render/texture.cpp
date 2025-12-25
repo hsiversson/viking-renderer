@@ -201,82 +201,97 @@ namespace vkr::Render
 	{
 		if (Thread::IsRenderThread())
 		{
+			Context* ctx = Context::GetCurrentContext();
 
+			TextureCopyDesc src = {};
+			src.m_Resource = this;
+			src.m_Type = TextureCopyType::SubresourceIndex;
+			src.m_SubresourceIndex = 0;
+
+			TextureCopyDesc dstCopyDesc = {};
+			dstCopyDesc.m_Type = TextureCopyType::SubresourcePlaced;
+
+			uint32_t numRows;
+			uint64_t rowByteSize;
+			uint64_t totalByteSize;
+			GetSubresourceFootprints(0, 1, &dstCopyDesc.m_PlacedSubresource, &numRows, &rowByteSize, &totalByteSize);
+
+			TempBuffer readbackBuffer = GetDevice()->GetTempBuffer(TEMP_BUFFER_USAGE_READBACK, totalByteSize);
+			dstCopyDesc.m_Resource = readbackBuffer.m_Buffer.get();
+			dstCopyDesc.m_PlacedSubresource.m_Offset += readbackBuffer.m_Offset;
+
+			ctx->CopyTexture(dstCopyDesc, src);
 		}
 		else
 		{
-			Device* device = GetDevice();
-			ID3D12Device10* d3dDevice = device->GetD3DDevice10();
+			TextureCopyDesc dstCopyDesc = {};
+			dstCopyDesc.m_Type = TextureCopyType::SubresourcePlaced;
 
-			D3D12_RESOURCE_DESC desc = m_Resource->GetDesc();
-			D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint;
 			uint32_t numRows;
-			uint64_t rowSizeInBytes;
-			uint64_t totalBytes;
-			d3dDevice->GetCopyableFootprints(&desc, 0, 1, 0, &footprint, &numRows, &rowSizeInBytes, &totalBytes);
+			uint64_t rowByteSize;
+			uint64_t totalByteSize;
+			GetSubresourceFootprints(0, 1, &dstCopyDesc.m_PlacedSubresource, &numRows, &rowByteSize, &totalByteSize);
 
-			TempBuffer readbackBuffer = GetDevice()->GetTempBuffer(TEMP_BUFFER_USAGE_READBACK, totalBytes);
-			footprint.Offset = readbackBuffer.m_Offset;
+			TempBuffer readbackBuffer = GetDevice()->GetTempBuffer(TEMP_BUFFER_USAGE_READBACK, totalByteSize);
+			dstCopyDesc.m_Resource = readbackBuffer.m_Buffer.get();
+			dstCopyDesc.m_PlacedSubresource.m_Offset += readbackBuffer.m_Offset;
 
-			Ref<RenderTaskEvent> event = QueueGraphicsTask([this, footprint, totalBytes, readbackBuffer]()
+			Ref<RenderTaskEvent> event = QueueGraphicsTask([this, dstCopyDesc]()
 			{
 				Context* ctx = Context::GetCurrentContext();
-				VKR_CONTEXT_EVENT(ctx, "Texture::DownloadData");
-				ID3D12GraphicsCommandList* d3dCmdList = ctx->GetCommandList()->GetD3DCommandList();
 
-				D3D12_TEXTURE_COPY_LOCATION srcLoc = {};
-				srcLoc.pResource = m_Resource.Get();
-				srcLoc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-				srcLoc.SubresourceIndex = 0;
+				TextureCopyDesc src = {};
+				src.m_Resource = this;
+				src.m_Type = TextureCopyType::SubresourceIndex;
+				src.m_SubresourceIndex = 0;
 
-				D3D12_TEXTURE_COPY_LOCATION dstLoc = {};
-				dstLoc.pResource = readbackBuffer.m_Buffer->GetD3DResource();
-				dstLoc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-				dstLoc.PlacedFootprint = footprint;
-
-				TextureBarrierDesc srcbarrier = {};
-				srcbarrier.m_Texture = this;
-				srcbarrier.m_TargetAccess = RESOURCE_STATE_ACCESS_COPY_SOURCE;
-				srcbarrier.m_TargetLayout = RESOURCE_STATE_LAYOUT_COPY_SOURCE;
-				srcbarrier.m_TargetSync = RESOURCE_STATE_SYNC_ALL;
-				ctx->TextureBarrier(srcbarrier);
-
-				BufferBarrierDesc dstbarrier = {};
-				dstbarrier.m_Buffer = readbackBuffer.m_Buffer.get();
-				dstbarrier.m_TargetAccess = RESOURCE_STATE_ACCESS_COPY_TARGET;
-				dstbarrier.m_TargetSync = RESOURCE_STATE_SYNC_ALL;
-				ctx->BufferBarrier(dstbarrier);
-
-				d3dCmdList->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
-
-				srcbarrier.m_Texture = this;
-				srcbarrier.m_TargetAccess = RESOURCE_STATE_ACCESS_COMMON;
-				srcbarrier.m_TargetLayout = RESOURCE_STATE_LAYOUT_COMMON;
-				srcbarrier.m_TargetSync = RESOURCE_STATE_SYNC_ALL;
-				ctx->TextureBarrier(srcbarrier);
+				ctx->CopyTexture(dstCopyDesc, src);
 			});
 
 			event->Wait();
 
 			uint8_t* mappedData = nullptr;
-			D3D12_RANGE readRange = { readbackBuffer.m_Offset, readbackBuffer.m_Offset + totalBytes };
+			D3D12_RANGE readRange = { readbackBuffer.m_Offset, readbackBuffer.m_Offset + totalByteSize };
 			readbackBuffer.m_Buffer->GetD3DResource()->Map(0, &readRange, reinterpret_cast<void**>(&mappedData));
 			mappedData += readbackBuffer.m_Offset;
 
 			uint32_t bytesPerPixel = GetFormatBytesPerPixel(m_TextureDesc.m_Format);
-			uint32_t width = static_cast<uint32_t>(desc.Width);
-			uint32_t height = desc.Height;
-			uint32_t rowPitch = static_cast<uint32_t>(footprint.Footprint.RowPitch);
+			uint32_t width = dstCopyDesc.m_PlacedSubresource.m_Subresource.m_Width;
+			uint32_t height = dstCopyDesc.m_PlacedSubresource.m_Subresource.m_Height;
+			uint32_t rowPitch = dstCopyDesc.m_PlacedSubresource.m_Subresource.m_RowPitch;
 
 			uint8_t* destination = reinterpret_cast<uint8_t*>(dst);
 			for (uint32_t y = 0; y < height; ++y)
 			{
-				const uint32_t rowPitch = static_cast<uint32_t>(footprint.Footprint.RowPitch);
 				const uint8_t* srcRow = mappedData + y * rowPitch;
 				memcpy(&destination[y * width * bytesPerPixel], srcRow, width * bytesPerPixel);
 			}
 
 			readbackBuffer.m_Buffer->GetD3DResource()->Unmap(0, nullptr);
+		}
+	}
+
+	void Texture::GetSubresourceFootprints(uint32_t firstSubresource, uint32_t numSubresources, PlacedSubresource* subresources, uint32_t* numRows, uint64_t* rowByteSize, uint64_t* totalByteSize) const
+	{
+		Device* device = GetDevice();
+		ID3D12Device* d3dDevice = device->GetD3DDevice();
+
+		const D3D12_RESOURCE_DESC desc = m_Resource->GetDesc();
+
+		std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints;
+		footprints.resize(numSubresources);
+		d3dDevice->GetCopyableFootprints(&desc, firstSubresource, numSubresources, 0, footprints.data(), numRows, rowByteSize, totalByteSize);
+
+		for (uint32_t i = 0; i < numSubresources; ++i)
+		{
+			PlacedSubresource& dst = subresources[i];
+			const D3D12_PLACED_SUBRESOURCE_FOOTPRINT& src = footprints[i];
+			dst.m_Offset = src.Offset;
+			dst.m_Subresource.m_Width = src.Footprint.Width;
+			dst.m_Subresource.m_Height = src.Footprint.Height;
+			dst.m_Subresource.m_Depth = src.Footprint.Depth;
+			dst.m_Subresource.m_RowPitch = src.Footprint.RowPitch;
+			dst.m_Subresource.m_Format = D3DConvertFormat(src.Footprint.Format);
 		}
 	}
 

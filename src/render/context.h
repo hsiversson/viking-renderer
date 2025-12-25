@@ -1,10 +1,11 @@
 #pragma once
+#include "render/buffer.h"
 #include "render/rendercommon.h"
 #include "render/rendertaskevent.h"
+#include "render/texture.h"
 
 namespace vkr::Render
 {
-	class Buffer;
 	class CommandList;
 	class CommandQueue;
 	class DepthStencilView;
@@ -13,7 +14,6 @@ namespace vkr::Render
 	class RenderTargetView;
 	class ResourceDescriptor;
 	class RootSignature;
-	class Texture;
 
 	enum ContextType : uint8_t
 	{
@@ -47,6 +47,25 @@ namespace vkr::Render
 		ResourceStateAccess m_TargetAccess;
 		ResourceStateSync m_SourceSync;
 		ResourceStateSync m_TargetSync;
+	};
+
+	enum class TextureCopyType
+	{
+		SubresourceIndex,
+		SubresourcePlaced,
+	};
+
+	struct TextureCopyDesc
+	{
+		Resource* m_Resource;
+		Vector3u m_Position;
+		Vector3u m_Size;
+		TextureCopyType m_Type;
+		union
+		{
+			uint32_t m_SubresourceIndex;
+			Texture::PlacedSubresource m_PlacedSubresource;
+		};
 	};
 
 	struct RaytracingInstanceDesc
@@ -158,6 +177,7 @@ namespace vkr::Render
 		void CopyResource(Texture* dst, Texture* src);
 		void CopyBuffer(Buffer* dst, uint64_t dstOffset, Buffer* src, uint64_t srcOffset, uint32_t size);
 		void CopyTexture(Texture* dst, Texture* src);
+		void CopyTexture(const TextureCopyDesc& dst, const TextureCopyDesc& src);
 
 		// Synchronization
 		void InsertWait(const Fence& fence);

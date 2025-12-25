@@ -915,6 +915,47 @@ namespace vkr::Render
 		++m_NumRecordedCommands;
 	}
 
+	void Context::CopyTexture(const TextureCopyDesc& dst, const TextureCopyDesc& src)
+	{
+		auto FillCopyLocationDesc = [](const TextureCopyDesc& desc, D3D12_TEXTURE_COPY_LOCATION& outDesc)
+		{
+			outDesc.pResource = desc.m_Resource->GetD3DResource();
+			if (desc.m_Type == TextureCopyType::SubresourceIndex)
+			{
+				outDesc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+				outDesc.SubresourceIndex = desc.m_SubresourceIndex;
+			}
+			else
+			{
+				outDesc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+				outDesc.PlacedFootprint.Offset = desc.m_PlacedSubresource.m_Offset;
+				outDesc.PlacedFootprint.Footprint.Width = desc.m_PlacedSubresource.m_Subresource.m_Width;
+				outDesc.PlacedFootprint.Footprint.Height = desc.m_PlacedSubresource.m_Subresource.m_Height;
+				outDesc.PlacedFootprint.Footprint.Depth = desc.m_PlacedSubresource.m_Subresource.m_Depth;
+				outDesc.PlacedFootprint.Footprint.RowPitch = desc.m_PlacedSubresource.m_Subresource.m_RowPitch;
+				outDesc.PlacedFootprint.Footprint.Format = D3DConvertFormat(desc.m_PlacedSubresource.m_Subresource.m_Format);
+			}
+		};
+
+		D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
+		FillCopyLocationDesc(src, srcLocation);
+
+		D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
+		FillCopyLocationDesc(dst, dstLocation);
+
+		D3D12_BOX srcBox = {};
+		srcBox.left = src.m_Position.x;
+		srcBox.top = src.m_Position.y;
+		srcBox.front = src.m_Position.z;
+		srcBox.right = src.m_Position.x + src.m_Size.x;
+		srcBox.bottom = src.m_Position.y + src.m_Size.y;
+		srcBox.back = src.m_Position.z + src.m_Size.z;
+
+		const bool useSrcBox = (src.m_Size.x > 0 && src.m_Size.y > 0 && src.m_Size.z > 0);
+		m_CurrentD3DCommandList->CopyTextureRegion(&dstLocation, dst.m_Position.x, dst.m_Position.y, dst.m_Position.z, &srcLocation, useSrcBox ? &srcBox : nullptr);
+		++m_NumRecordedCommands;
+	}
+
 	void Context::InsertWait(const Fence& fence)
 	{
 		if (fence.m_FenceResource)
