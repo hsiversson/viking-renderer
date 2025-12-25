@@ -917,6 +917,24 @@ namespace vkr::Render
 
 	void Context::CopyTexture(const TextureCopyDesc& dst, const TextureCopyDesc& src)
 	{
+		if (Texture* tex = dynamic_cast<Texture*>(src.m_Resource))
+		{
+			TextureBarrierDesc srcBarrier = {};
+			srcBarrier.m_Texture = tex;
+			srcBarrier.m_TargetAccess = RESOURCE_STATE_ACCESS_COPY_SOURCE;
+			srcBarrier.m_TargetSync = RESOURCE_STATE_SYNC_ALL;
+			srcBarrier.m_TargetLayout = RESOURCE_STATE_LAYOUT_COPY_SOURCE;
+			TextureBarrier(srcBarrier);
+		}
+		else if (Buffer* buf = dynamic_cast<Buffer*>(src.m_Resource))
+		{
+			BufferBarrierDesc srcBarrier = {};
+			srcBarrier.m_Buffer = buf;
+			srcBarrier.m_TargetAccess = RESOURCE_STATE_ACCESS_COPY_SOURCE;
+			srcBarrier.m_TargetSync = RESOURCE_STATE_SYNC_ALL;
+			BufferBarrier(srcBarrier);
+		}
+
 		auto FillCopyLocationDesc = [](const TextureCopyDesc& desc, D3D12_TEXTURE_COPY_LOCATION& outDesc)
 		{
 			outDesc.pResource = desc.m_Resource->GetD3DResource();
