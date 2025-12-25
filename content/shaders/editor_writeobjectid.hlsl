@@ -32,3 +32,16 @@ uint2 MainPS(PixelInput input) : SV_Target
 {
     return uint2(Constants.ObjectIdLowPart, Constants.ObjectIdHighPart);
 }
+
+PixelInput MainClearVS(uint vertexId : SV_VertexID)
+{
+    PixelInput output; 
+    
+    // Fullscreen triangle using SV_VertexID (0,1,2)
+    float2 pos;
+    pos.x = (vertexId == 2) ? 3.0f : -1.0f;
+    pos.y = (vertexId == 1) ? 3.0f : -1.0f;
+
+    output.clipPosition = float4(pos, 0.0f, 1.0f);
+    return output;
+}

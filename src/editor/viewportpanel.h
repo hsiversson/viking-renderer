@@ -38,6 +38,8 @@ namespace vkr::Editor
 		bool Init();
 		bool Run(const Vector2u& mousePosition, const Vector2u& viewportSize, Graphics::Camera& camera, const Game::World& world, std::vector<Game::Entity>& selectedEntities);
 
+		bool GetSelection(const Vector2u& mousePosition, const Vector2u& viewportSize, Game::World& world, std::vector<Game::Entity>& selectedEntities);
+
 	private:
 		struct ObjectIdEntry
 		{
@@ -54,9 +56,10 @@ namespace vkr::Editor
 		void FetchPartData(const Game::EntityHandle entityHandle, const Graphics::Model::Part& part, const Mat44& parentWorldTransform, std::vector<ObjectIdEntry>& objects);
 
 		Ref<Render::RenderTaskEvent> m_LastWriteEvent;
+		Ref<Render::PipelineState> m_ClearObjectIdPSO;
 		Ref<Render::PipelineState> m_WriteObjectIdPSO;
 		Graphics::TextureTarget m_RenderTarget;
-		std::array<Ref<Render::Texture>, 3> m_ResolvedTargets;
+		std::array<std::vector<Game::EntityHandle>, 3> m_ResolvedTargets;
 		Graphics::TextureTarget m_DepthStencil;
 	};
 

@@ -117,6 +117,7 @@ namespace vkr::Editor
 	{
 		Render::Device* device = Render::GetDevice();
 		Ref<Render::Shader> vertexShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/editor_writeobjectid.hlsl"), L"MainVS", Render::SHADER_STAGE_VERTEX);
+		Ref<Render::Shader> clearVertexShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/editor_writeobjectid.hlsl"), L"MainClearVS", Render::SHADER_STAGE_VERTEX);
 		Ref<Render::Shader> pixelShader = device->CreateShader(SystemPaths::GetInContentDirectory(CONTENT_DIRECTORY_ENGINE, "shaders/editor_writeobjectid.hlsl"), L"MainPS", Render::SHADER_STAGE_PIXEL);
 		
 		Render::PipelineStateDesc psoDesc(Render::PIPELINE_STATE_TYPE_DEFAULT);
@@ -131,6 +132,11 @@ namespace vkr::Editor
 		psoDesc.Default.m_PixelShader = pixelShader.get();
 		m_WriteObjectIdPSO = device->CreatePipelineState(psoDesc);
 
+		psoDesc.Default.m_VertexShader = clearVertexShader.get();
+		psoDesc.Default.m_DepthStencilState.m_Enabled = false;
+		psoDesc.Default.m_DepthStencilState.m_WriteDepth = false;
+		m_ClearObjectIdPSO = device->CreatePipelineState(psoDesc);
+
 		m_RenderTarget.m_Format = Render::FORMAT_RG32_UINT;
 		m_RenderTarget.m_IsRenderTarget = true;
 
@@ -142,6 +148,15 @@ namespace vkr::Editor
 
 	bool ViewportWorldPicker::Run(const Vector2u& mousePosition, const Vector2u& viewportSize, Graphics::Camera& camera, const Game::World& world, std::vector<Game::Entity>& selectedEntities)
 	{
+		if (m_RenderTarget.Update(viewportSize, "Object Id Buffer"))
+		{
+			for (uint32_t i = 0; i < 3; ++i)
+			{
+				m_ResolvedTargets[i].resize(viewportSize.x * viewportSize.y, Game::EntityNullHandle);
+			}
+		}
+		m_DepthStencil.Update(viewportSize, "Object Id Depth");
+		
 		const Game::EntityRegistry& entityRegistry = world.GetEntityRegistry();
 		auto modelComponents = entityRegistry.view<Game::ModelComponent>();
 
@@ -159,16 +174,15 @@ namespace vkr::Editor
 
 		if (!objects.empty())
 		{
+			const Game::EntityHandle nullEntity = Game::EntityNullHandle;
+			const Vector2u nullEntityVec2u = Vector2u(static_cast<uint32_t>(nullEntity), static_cast<uint32_t>((uint64_t)nullEntity >> 32));
 			const Mat44 cameraViewProjection = camera.GetViewProjection();
 			uint32_t targetIndex = ElapsedTimer::FrameIndex() % 3;
 
-			m_LastWriteEvent = Render::QueueGraphicsTask([this, objects, viewportSize, cameraViewProjection, targetIndex]()
+			m_LastWriteEvent = Render::QueueGraphicsTask([this, objects, viewportSize, cameraViewProjection, targetIndex, nullEntityVec2u]()
 				{
 					Render::Context* ctx = Render::Context::GetCurrentContext();
 					ctx->ClearStateCache();
-
-					m_RenderTarget.Update(viewportSize, "Object Id Buffer");
-					m_DepthStencil.Update(viewportSize, "Object Id Depth");
 
 					VKR_CONTEXT_EVENT(ctx, "Object Id");
 
@@ -179,7 +193,6 @@ namespace vkr::Editor
 					barrier.m_TargetSync = Render::RESOURCE_STATE_SYNC_RENDER_TARGET;
 					ctx->TextureBarrier(barrier);
 
-					ctx->ClearRenderTarget(m_RenderTarget.m_RenderTarget.get(), Vector4f(0.0f));
 					ctx->ClearDepthStencil(m_DepthStencil.m_DepthStencil.get(), 0.0f);
 
 					ctx->BindRenderTarget(m_RenderTarget.m_RenderTarget.get());
@@ -200,6 +213,15 @@ namespace vkr::Editor
 						uint32_t _pad[3];
 					};
 
+					{ // clear object id target
+						Constants constants = {};
+						constants.ObjectIdLowPart = nullEntityVec2u.x;
+						constants.ObjectIdHighPart = nullEntityVec2u.y;
+						ctx->BindLocalConstantBuffer(sizeof(constants), &constants, 0);
+						ctx->BindPipelineState(m_ClearObjectIdPSO.get());
+						ctx->SetPrimitiveTopology(Render::PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+						ctx->Draw(3, 0);
+					}
 					ctx->BindPipelineState(m_WriteObjectIdPSO.get());
 					for (const ObjectIdEntry& entry : objects)
 					{
@@ -217,10 +239,39 @@ namespace vkr::Editor
 						ctx->DrawIndexed(entry.m_IndexBuffer->GetDesc().m_ElementCount);
 					}
 				});
+			m_LastWriteEvent->Wait();
+
+			std::vector<Vector2u> pixels;
+			pixels.resize(viewportSize.x * viewportSize.y, nullEntityVec2u);
+			m_RenderTarget.m_Texture->DownloadData(0, pixels.data());
+
+			for (uint32_t i = 0; i < viewportSize.x * viewportSize.y; ++i)
+			{
+				uint32_t low = pixels[i].x;
+				uint32_t high = pixels[i].y;
+				m_ResolvedTargets[targetIndex][i] = Game::EntityHandle((uint64_t(high) << 32) | uint64_t(low));
+			}
+		}
+		return true;
+	}
+
+	bool ViewportWorldPicker::GetSelection(const Vector2u& mousePosition, const Vector2u& viewportSize, Game::World& world, std::vector<Game::Entity>& selectedEntities)
+	{
+		if (mousePosition.x >= viewportSize.x || mousePosition.y >= viewportSize.y)
+			return false;
+
+		selectedEntities.clear();
+		const uint32_t targetIndex = ElapsedTimer::FrameIndex() % 3;
+		const std::vector<Game::EntityHandle>& target = m_ResolvedTargets[targetIndex];
+
+		const uint32_t pixel = mousePosition.y * viewportSize.x + mousePosition.x;
+		Game::EntityHandle handle = m_ResolvedTargets[targetIndex][pixel];
+		if (handle != Game::EntityNullHandle)
+		{
+			selectedEntities.push_back(Game::Entity(handle, &world.GetEntityRegistry()));
 		}
 
-
-		return false;
+		return true;
 	}
 
 	void ViewportWorldPicker::FetchPartData(const Game::EntityHandle entityHandle, const Graphics::Model::Part& part, const Mat44& parentWorldTransform, std::vector<ObjectIdEntry>& objects)
@@ -490,8 +541,32 @@ namespace vkr::Editor
 		auto OutputTexture = m_View->GetRenderTargets().m_SceneBuffer_OutputSize.m_Texture;
         Vector2f uvMax = { m_ContentAreaSize.x / (float)m_ViewOutput.m_Texture->m_TextureDesc.m_Size.x, m_ContentAreaSize.y / (float)m_ViewOutput.m_Texture->m_TextureDesc.m_Size.y };
 
+		Vector2u viewportSize = Vector2u(m_ContentAreaSize);
+		viewportSize.x += (viewportSize.x & 1);
+		viewportSize.y += (viewportSize.y & 1);
+
 		ImVec2 curPos = ImGui::GetCursorScreenPos();
         ImGui::Image((ImTextureID)m_ViewOutput.m_TextureView.get(), { m_ContentAreaSize.x, m_ContentAreaSize.y }, { 0,0 }, { uvMax.x, uvMax.y });
+		if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+		{
+			ImGuiIO& io = ImGui::GetIO();
+			Vector2u mousePos = Vector2u(io.MousePos.x - (uint32_t)m_ContentAreaPosition.x, io.MousePos.y - (uint32_t)m_ContentAreaPosition.y);
+			std::vector<Game::Entity> selectedEntities;
+			if (m_WorldPicker.GetSelection(mousePos, viewportSize, m_World, selectedEntities))
+			{
+				BroadcastMessage msg(BROADCAST_MSG_ID_SELECTED_ENTITIES);
+				struct Selection
+				{
+					uint32_t m_NumEntities;
+					Game::Entity* m_Entities;
+				};
+				Selection selection = {};
+				selection.m_NumEntities = selectedEntities.size();
+				selection.m_Entities = selectedEntities.data();
+				msg.SetData(selection);
+				Manager::Get()->Broadcast(msg);
+			}
+		}
 
 		if (ImGui::BeginDragDropTarget())
 		{

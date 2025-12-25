@@ -226,6 +226,8 @@ namespace vkr::Render
 #endif //ENABLE_PROFILING
 
 			});
+
+		m_TempBuffersPendingDelete.clear();
 	}
 
 	void Device::WaitForGpuIdle()

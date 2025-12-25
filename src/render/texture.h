@@ -44,6 +44,7 @@ namespace vkr::Render
 		bool InitWithResource(const TextureDesc& desc, const ComPtr<ID3D12Resource>& resource, const ResourceStateTracking& initialState);
 
 		void UploadData(const TextureData& data);
+		void DownloadData(uint32_t size, void* dst);
 
 		TextureDesc m_TextureDesc;
 	};

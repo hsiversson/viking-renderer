@@ -123,6 +123,7 @@ namespace vkr::Render
 		BufferDesc tempBufferDesc = {};
 		tempBufferDesc.m_CpuWritable = (usage == TEMP_BUFFER_USAGE_CONSTANTS) || (usage == TEMP_BUFFER_USAGE_STAGING);
 		tempBufferDesc.m_Writable = (usage == TEMP_BUFFER_USAGE_SHADER_RESOURCE) || (usage == TEMP_BUFFER_USAGE_RAYTRACING_ACCELERATION_STRUCTURE);
+		tempBufferDesc.m_IsReadback = usage == TEMP_BUFFER_USAGE_READBACK;
 		tempBufferDesc.m_ElementCount = bufferSizeBytes;
 		tempBufferDesc.m_ElementSize = 1;
 		tempBufferDesc.m_Format = FORMAT_UNKNOWN;
