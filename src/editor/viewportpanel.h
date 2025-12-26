@@ -90,6 +90,7 @@ namespace vkr::Editor
 		Graphics::TextureTarget m_RenderTargetMS;
 		Graphics::TextureTarget m_DepthStencilMS;
 		Graphics::TextureTarget m_ResolvedTarget;
+		bool m_TargetCleared;
 	};
 
 	struct AssetDragDropPayload;

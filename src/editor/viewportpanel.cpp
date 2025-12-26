@@ -328,6 +328,8 @@ namespace vkr::Editor
 		m_DepthStencilMS.m_Format = Render::FORMAT_D32_FLOAT;
 		m_DepthStencilMS.m_NumSamples = 8;
 
+		m_TargetCleared = false;
+
 		return true;
 	}
 
@@ -434,8 +436,9 @@ namespace vkr::Editor
 
 					ctx->ResolveMultiSampleTarget(m_ResolvedTarget.m_Texture.get(), m_RenderTargetMS.m_Texture.get());
 				});
+			m_TargetCleared = false;
 		}
-		else
+		else if (!m_TargetCleared)
 		{
 			if (m_ResolvedTarget.m_TextureView)
 			{
@@ -446,6 +449,7 @@ namespace vkr::Editor
 						ctx->ClearRenderTarget(m_ResolvedTarget.m_RenderTarget.get(), Vector4f(0.0f));
 					});
 			}
+			m_TargetCleared = true;
 		}
 	}
 
@@ -530,7 +534,6 @@ namespace vkr::Editor
 				m_WorldPicker.Run({0,0}, viewportSize, m_Camera, m_World, selectedEntities);
 			}
 		}
-		if (!m_SelectedEntities.empty())
 		{
 			m_Outliner.Run(viewportSize, m_Camera, m_SelectedEntities, m_World);
 		}
@@ -547,26 +550,7 @@ namespace vkr::Editor
 
 		ImVec2 curPos = ImGui::GetCursorScreenPos();
         ImGui::Image((ImTextureID)m_ViewOutput.m_TextureView.get(), { m_ContentAreaSize.x, m_ContentAreaSize.y }, { 0,0 }, { uvMax.x, uvMax.y });
-		if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
-		{
-			ImGuiIO& io = ImGui::GetIO();
-			Vector2u mousePos = Vector2u(io.MousePos.x - (uint32_t)m_ContentAreaPosition.x, io.MousePos.y - (uint32_t)m_ContentAreaPosition.y);
-			std::vector<Game::Entity> selectedEntities;
-			if (m_WorldPicker.GetSelection(mousePos, viewportSize, m_World, selectedEntities))
-			{
-				BroadcastMessage msg(BROADCAST_MSG_ID_SELECTED_ENTITIES);
-				struct Selection
-				{
-					uint32_t m_NumEntities;
-					Game::Entity* m_Entities;
-				};
-				Selection selection = {};
-				selection.m_NumEntities = selectedEntities.size();
-				selection.m_Entities = selectedEntities.data();
-				msg.SetData(selection);
-				Manager::Get()->Broadcast(msg);
-			}
-		}
+		
 
 		if (ImGui::BeginDragDropTarget())
 		{
@@ -588,6 +572,7 @@ namespace vkr::Editor
 		}
 		m_IsHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows);
 
+		bool gizmoUsed = false;
 		if (!m_SelectedEntities.empty())
 		{
 			// TODO: handle multiple entities
@@ -620,22 +605,45 @@ namespace vkr::Editor
 			if (Dot(cameraForward, toObject) > 0.0f)
 			{
 				ImGui::PushClipRect({ m_ContentAreaPosition.x, m_ContentAreaPosition.y }, { m_ContentAreaPosition.x + m_ContentAreaSize.x, m_ContentAreaPosition.y + m_ContentAreaSize.y }, false);
-				ImGuizmo::SetOrthographic(false);
-				ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
-				ImGuizmo::SetRect(m_ContentAreaPosition.x, m_ContentAreaPosition.y, m_ContentAreaSize.x, m_ContentAreaSize.y);
+				IMGUIZMO_NAMESPACE::SetOrthographic(false);
+				IMGUIZMO_NAMESPACE::SetDrawlist(ImGui::GetWindowDrawList());
+				IMGUIZMO_NAMESPACE::SetRect(m_ContentAreaPosition.x, m_ContentAreaPosition.y, m_ContentAreaSize.x, m_ContentAreaSize.y);
 
 				Mat44 view = m_Camera.GetView();
 				Mat44 proj = m_Camera.GetProjection();
 
 				const IMGUIZMO_NAMESPACE::OPERATION op = (m_SelectedGizmoOp == GizmoOperation::Scale) ? IMGUIZMO_NAMESPACE::SCALE : (m_SelectedGizmoOp == GizmoOperation::Rotate ? IMGUIZMO_NAMESPACE::ROTATE : IMGUIZMO_NAMESPACE::TRANSLATE);
 				const IMGUIZMO_NAMESPACE::MODE mode = m_SelectedGizmoSpace == GizmoSpace::Local ? IMGUIZMO_NAMESPACE::LOCAL : IMGUIZMO_NAMESPACE::WORLD;
-				if (ImGuizmo::Manipulate(&view[0], &proj[0], op, mode, &objectTransform[0]))
+				if (IMGUIZMO_NAMESPACE::Manipulate(&view[0], &proj[0], op, mode, &objectTransform[0]))
 				{
 					Quaternion rotation;
 					Decompose(objectTransform, transformComponent.m_Position, rotation, transformComponent.m_Scale);
 					transformComponent.m_Rotation.FromQuaternion(rotation);
 				}
+				gizmoUsed = IMGUIZMO_NAMESPACE::IsUsing();
+
 				ImGui::PopClipRect();
+			}
+		}
+
+		if (!gizmoUsed && ImGui::IsItemClicked(ImGuiMouseButton_Left))
+		{
+			ImGuiIO& io = ImGui::GetIO();
+			Vector2u mousePos = Vector2u(io.MousePos.x - (uint32_t)m_ContentAreaPosition.x, io.MousePos.y - (uint32_t)m_ContentAreaPosition.y);
+			std::vector<Game::Entity> selectedEntities;
+			if (m_WorldPicker.GetSelection(mousePos, viewportSize, m_World, selectedEntities))
+			{
+				BroadcastMessage msg(BROADCAST_MSG_ID_SELECTED_ENTITIES);
+				struct Selection
+				{
+					uint32_t m_NumEntities;
+					Game::Entity* m_Entities;
+				};
+				Selection selection = {};
+				selection.m_NumEntities = selectedEntities.size();
+				selection.m_Entities = selectedEntities.data();
+				msg.SetData(selection);
+				Manager::Get()->Broadcast(msg);
 			}
 		}
     }
