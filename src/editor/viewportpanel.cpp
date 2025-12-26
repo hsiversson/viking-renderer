@@ -434,6 +434,19 @@ namespace vkr::Editor
 						ctx->DrawIndexed(obj.m_IndexBuffer->GetDesc().m_ElementCount);
 					}
 
+					Render::TextureBarrierDesc resolveBarriers[2];
+					resolveBarriers[0].m_Texture = m_RenderTargetMS.m_Texture.get();
+					resolveBarriers[0].m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RESOLVE_SOURCE;
+					resolveBarriers[0].m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_RESOLVE_SOURCE;
+					resolveBarriers[0].m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
+
+					resolveBarriers[1].m_Texture = m_ResolvedTarget.m_Texture.get();
+					resolveBarriers[1].m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RESOLVE_TARGET;
+					resolveBarriers[1].m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_RESOLVE_TARGET;
+					resolveBarriers[1].m_TargetSync = Render::RESOURCE_STATE_SYNC_ALL;
+
+					ctx->TextureBarrier(2, resolveBarriers);
+
 					ctx->ResolveMultiSampleTarget(m_ResolvedTarget.m_Texture.get(), m_RenderTargetMS.m_Texture.get());
 				});
 			m_TargetCleared = false;
@@ -446,6 +459,14 @@ namespace vkr::Editor
 					{
 						Render::Context* ctx = Render::Context::GetCurrentContext();
 						m_ResolvedTarget.Update(viewportSize, "Outliner Resolved Target");
+
+						Render::TextureBarrierDesc barrier;
+						barrier.m_Texture = m_ResolvedTarget.m_Texture.get();
+						barrier.m_TargetAccess = Render::RESOURCE_STATE_ACCESS_RENDER_TARGET;
+						barrier.m_TargetLayout = Render::RESOURCE_STATE_LAYOUT_RENDER_TARGET;
+						barrier.m_TargetSync = Render::RESOURCE_STATE_SYNC_RENDER_TARGET;
+						ctx->TextureBarrier(barrier);
+
 						ctx->ClearRenderTarget(m_ResolvedTarget.m_RenderTarget.get(), Vector4f(0.0f));
 					});
 			}
