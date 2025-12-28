@@ -147,16 +147,7 @@ namespace vkr::Editor
 	}
 
 	bool ViewportWorldPicker::Run(const Vector2u& mousePosition, const Vector2u& viewportSize, Graphics::Camera& camera, const Game::World& world, std::vector<Game::Entity>& selectedEntities)
-	{
-		if (m_RenderTarget.Update(viewportSize, "Object Id Buffer"))
-		{
-			for (uint32_t i = 0; i < 3; ++i)
-			{
-				m_ResolvedTargets[i].resize(viewportSize.x * viewportSize.y, Game::EntityNullHandle);
-			}
-		}
-		m_DepthStencil.Update(viewportSize, "Object Id Depth");
-		
+	{		
 		const Game::EntityRegistry& entityRegistry = world.GetEntityRegistry();
 		auto modelComponents = entityRegistry.view<Game::ModelComponent>();
 
@@ -177,9 +168,57 @@ namespace vkr::Editor
 			const Game::EntityHandle nullEntity = Game::EntityNullHandle;
 			const Vector2u nullEntityVec2u = Vector2u(static_cast<uint32_t>(nullEntity), static_cast<uint32_t>((uint64_t)nullEntity >> 32));
 			const Mat44 cameraViewProjection = camera.GetViewProjection();
-			uint32_t targetIndex = ElapsedTimer::FrameIndex() % 3;
 
-			m_LastWriteEvent = Render::QueueGraphicsTask([this, objects, viewportSize, cameraViewProjection, targetIndex, nullEntityVec2u]()
+			if (m_RenderTarget.Update(viewportSize, "Object Id Buffer"))
+			{
+				m_AvailableReadbackBuffers = std::queue<ReadbackBuffer>();
+			}
+			m_DepthStencil.Update(viewportSize, "Object Id Depth");
+
+			Render::TextureCopyDesc dstCopyDesc = {};
+			dstCopyDesc.m_Type = Render::TextureCopyType::SubresourcePlaced;
+
+			uint32_t numRows;
+			uint64_t rowByteSize;
+			uint64_t totalByteSize;
+			m_RenderTarget.m_Texture->GetSubresourceFootprints(0, 1, &dstCopyDesc.m_PlacedSubresource, &numRows, &rowByteSize, &totalByteSize);
+
+			ReadbackBuffer targetReadbackBuffer;
+			{
+				std::lock_guard<std::mutex> lock(m_AvailableReadbackBuffersMutex);
+				while (!m_AvailableReadbackBuffers.empty())
+				{
+					if (m_AvailableReadbackBuffers.front().m_Pixels == viewportSize)
+					{
+						targetReadbackBuffer = m_AvailableReadbackBuffers.front();
+						m_AvailableReadbackBuffers.pop();
+						break;
+					}
+					m_AvailableReadbackBuffers.pop();
+				}
+			}
+
+			if (targetReadbackBuffer.m_Buffer == nullptr)
+			{
+				Render::BufferDesc readbackBufferDesc = {};
+				readbackBufferDesc.m_ElementCount = totalByteSize;
+				readbackBufferDesc.m_ElementSize = 1;
+				readbackBufferDesc.m_IsReadback = true;
+				targetReadbackBuffer.m_Buffer = Render::GetDevice()->CreateBuffer(readbackBufferDesc, 0, nullptr);
+				targetReadbackBuffer.m_Pixels = viewportSize;
+			}
+
+			dstCopyDesc.m_Resource = targetReadbackBuffer.m_Buffer.get();
+			targetReadbackBuffer.m_RowPitch = dstCopyDesc.m_PlacedSubresource.m_Subresource.m_RowPitch;
+
+			Render::TextureCopyDesc srcCopyDesc = {};
+			srcCopyDesc.m_Type = Render::TextureCopyType::SubresourceIndex;
+			srcCopyDesc.m_SubresourceIndex = 0;
+			srcCopyDesc.m_Resource = m_RenderTarget.m_Texture.get();
+
+			std::lock_guard<std::mutex> lock(m_QueuedReadbackBuffersMutex);
+			m_QueuedReadbackBuffers.push(targetReadbackBuffer);
+			m_QueuedReadbackBufferEvents.push(Render::QueueGraphicsTask([this, objects, viewportSize, cameraViewProjection, nullEntityVec2u, dstCopyDesc, srcCopyDesc]()
 				{
 					Render::Context* ctx = Render::Context::GetCurrentContext();
 					ctx->ClearStateCache();
@@ -238,20 +277,12 @@ namespace vkr::Editor
 						ctx->BindIndexBuffer(entry.m_IndexBuffer);
 						ctx->DrawIndexed(entry.m_IndexBuffer->GetDesc().m_ElementCount);
 					}
-				});
-			m_LastWriteEvent->Wait();
 
-			std::vector<Vector2u> pixels;
-			pixels.resize(viewportSize.x * viewportSize.y, nullEntityVec2u);
-			m_RenderTarget.m_Texture->DownloadData(0, pixels.data());
-
-			for (uint32_t i = 0; i < viewportSize.x * viewportSize.y; ++i)
-			{
-				uint32_t low = pixels[i].x;
-				uint32_t high = pixels[i].y;
-				m_ResolvedTargets[targetIndex][i] = Game::EntityHandle((uint64_t(high) << 32) | uint64_t(low));
-			}
+					ctx->CopyTexture(dstCopyDesc, srcCopyDesc);
+				}));
 		}
+
+		CreateLongTask(&ViewportWorldPicker::ProcessReadbackBuffers, this, viewportSize);
 		return true;
 	}
 
@@ -261,11 +292,14 @@ namespace vkr::Editor
 			return false;
 
 		selectedEntities.clear();
-		const uint32_t targetIndex = ElapsedTimer::FrameIndex() % 3;
-		const std::vector<Game::EntityHandle>& target = m_ResolvedTargets[targetIndex];
-
 		const uint32_t pixel = mousePosition.y * viewportSize.x + mousePosition.x;
-		Game::EntityHandle handle = m_ResolvedTargets[targetIndex][pixel];
+
+		Game::EntityHandle handle = Game::EntityNullHandle;
+		{
+			std::lock_guard<std::mutex> lock(m_ResolvedPixelsMutex);
+			handle = m_LatestResolvedPixels[pixel];
+		}
+
 		if (handle != Game::EntityNullHandle)
 		{
 			selectedEntities.push_back(Game::Entity(handle, &world.GetEntityRegistry()));
@@ -295,6 +329,71 @@ namespace vkr::Editor
 		for (const Graphics::Model::Part& childPart : part.m_ChildParts)
 		{
 			FetchPartData(entityHandle, childPart, entry.m_Transform, objects);
+		}
+	}
+
+	void ViewportWorldPicker::ProcessReadbackBuffers(const Vector2u& viewportSize)
+	{
+		ReadbackBuffer latestBuffer;
+		bool hasCompleted = false;
+
+		// Drain all completed events, but only keep the last completed buffer
+		{
+			std::lock_guard<std::mutex> lock(m_QueuedReadbackBuffersMutex);
+			while (!m_QueuedReadbackBufferEvents.empty())
+			{
+				Ref<Render::RenderTaskEvent> readbackEvent = m_QueuedReadbackBufferEvents.front();
+
+				// Stop once we reach the first incomplete one
+				if (!readbackEvent->Wait(false))
+					break;
+
+				ReadbackBuffer readbackBuffer = m_QueuedReadbackBuffers.front();
+
+				// Keep recycling buffers, but retain the latest completed one
+				if (hasCompleted)
+					m_AvailableReadbackBuffers.push(latestBuffer);
+
+				latestBuffer = readbackBuffer;
+				hasCompleted = true;
+
+				m_QueuedReadbackBuffers.pop();
+				m_QueuedReadbackBufferEvents.pop();
+			}
+		}
+
+		// No completed readbacks yet
+		if (!hasCompleted)
+			return;
+
+		// Process the *latest* completed readback only
+		const uint8_t* dataPtr = latestBuffer.m_Buffer->GetDataPtr();
+		const uint32_t width = latestBuffer.m_Pixels.x;
+		const uint32_t height = latestBuffer.m_Pixels.y;
+		const uint32_t numPixels = width * height;
+
+		std::vector<Game::EntityHandle> resolvedPixels;
+		resolvedPixels.resize(numPixels, Game::EntityNullHandle);
+
+		for (uint32_t y = 0; y < height; ++y)
+		{
+			const Vector2u* row = reinterpret_cast<const Vector2u*>(dataPtr + y * latestBuffer.m_RowPitch);
+			for (uint32_t x = 0; x < width; ++x)
+			{
+				const Vector2u data = row[x];
+				resolvedPixels[y * width + x] = Game::EntityHandle(
+					(uint64_t(data.y) << 32) | uint64_t(data.x));
+			}
+		}
+
+		{
+			std::lock_guard<std::mutex> lock(m_ResolvedPixelsMutex);
+			m_LatestResolvedPixels = std::move(resolvedPixels);
+		}
+
+		{
+			std::lock_guard<std::mutex> lock(m_AvailableReadbackBuffersMutex);
+			m_AvailableReadbackBuffers.push(latestBuffer);
 		}
 	}
 

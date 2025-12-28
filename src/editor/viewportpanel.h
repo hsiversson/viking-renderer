@@ -55,10 +55,30 @@ namespace vkr::Editor
 
 		void FetchPartData(const Game::EntityHandle entityHandle, const Graphics::Model::Part& part, const Mat44& parentWorldTransform, std::vector<ObjectIdEntry>& objects);
 
+		void ProcessReadbackBuffers(const Vector2u& viewportSize);
+
 		Ref<Render::RenderTaskEvent> m_LastWriteEvent;
 		Ref<Render::PipelineState> m_ClearObjectIdPSO;
 		Ref<Render::PipelineState> m_WriteObjectIdPSO;
 		Graphics::TextureTarget m_RenderTarget;
+
+		std::mutex m_ResolvedPixelsMutex;
+		std::vector<Game::EntityHandle> m_LatestResolvedPixels;
+
+		struct ReadbackBuffer
+		{
+			Ref<Render::Buffer> m_Buffer;
+			Vector2u m_Pixels;
+			uint32_t m_RowPitch;
+		};
+
+		std::mutex m_QueuedReadbackBuffersMutex;
+		std::queue<ReadbackBuffer> m_QueuedReadbackBuffers;
+		std::queue<Ref<Render::RenderTaskEvent>> m_QueuedReadbackBufferEvents;
+
+		std::mutex m_AvailableReadbackBuffersMutex;
+		std::queue<ReadbackBuffer> m_AvailableReadbackBuffers;
+
 		std::array<std::vector<Game::EntityHandle>, 3> m_ResolvedTargets;
 		Graphics::TextureTarget m_DepthStencil;
 	};

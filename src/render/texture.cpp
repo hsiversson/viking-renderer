@@ -92,28 +92,19 @@ namespace vkr::Render
 
 	void Texture::UploadData(const TextureData& data)
 	{
-		if (true /*isRenderThread*/)
+		if (Thread::IsRenderThread())
 		{
-			// Get staging buffer and place texture data
-			// copy operation on context from staging to persistent texture (m_Resource)
-			// barriers?
-
 			Device* device = GetDevice();
-			ID3D12Device10* d3dDevice = device->GetD3DDevice10();
-			Ref<Context> ctx = device->GetContext(CONTEXT_TYPE_COPY);
-			ctx->Begin();
-			ID3D12GraphicsCommandList* d3dCmdList = ctx->GetCommandList()->GetD3DCommandList();
+			Context* ctx = Context::GetCurrentContext();
 
-			const D3D12_RESOURCE_DESC1 tempDesc = D3DConvertTextureDesc(m_TextureDesc);
-			const uint32_t blockSize = GetFormatBlockSize(m_TextureDesc.m_Format);
 			const uint32_t numSubresources = m_TextureDesc.m_MipLevels * m_TextureDesc.m_ArraySize;
 			VKR_ASSERT(data.m_Subresources.size() == numSubresources);
-			
-			std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(numSubresources);
-			std::vector<uint64_t> rowSizes(numSubresources);
+
+			std::vector<PlacedSubresource> placedSubresources(numSubresources);
 			std::vector<uint32_t> numRows(numSubresources);
+			std::vector<uint64_t> rowByteSizes(numSubresources);
 			uint64_t totalTempBufferSize = 0;
-			d3dDevice->GetCopyableFootprints1(&tempDesc, 0, numSubresources, 0, footprints.data(), numRows.data(), rowSizes.data(), &totalTempBufferSize);
+			GetSubresourceFootprints(0, numSubresources, placedSubresources.data(), numRows.data(), rowByteSizes.data(), &totalTempBufferSize);
 
 			TempBuffer tempBuffer = device->GetTempBuffer(Render::TEMP_BUFFER_USAGE_STAGING, totalTempBufferSize);
 			for (uint32_t arrayIdx = 0; arrayIdx < m_TextureDesc.m_ArraySize; ++arrayIdx)
@@ -122,21 +113,21 @@ namespace vkr::Render
 				{
 					const uint32_t subIdx = mipIdx + (arrayIdx * m_TextureDesc.m_MipLevels);
 					const TextureData::Subresource& subresource = data.m_Subresources[subIdx];
-					const D3D12_PLACED_SUBRESOURCE_FOOTPRINT& footprint = footprints[subIdx];
+					const PlacedSubresource& footprint = placedSubresources[subIdx];
 
-					uint8_t* dstBase = tempBuffer.m_Buffer->GetDataPtr() + footprint.Offset;
+					uint8_t* dstBase = tempBuffer.m_Buffer->GetDataPtr() + footprint.m_Offset;
 					const uint8_t* srcBase = subresource.m_Data.data();
 
-					const uint64_t srcRowPitch = subresource.m_RowPitch ? subresource.m_RowPitch : rowSizes[subIdx];
-					const uint64_t dstRowPitch = footprint.Footprint.RowPitch;
+					const uint64_t srcRowPitch = subresource.m_RowPitch ? subresource.m_RowPitch : rowByteSizes[subIdx];
+					const uint64_t dstRowPitch = footprint.m_Subresource.m_RowPitch;
 
 					const uint64_t srcSlicePitch = subresource.m_SlicePitch ? subresource.m_SlicePitch : srcRowPitch * numRows[subIdx];
 					const uint64_t dstSlicePitch = dstRowPitch * numRows[subIdx];
 
-					for (uint32_t z = 0; z < footprint.Footprint.Depth; ++z)
+					for (uint32_t z = 0; z < footprint.m_Subresource.m_Depth; ++z)
 					{
 						const uint8_t* srcSlice = srcBase + z * srcSlicePitch;
-						uint8_t*	   dstSlice = dstBase + z * dstSlicePitch;
+						uint8_t* dstSlice = dstBase + z * dstSlicePitch;
 
 						for (uint32_t y = 0; y < numRows[subIdx]; ++y)
 						{
@@ -148,35 +139,34 @@ namespace vkr::Render
 				}
 			}
 
-			D3D12_TEXTURE_COPY_LOCATION dstLoc = {};
-			dstLoc.pResource = m_Resource.Get();
-			dstLoc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+			TextureCopyDesc src = {};
+			src.m_Resource = tempBuffer.m_Buffer.get();
+			src.m_Type = TextureCopyType::SubresourcePlaced;
 
-			D3D12_TEXTURE_COPY_LOCATION srcLoc = {};
-			srcLoc.pResource = tempBuffer.m_Buffer->GetD3DResource();
-			srcLoc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-			srcLoc.PlacedFootprint.Offset = 0;
+			TextureCopyDesc dst = {};
+			dst.m_Resource = this;
+			dst.m_Type = TextureCopyType::SubresourceIndex;
 
-			D3D12_BOX srcBox = { 0,0,0 };
+			const uint32_t blockSize = GetFormatBlockSize(m_TextureDesc.m_Format);
 			for (uint32_t arrayIdx = 0; arrayIdx < m_TextureDesc.m_ArraySize; ++arrayIdx)
 			{
 				for (uint32_t mipIdx = 0; mipIdx < m_TextureDesc.m_MipLevels; ++mipIdx)
 				{
 					const uint32_t subIdx = mipIdx + (arrayIdx * m_TextureDesc.m_MipLevels);
 
-					srcLoc.PlacedFootprint = footprints[subIdx];
-					dstLoc.SubresourceIndex = subIdx;
+					src.m_PlacedSubresource = placedSubresources[subIdx];
+					dst.m_SubresourceIndex = subIdx;
 
 					// mip‑sizes shrink per level
 					const uint32_t mipWidth = std::max(blockSize, m_TextureDesc.m_Size.x >> mipIdx);
 					const uint32_t mipHeight = std::max(blockSize, m_TextureDesc.m_Size.y >> mipIdx);
 					const uint32_t mipDepth = std::max(1u, m_TextureDesc.m_Size.z >> mipIdx);
 
-					srcBox.right = mipWidth;
-					srcBox.bottom = mipHeight;
-					srcBox.back = mipDepth;
+					src.m_Size.x = mipWidth;
+					src.m_Size.y = mipHeight;
+					src.m_Size.z = mipDepth;
 
-					d3dCmdList->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, &srcBox);
+					ctx->CopyTexture(dst, src);
 				}
 			}
 
@@ -186,15 +176,15 @@ namespace vkr::Render
 			barrier.m_TargetLayout = RESOURCE_STATE_LAYOUT_COMMON;
 			barrier.m_TargetSync = RESOURCE_STATE_SYNC_ALL;
 			ctx->TextureBarrier(barrier);
-
-			ctx->End();
-			SetGpuPending(ctx->Flush());
-			SyncGpu();
 		}
-		//else
-		//{
-		//	// Launch copy task on initialization context thread, wait for event?
-		//}
+		else
+		{
+			Ref<RenderTaskEvent> event = QueueCopyTask([this, data]() 
+				{
+					UploadData(data);
+				});
+			event->Wait();
+		}
 	}
 
 	void Texture::DownloadData(uint32_t size, void* dst)
