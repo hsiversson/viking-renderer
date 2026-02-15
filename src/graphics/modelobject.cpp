@@ -5,43 +5,30 @@
 namespace vkr::Graphics
 {
 
-	ModelObject::ModelObject()
+	ModelSceneObject::ModelSceneObject()
 	{
 
 	}
 
-	ModelObject::~ModelObject()
+	ModelSceneObject::~ModelSceneObject()
 	{
 
 	}
 
-	void ModelObject::CollectRenderObjects(ViewRenderData& renderData)
+	void ModelSceneObject::CollectRenderObjects(ViewRenderData& renderData, const std::unordered_map<Material*, uint32_t>& hitGroupLibrary)
 	{
 		if (!m_Model)
 			return;
 
 		uint32_t partCounter = 0;
-		for (const auto& part : m_Model->GetParts())
+		for (const Model::Part& part : m_Model->GetParts())
 		{
-			CollectModelPart(partCounter, renderData, part, m_World, m_PrevWorld);
-		}
-
-		m_PrevWorld = m_World;
-	}
-
-	void ModelObject::CollectRaytracingHitGroups(std::vector<Render::RaytracingHitGroupDesc>& outHitGroups)
-	{
-		if (!m_Model)
-			return;
-
-		m_MaterialHitGroupIndexOffset = outHitGroups.size();
-		for (const auto& part : m_Model->GetParts())
-		{
-			CollectRaytracingHitGroup(outHitGroups, part);
+			CollectModelPart(renderData, part, hitGroupLibrary, m_Model->GetTransform(), m_Model->GetTransform());
 		}
 	}
 
-	void ModelObject::CollectModelPart(uint32_t& partCounter, ViewRenderData& renderData, const Model::Part& part, const Mat44& parentWorldTransform, const Mat44& prevParentWorldTransform)
+
+	void ModelSceneObject::CollectModelPart(ViewRenderData& renderData, const Model::Part& part, const std::unordered_map<Material*, uint32_t>& hitGroupLibrary, const Mat44& parentWorldTransform, const Mat44& prevParentWorldTransform)
 	{
 		Graphics::RenderObject obj;
 		InstanceData data;
@@ -57,13 +44,16 @@ namespace vkr::Graphics
 		data.m_VertexUVByteOffset = part.m_Mesh->GetVertexLayout().GetByteOffset(Render::VertexAttribute::TYPE_UV, 0);
 		data.m_IndexBufferDescriptorIndex = part.m_Mesh->GetIndexBufferView()->GetIndex();
 		data.m_IndexStride = GetFormatBytesPerPixel(part.m_Mesh->GetIndexBuffer()->GetDesc().m_Format);
-		uint8_t* genericdata = (uint8_t*) &data;
+		uint8_t* genericdata = (uint8_t*)&data;
 		//Serialize instance data into byte buffer
 		obj.m_InstanceDataIndex = renderData.m_InstanceData.size();
-		renderData.m_InstanceData.insert(renderData.m_InstanceData.end(),genericdata, genericdata + sizeof(InstanceData));
+		renderData.m_InstanceData.insert(renderData.m_InstanceData.end(), genericdata, genericdata + sizeof(InstanceData));
 		//======================================
 		renderData.m_TotalInstanceCount++;
-		obj.m_Mesh = part.m_Mesh.get();
+		obj.m_VB = part.m_Mesh->GetVertexBuffer();
+		obj.m_IB = part.m_Mesh->GetIndexBuffer();
+		obj.m_Topology = part.m_Mesh->GetTopology();
+		obj.m_VertexLayout = part.m_Mesh->GetVertexLayout();
 		obj.m_Material = part.m_Material.get();
 		renderData.m_VisibleMeshes.push_back(obj);
 
@@ -73,27 +63,22 @@ namespace vkr::Graphics
 			rtInstanceDesc.m_BLAS = blas;
 			rtInstanceDesc.m_InstanceId = obj.m_InstanceDataIndex;
 			rtInstanceDesc.m_Transform = data.m_Transform;
-			rtInstanceDesc.m_HitGroupIndex = m_MaterialHitGroupIndexOffset + partCounter;
+			rtInstanceDesc.m_HitGroupIndex = hitGroupLibrary.at(part.m_Material->GetMaterial());
 			renderData.m_RaytracingInstances.push_back(rtInstanceDesc);
 		}
 
-		++partCounter;
 		for (uint32_t i = 0; i < part.m_ChildParts.size(); ++i)
 		{
-			CollectModelPart(partCounter, renderData, part.m_ChildParts[i], data.m_Transform, data.m_PrevTransform);
+			CollectModelPart(renderData, part.m_ChildParts[i], hitGroupLibrary, data.m_Transform, data.m_PrevTransform);
 		}
 	}
 
-	void ModelObject::CollectRaytracingHitGroup(std::vector<Render::RaytracingHitGroupDesc>& outHitGroups, const Model::Part& part)
+	void ModelSceneObject::GatherMaterials(std::unordered_set<Graphics::Material*>& outMaterials)
 	{
-		Material* material = part.m_Material->GetMaterial();
-		Render::RaytracingHitGroupDesc hitGroupDesc = {};
-		//material->GetHitGroupDesc(hitGroupDesc);
-		outHitGroups.push_back(hitGroupDesc);
-
-		for (const auto& part : part.m_ChildParts)
+		for (const Model::Part& part : m_Model->GetParts())
 		{
-			CollectRaytracingHitGroup(outHitGroups, part);
+			Material* material = part.m_Material->GetMaterial();
+			outMaterials.insert(material);
 		}
 	}
 

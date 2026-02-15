@@ -2,11 +2,13 @@
 #include "light.h"
 #include "render/buffer.h"
 #include "render/device.h"
+#include "render/renderstates.h"
 #include "materialdatabuffer.h"
 
 namespace vkr::Render
 {
 	class PipelineState;
+	class Buffer;
 	class BufferView;
 }
 
@@ -65,7 +67,10 @@ namespace vkr::Graphics
 
 	struct RenderObject
 	{
-		Mesh* m_Mesh;
+		Ref<Render::Buffer> m_VB;
+		Ref<Render::Buffer> m_IB;
+		Render::PrimitiveTopology m_Topology;
+		Render::VertexLayout m_VertexLayout;
 		MaterialInstance* m_Material;
 		uint32_t m_InstanceDataIndex;
 		float m_DistanceToCamera;
@@ -76,8 +81,11 @@ namespace vkr::Graphics
 			if (m_Material != other.m_Material)
 				return m_Material < other.m_Material;
 
-			if (m_Mesh != other.m_Mesh)
-				return m_Mesh < other.m_Mesh;
+			if (m_VB != other.m_VB)
+				return m_VB.get() < other.m_VB.get();
+
+			if (m_IB != other.m_IB)
+				return m_IB.get() < other.m_IB.get();
 
 			return m_DistanceToCamera < other.m_DistanceToCamera;
 		}
@@ -85,7 +93,9 @@ namespace vkr::Graphics
 
 	struct RenderBatch
 	{
-		Mesh* m_Mesh = nullptr;
+		Ref<Render::Buffer> m_VB = nullptr;
+		Ref<Render::Buffer> m_IB = nullptr;
+		Render::PrimitiveTopology m_Topology;
 		Ref<Render::PipelineState> m_PSO = nullptr;
 		size_t m_StartOffset = 0;
 		size_t m_Count = 0;
@@ -176,8 +186,12 @@ namespace vkr::Graphics
 		bool m_UpdateSkyLut = true;
 		Ref<Render::RenderTaskEvent> m_UpdateSkyLutEvent;
 
+		Ref<Render::RenderTaskEvent> m_TerrainUpdateEvent;
+
 		AtmosphereData m_AtmosphereData;
 		SkyData m_SkyData;
+
+		Mesh* m_TerrainMesh = nullptr; //Terrain mesh object to be used for this frame and that needs to be updated
 
 		uint32_t m_TotalInstanceCount = 0;
 	};

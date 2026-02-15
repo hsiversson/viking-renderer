@@ -7,20 +7,20 @@
 namespace vkr::Graphics
 {
 	//Represents an instance of a model on the scene with its own transform and properties
-	class ModelObject final : public SceneObject
+	class ModelSceneObject final : public PrimitiveSceneObject
 	{
 	public:
-		ModelObject();
-		~ModelObject();
+		ModelSceneObject();
+		~ModelSceneObject();
 
 		void SetModel(Ref<class Model> model) { m_Model = model; }
+		Ref<Model> GetModel() { return m_Model; }
 
-		void CollectRenderObjects(ViewRenderData& renderData) override; 
-		void CollectRaytracingHitGroups(std::vector<Render::RaytracingHitGroupDesc>& outHitGroups) override;
+		void CollectRenderObjects(ViewRenderData& renderData, const std::unordered_map<Material*, uint32_t>& hitGroupLibrary) override;
+		void GatherMaterials(std::unordered_set<Material*>& outMaterials) override;
 
 	private:
-		void CollectModelPart(uint32_t& partCounter, ViewRenderData& renderData, const Model::Part& part, const Mat44& parentWorldTransform, const Mat44& prevParentWorldTransform);
-		void CollectRaytracingHitGroup(std::vector<Render::RaytracingHitGroupDesc>& outHitGroups, const Model::Part& part);
+		void CollectModelPart(ViewRenderData& renderData, const Model::Part& part, const std::unordered_map<Material*, uint32_t>& hitGroupLibrary, const Mat44& parentWorldTransform, const Mat44& prevParentWorldTransform);
 
 		Ref<Model> m_Model;
 		uint32_t m_MaterialHitGroupIndexOffset;

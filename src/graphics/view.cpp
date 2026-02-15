@@ -172,7 +172,7 @@ namespace vkr::Graphics
 		data.PrevJitter = m_PrevJitter;
 		m_PrevJitter = data.CurrentJitter;
 
-		Mat43 CamWorld = cam.GetWorldTransform();
+		Mat43 CamWorld = cam.GetWorld();
 		data.CameraWorldMatrix = CamWorld;
 		data.PrevCameraWorldMatrix = m_PrevCameraWorld;
 		m_PrevCameraWorld = data.CameraWorldMatrix;

@@ -11,28 +11,34 @@ namespace vkr::Render
 
 namespace vkr::Graphics
 {
+	class Material;
+
+	//Represents any element of a render scene
 	class SceneObject : public std::enable_shared_from_this<SceneObject>
 	{
 	public:
-		Mat43 GetWorldTransform();
-		void SetLocalTransform(const Mat43& Local);
-		const Mat43& GetLocalTransform() const;
-		void AddChild(Ref<SceneObject> child);
-		void RemoveChild(Ref<SceneObject> child);
+		enum Flags
+		{
+			Primitive = 0x1
+		};
 
-		//Temporal render mechanism
-		virtual void CollectRenderObjects(ViewRenderData& renderdata) {}
-		virtual void CollectRaytracingHitGroups(std::vector<Render::RaytracingHitGroupDesc>& outHitGroups) {}
+		uint32_t GetFlags() { return m_Flags; }
 	protected:
-		void ComputeTransform();
 
-		WeakPtr<SceneObject> m_Parent;
-		std::vector<Ref<SceneObject>> m_Children;
-		// For now we will put the transform on the scene object base class. Maybe in the future its more advantageous to create a subclass
-		// like TransformSceneObject in case we want to have objects on the scene that have no spatial representation or meaning
-		Mat43 m_Local = Mat43::Identity();
-		Mat43 m_World = Mat43::Identity();
-		Mat43 m_PrevWorld = Mat43::Identity();
-		bool m_TransformDirty = false; //Lazy evaluation of final transform
+		uint32_t m_Flags = 0;
+	};
+
+	//Represents an element of the scene with a 3d representation that needs to go through the normal renderobject path
+	//Renderobjects collected for the different passes
+	class PrimitiveSceneObject : public SceneObject
+	{
+	public:
+		PrimitiveSceneObject()
+		{
+			m_Flags = Primitive;
+		}
+
+		virtual void CollectRenderObjects(ViewRenderData& renderdata, const std::unordered_map<Material*, uint32_t>& hitGroupLibrary) {}
+		virtual void GatherMaterials(std::unordered_set<Material*>& outMaterials) {} //Needed for hit group collection
 	};
 }

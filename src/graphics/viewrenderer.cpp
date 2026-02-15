@@ -93,6 +93,8 @@ namespace vkr::Graphics
 
 		ViewRenderData& renderData = view->GetMutableRenderData();
 
+		//Process  all BLAS updates??
+
 		Render::QueueGraphicsTask([this, view]() mutable
 			{
 				PreRenderUpdates(view);
@@ -102,6 +104,11 @@ namespace vkr::Graphics
 		{
 			//Precalculate LUTs for sky rendering (Brute force it into a single stage. Do we need to divide between multiple frames?)
 			renderData.m_UpdateSkyLutEvent = Render::QueueComputeTask(std::bind(&SkyRenderer::ComputeLuts, m_SkyRenderer.get(), view));
+		}
+
+		if (renderData.m_TerrainMesh) //Is terrain present?
+		{
+			renderData.m_TerrainUpdateEvent = Render::QueueComputeTask(std::bind(&TerrainRenderer::GenerateClipmapMesh, m_TerrainRenderer.get(), view));
 		}
 
 		Render::QueueGraphicsTask([this, view]() mutable
@@ -228,6 +235,10 @@ namespace vkr::Graphics
 
 	}
 
+	void ViewRenderer::UpdateTerrain(View* view)
+	{
+	}
+
 	void ViewRenderer::DepthPrepass(View* view)
 	{
 		const ViewRenderData& renderData = view->GetRenderData();
@@ -267,9 +278,9 @@ namespace vkr::Graphics
 		
 		for (auto& batch : renderData.m_DepthPassData.m_InstanceBatches)
 		{
-			ctx->BindVertexBuffer(batch.m_Mesh->GetVertexBuffer().get());
-			ctx->BindIndexBuffer(batch.m_Mesh->GetIndexBuffer().get());
-			ctx->SetPrimitiveTopology(batch.m_Mesh->GetTopology());
+			ctx->BindVertexBuffer(batch.m_VB.get());
+			ctx->BindIndexBuffer(batch.m_IB.get());
+			ctx->SetPrimitiveTopology(batch.m_Topology);
 			ctx->BindPipelineState(batch.m_PSO.get());
 
 			struct alignas(16) ConstantData
@@ -282,7 +293,7 @@ namespace vkr::Graphics
 			data.RaytracingSceneDescriptor = renderData.m_RaytracingTLAS->GetIndex();
 			ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
-			ctx->DrawIndexedInstanced(batch.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount, batch.m_Count);
+			ctx->DrawIndexedInstanced(batch.m_IB->GetDesc().m_ElementCount, batch.m_Count);
 		}
 	}
 
@@ -450,9 +461,9 @@ namespace vkr::Graphics
 
 		for (auto& batch : renderData.m_ForwardPassData.m_InstanceBatches)
 		{
-			ctx->BindVertexBuffer(batch.m_Mesh->GetVertexBuffer().get());
-			ctx->BindIndexBuffer(batch.m_Mesh->GetIndexBuffer().get());
-			ctx->SetPrimitiveTopology(batch.m_Mesh->GetTopology());
+			ctx->BindVertexBuffer(batch.m_VB.get());
+			ctx->BindIndexBuffer(batch.m_IB.get());
+			ctx->SetPrimitiveTopology(batch.m_Topology);
 			ctx->BindPipelineState(batch.m_PSO.get());
 
 			struct alignas(16) ConstantData
@@ -465,7 +476,7 @@ namespace vkr::Graphics
 			data.RaytracingSceneDescriptor = renderData.m_RaytracingTLAS->GetIndex();
 			ctx->BindLocalConstantBuffer(sizeof(data), &data, 0);
 
-			ctx->DrawIndexedInstanced(batch.m_Mesh->GetIndexBuffer()->GetDesc().m_ElementCount, batch.m_Count);
+			ctx->DrawIndexedInstanced(batch.m_IB->GetDesc().m_ElementCount, batch.m_Count);
 		}
 	}
 

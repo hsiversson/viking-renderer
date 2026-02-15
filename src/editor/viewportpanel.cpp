@@ -69,7 +69,7 @@ namespace vkr::Editor
 				m_MoveSpeed = std::clamp(m_MoveSpeed, 0.01f, 50.0f);
 			}
 
-			Mat43 prevTransform = m_Camera.GetLocalTransform();
+			Mat43 prevTransform = m_Camera.GetWorld();
 			Vector3f prevPosition = { prevTransform.At(3, 0), prevTransform.At(3, 1), prevTransform.At(3, 2) };
 			if (Length(newVelocity - m_CurrentVelocity) < 0.01f)
 			{
@@ -88,7 +88,7 @@ namespace vkr::Editor
 				camForward.x,camForward.y,camForward.z,
 				newPosition.x,newPosition.y,newPosition.z
 			};
-			m_Camera.SetLocalTransform(localTransform);
+			m_Camera.SetWorld(localTransform);
 		}
 		else if (Length(m_CurrentVelocity) > 0.0f)
 		{
@@ -100,7 +100,7 @@ namespace vkr::Editor
 			{
 				m_CurrentVelocity = Lerp(m_CurrentVelocity, newVelocity, 5.0f * ElapsedTimer::DeltaTime());
 			}
-			Mat43 localTransform = m_Camera.GetLocalTransform();
+			Mat43 localTransform = m_Camera.GetWorld();
 			Vector3f prevPosition = { localTransform.At(3, 0), localTransform.At(3, 1), localTransform.At(3, 2) };
 			
 			Vector3f newPosition = prevPosition + m_CurrentVelocity * m_MoveSpeed * ElapsedTimer::DeltaTime();
@@ -109,7 +109,7 @@ namespace vkr::Editor
 			localTransform.At(3, 1) = newPosition.y;
 			localTransform.At(3, 2) = newPosition.z;
 
-			m_Camera.SetLocalTransform(localTransform);
+			m_Camera.SetWorld(localTransform);
 		}
 	}
 
@@ -618,7 +618,7 @@ namespace vkr::Editor
 		m_View->SetOutputSize(Vector2u(1280, 720));
 
 		Mat43 camTransform = Compose(Mat33::Identity(), Vector3f(0, 2.0f, -6.0f));
-		m_Camera.SetLocalTransform(camTransform);
+		m_Camera.SetWorld(camTransform);
 		m_Camera.SetSize(Vector2f(1280, 720));
 		m_Camera.SetInvertedZ(true);
 		m_View->SetCamera(m_Camera);
@@ -713,7 +713,7 @@ namespace vkr::Editor
 
 			Game::TransformComponent& transformComponent = m_SelectedEntities[0].GetComponent<Game::TransformComponent>();
 
-			Mat44 cameraTransform = m_Camera.GetWorldTransform();
+			Mat44 cameraTransform = m_Camera.GetWorld();
 
 			Mat44 objectTransform = Compose(transformComponent.m_Position, transformComponent.m_Rotation.ToQuaternion(), transformComponent.m_Scale);
 			Vector3f objectPosition = Vector3f(objectTransform.At(3, 0), objectTransform.At(3, 1), objectTransform.At(3, 2));
@@ -797,7 +797,7 @@ namespace vkr::Editor
 
 			Game::Entity entity = m_World.CreateEntity(name.c_str());
 
-			Mat43 cameraTransform = m_Camera.GetWorldTransform();
+			Mat43 cameraTransform = m_Camera.GetWorld();
 			Vector3f cameraPosition = Vector3f(cameraTransform.At(3, 0), cameraTransform.At(3, 1), cameraTransform.At(3, 2));
 			Vector3f placementPosition = cameraPosition + Normalized(Vector3f(cameraTransform.At(2, 0), cameraTransform.At(2, 1), cameraTransform.At(2, 2))) * 3.0f;
 			Game::TransformComponent& transformComponent = entity.AddComponent<Game::TransformComponent>();

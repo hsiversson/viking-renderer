@@ -5,7 +5,7 @@
 
 namespace vkr::Graphics
 {
-	class Camera : public SceneObject
+	class Camera
 	{
 	public:
 		static constexpr float DefaultNearZ = 0.1f;
@@ -29,6 +29,8 @@ namespace vkr::Graphics
 		float GetNearZ() const;
 		float GetFarZ() const;
 
+		Mat43 GetWorld();
+		void SetWorld(const Mat43& world);
 		Mat44 GetView();
 		const Mat44& GetProjection() const;
 		Mat44 GetViewProjection();
@@ -36,6 +38,7 @@ namespace vkr::Graphics
 	private:
 		void CalculateProjection() const;
 
+		Mat43 m_World;
 		Mat44 m_View;
 		mutable Mat44 m_Projection;
 

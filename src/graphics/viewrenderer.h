@@ -32,6 +32,7 @@ namespace vkr::Graphics
 		
 		void PreRenderUpdates(View* view);
 		void UpdateParticles(View* view);
+		void UpdateTerrain(View* view);
 
 		void DepthPrepass(View* view);
 		void StaticVelocity(View* view);
@@ -74,6 +75,6 @@ namespace vkr::Graphics
 
 		// Sub-systems
 		UniquePtr<SkyRenderer> m_SkyRenderer;
-
+		UniquePtr<TerrainRenderer> m_TerrainRenderer;
 	};
 }

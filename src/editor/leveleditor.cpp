@@ -52,6 +52,13 @@ namespace vkr::Editor
 			m_World->GetGraphicsScene()->AddDirectionalLight(dirLight.m_Light);
 		}
 
+		{
+			Game::Entity terrainEntity = m_World->CreateEntity("Terrain");
+			Game::TransformComponent& transform = terrainEntity.AddComponent<Game::TransformComponent>();
+			Game::TerrainComponent& terrain = terrainEntity.AddComponent<Game::TerrainComponent>();
+			//m_World->GetGraphicsScene()->AddTerrain(terrain.m_Terrain);
+		}
+
 		ForEachProperty<Game::TransformComponent>([](auto& property) { VKR_LOG("Transform property: {}", property.m_Name); });
 	}
 

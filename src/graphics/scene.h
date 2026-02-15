@@ -12,7 +12,9 @@ namespace vkr::Render
 
 namespace vkr::Graphics
 {
+	class ModelSceneObject;
 	class Sky;
+	class Terrain;
 	class View;
 	class ViewManager;
 	class ViewRenderer;
@@ -38,21 +40,21 @@ namespace vkr::Graphics
 		void AddDirectionalLight(const Ref<DirectionalLight>& light);
 		void RemoveDirectionalLight(const Ref<DirectionalLight>& light);
 
-		const std::vector<Ref<Model>>& GetModels() const;
+		void AddTerrain(const Ref<Terrain>& terrain);
+		void RemoveTerrain(const Ref<Terrain>& terrain);
 
 	private:
 		// Prepare render data for rendering for each view. 
 		// I.e extract renderable information and store in list to be picked up by render tasks later
 		void PrepareView(View* view);
 
-		void CollectModelPart(ViewRenderData& renderData, const Model::Part& part, const Mat44& parentWorldTransform, const Mat44& prevParentWorldTransform);
-
 		// For now only a simple list of scene objects, 
 		// but later maybe a spatial partitioning structure of scene objects?
 		// Quadtree, Octree, Grid?
-		std::vector<Ref<Model>> m_Models;
+		std::vector<Ref<ModelSceneObject>> m_Models;
 		std::vector<Ref<LocalLight>> m_LocalLights;
 		std::vector<Ref<DirectionalLight>> m_DirectionalLights;
+		Ref<TerrainSceneObject> m_Terrain;
 
 		struct PendingAction
 		{
@@ -66,12 +68,14 @@ namespace vkr::Graphics
 				Model,
 				LocalLight,
 				DirectionalLight,
+				Terrain
 			};
 			Type m_Type;
 			ObjectType m_ObjectType;
 			Ref<Model> m_Model;
 			Ref<LocalLight> m_LocalLight;
 			Ref<DirectionalLight> m_DirectionalLight;
+			Ref<Terrain> m_Terrain;
 		};
 
 		std::mutex m_PendingActionsMutex;

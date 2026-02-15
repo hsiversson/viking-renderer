@@ -77,10 +77,20 @@ namespace vkr::Graphics
 		return m_FarZ;
 	}
 
+	Mat43 Camera::GetWorld()
+	{
+		return m_World;
+	}
+
+	void Camera::SetWorld(const Mat43& world)
+	{
+		m_World = world;
+	}
+
 	Mat44 Camera::GetView()
 	{
 		//Do we need to cache the camera view matrix? Can get expensive if we call it many times. We can override the compute transform from the base class in Camera and recompute the view matrix as well
-		return Inverse(GetWorldTransform());
+		return Inverse(m_World);
 	}
 
 	const Mat44& Camera::GetProjection() const
