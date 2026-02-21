@@ -280,6 +280,11 @@ namespace vkr::Render
 		return pipelineState;
 	}
 
+	Ref<CommandSignature> Device::CreateCommandSignature(CommandSignatureType type)
+	{
+		return MakeRef<CommandSignature>(type);
+	}
+
 	Ref<Texture> Device::CreateTexture(const TextureDesc& desc, const TextureData* initialData)
 	{
 		Ref<Texture> texture = MakeRef<Texture>();

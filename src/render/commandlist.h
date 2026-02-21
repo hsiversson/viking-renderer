@@ -4,6 +4,29 @@
 
 namespace vkr::Render
 {
+	enum CommandSignatureType
+	{
+		COMMAND_SIGNAUTRE_DRAW,
+		COMMAND_SIGNAUTRE_DRAW_INDEXED,
+		COMMAND_SIGNAUTRE_DISPATCH,
+	};
+
+	// Currently only supports draw and dispatch command signatures, no multi argument signatures, but this can be extended in the future if needed
+	class CommandSignature 
+	{
+	public:
+		CommandSignature(CommandSignatureType type);
+
+		ID3D12CommandSignature* GetD3DCommandSignature() const;
+
+		uint64_t GetRequiredArgumentBufferSize() const;
+		CommandSignatureType GetType() const;
+
+	private:
+		ComPtr<ID3D12CommandSignature> m_CommandSignature;
+		const CommandSignatureType m_Type;
+	};
+
 	class CommandList
 	{
 	public:

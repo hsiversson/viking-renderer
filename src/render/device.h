@@ -1,6 +1,7 @@
 #pragma once
 
 #include "render/rendercommon.h"
+#include "render/commandlist.h"
 #include "render/context.h"
 #include "render/swapchain.h"
 #include "render/pipelinestate.h"
@@ -11,7 +12,6 @@
 
 namespace vkr::Render
 {
-	class CommandListPool;
 	class CommandQueue;
 	class DescriptorHeap;
 	class NvStreamline;
@@ -41,6 +41,8 @@ namespace vkr::Render
 		Ref<Shader> CreateShaderFromString(const std::string& sourceCode, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel = ShaderModel::SM_6_7);
 		Ref<Shader> CreateShaderFromString(const std::wstring& sourceCode, const wchar_t* entryPoint, ShaderStage stage, ShaderModel shaderModel = ShaderModel::SM_6_7);
 		Ref<PipelineState> CreatePipelineState(const PipelineStateDesc& desc);
+
+		Ref<CommandSignature> CreateCommandSignature(CommandSignatureType type);
 
 		Ref<Texture> CreateTexture(const TextureDesc& desc, const TextureData* initialData = nullptr);
 		Ref<Texture> LoadTexture(const std::filesystem::path& filepath);

@@ -844,6 +844,20 @@ namespace vkr::Render
 		++m_NumRecordedCommands;
 	}
 
+	void Context::ExecuteIndirect(CommandSignature* commandSignature, Buffer* argumentBuffer, uint64_t argumentBufferOffset, uint32_t maxCommandCount)
+	{
+		UpdateState();
+		m_CurrentD3DCommandList->ExecuteIndirect(commandSignature->GetD3DCommandSignature(), maxCommandCount, argumentBuffer->GetD3DResource(), argumentBufferOffset, nullptr, 0);
+		++m_NumRecordedCommands;
+	}
+
+	void Context::ExecuteIndirect(CommandSignature* commandSignature, Buffer* argumentBuffer, uint64_t argumentBufferOffset, Buffer* countBuffer, uint64_t countBufferOffset)
+	{
+		UpdateState();
+		m_CurrentD3DCommandList->ExecuteIndirect(commandSignature->GetD3DCommandSignature(), 0, argumentBuffer->GetD3DResource(), argumentBufferOffset, countBuffer->GetD3DResource(), countBufferOffset);
+		++m_NumRecordedCommands;
+	}
+
 	void Context::SetPrimitiveTopology(PrimitiveTopology topologyType)
 	{
 		m_StateCache.m_Topology = topologyType;

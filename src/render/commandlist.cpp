@@ -3,6 +3,84 @@
 
 namespace vkr::Render
 {
+	CommandSignature::CommandSignature(CommandSignatureType type)
+		: m_Type(type)
+	{
+		D3D12_COMMAND_SIGNATURE_DESC desc = {};
+		D3D12_INDIRECT_ARGUMENT_DESC argDesc;
+		switch (type)
+		{
+			case COMMAND_SIGNAUTRE_DRAW:
+			{
+				argDesc.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW;
+
+				desc.NumArgumentDescs = 1;
+				desc.pArgumentDescs = &argDesc;
+				desc.ByteStride = sizeof(D3D12_DRAW_ARGUMENTS);
+				break;
+			}
+			case COMMAND_SIGNAUTRE_DRAW_INDEXED:
+			{
+				argDesc.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
+
+				desc.NumArgumentDescs = 1;
+				desc.pArgumentDescs = &argDesc;
+				desc.ByteStride = sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
+				break;
+			}
+			case COMMAND_SIGNAUTRE_DISPATCH:
+			{
+				argDesc.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH;
+
+				desc.NumArgumentDescs = 1;
+				desc.pArgumentDescs = &argDesc;
+				desc.ByteStride = sizeof(D3D12_DISPATCH_ARGUMENTS);
+				break;
+			}
+			default:
+				VKR_CHECK_NO_ENTRY();
+		}
+
+
+		ID3D12Device* device = GetDevice()->GetD3DDevice();
+		if (FAILED(device->CreateCommandSignature(&desc, nullptr, IID_PPV_ARGS(&m_CommandSignature))))
+		{
+			VKR_CHECK_NO_ENTRY();
+		}
+	}
+
+	ID3D12CommandSignature* CommandSignature::GetD3DCommandSignature() const
+	{
+		return m_CommandSignature.Get();
+	}
+
+	uint64_t CommandSignature::GetRequiredArgumentBufferSize() const
+	{
+		switch (m_Type)
+		{
+		case COMMAND_SIGNAUTRE_DRAW:
+		{
+			return sizeof(D3D12_DRAW_ARGUMENTS);
+		}
+		case COMMAND_SIGNAUTRE_DRAW_INDEXED:
+		{
+			return sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
+		}
+		case COMMAND_SIGNAUTRE_DISPATCH:
+		{
+			return sizeof(D3D12_DISPATCH_ARGUMENTS);
+		}
+		default:
+			VKR_CHECK_NO_ENTRY();
+			return 0;
+		}
+	}
+
+	CommandSignatureType CommandSignature::GetType() const
+	{
+		return m_Type;
+	}
+
 	CommandList::CommandList(ContextType type)
 		: m_Type(type)
 	{

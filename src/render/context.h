@@ -8,6 +8,7 @@ namespace vkr::Render
 {
 	class CommandList;
 	class CommandQueue;
+	class CommandSignature;
 	class DepthStencilView;
 	class PipelineState;
 	class QueryHeap;
@@ -139,6 +140,10 @@ namespace vkr::Render
 
 		void DrawIndexed(uint32_t indexCount, uint32_t startIndex = 0, uint32_t startVertex = 0);
 		void DrawIndexedInstanced(uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex = 0, uint32_t startVertex = 0, uint32_t startInstance = 0);
+
+		// Execute indirect
+		void ExecuteIndirect(CommandSignature* commandSignature, Buffer* argumentBuffer, uint64_t argumentBufferOffset, uint32_t maxCommandCount);
+		void ExecuteIndirect(CommandSignature* commandSignature, Buffer* argumentBuffer, uint64_t argumentBufferOffset, Buffer* countBuffer, uint64_t countBufferOffset);
 
 		//Render state
 		void BindPipelineState(PipelineState* pipelineState);
