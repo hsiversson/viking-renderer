@@ -17,13 +17,32 @@ namespace vkr::Editor
 
 	}
 
+	static void DrawProperty(const char* name, int32_t& property)
+	{
+		ImGui::PushID(name);
+		ImGui::PushID(&property);
+
+		ImGui::Columns(2);
+		ImGui::SetColumnWidth(0, 150.0f);
+		ImGui::Text("%s", name);
+		ImGui::NextColumn();
+
+		ImGui::DragInt("##X", &property, 0.1f, 0, 0);
+		//if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+		//	aValue = aResetValue;
+
+		ImGui::Columns(1);
+		ImGui::PopID();
+		ImGui::PopID();
+	}
+
 	static void DrawProperty(const char* name, float& property)
 	{
 		ImGui::PushID(name);
 		ImGui::PushID(&property);
 
 		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, 128.0f);
+		ImGui::SetColumnWidth(0, 150.0f);
 		ImGui::Text("%s", name);
 		ImGui::NextColumn();
 
@@ -41,7 +60,7 @@ namespace vkr::Editor
 		ImGui::PushID(name);
 
 		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, 128.0f);
+		ImGui::SetColumnWidth(0, 150.0f);
 		ImGui::Text("%s", name);
 		ImGui::NextColumn();
 
@@ -82,7 +101,7 @@ namespace vkr::Editor
 		ImGui::PushID(name);
 
 		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, 128.0f);
+		ImGui::SetColumnWidth(0, 150.0f);
 		ImGui::Text("%s", name);
 		ImGui::NextColumn();
 
@@ -144,24 +163,37 @@ namespace vkr::Editor
 			ImGui::InputText("##entityName", idComponent.m_Name.data(), idComponent.m_Name.length(), 0);
 			ImGui::PopItemFlag();
 
-			if (m_SelectedEntities[0].HasComponent<Game::TransformComponent>())
+			ForEachReflectedType([&]<typename T>()
 			{
-				ImGui::Separator();
-				Game::TransformComponent& transform = m_SelectedEntities[0].GetComponent<Game::TransformComponent>();
-				ForEachProperty<Game::TransformComponent>([&](auto&& property)
-					{
-						DrawProperty(property.m_Name, transform.*(property.m_Member));
-					});
-			}
-			if (m_SelectedEntities[0].HasComponent<Game::DirectionalLightComponent>())
-			{
-				ImGui::Separator();
-				Game::DirectionalLightComponent& dirLight = m_SelectedEntities[0].GetComponent<Game::DirectionalLightComponent>();
-				ForEachProperty<Game::DirectionalLightComponent>([&](auto&& property)
-					{
-						DrawProperty(property.m_Name, dirLight.*(property.m_Member));
-					});
-			}
+				if (m_SelectedEntities[0].HasComponent<T>())
+				{
+					ImGui::Separator();
+					T& comp = m_SelectedEntities[0].GetComponent<T>();
+					ForEachProperty<T>([&](auto&& property)
+						{
+							DrawProperty(property.m_Name, comp.*(property.m_Member));
+						});
+				}
+			});
+
+			//if (m_SelectedEntities[0].HasComponent<Game::TransformComponent>())
+			//{
+			//	ImGui::Separator();
+			//	Game::TransformComponent& transform = m_SelectedEntities[0].GetComponent<Game::TransformComponent>();
+			//	ForEachProperty<Game::TransformComponent>([&](auto&& property)
+			//		{
+			//			DrawProperty(property.m_Name, transform.*(property.m_Member));
+			//		});
+			//}
+			//if (m_SelectedEntities[0].HasComponent<Game::DirectionalLightComponent>())
+			//{
+			//	ImGui::Separator();
+			//	Game::DirectionalLightComponent& dirLight = m_SelectedEntities[0].GetComponent<Game::DirectionalLightComponent>();
+			//	ForEachProperty<Game::DirectionalLightComponent>([&](auto&& property)
+			//		{
+			//			DrawProperty(property.m_Name, dirLight.*(property.m_Member));
+			//		});
+			//}
 		}
 	}
 	void PropertiesPanel::ReceiveMessage(const BroadcastMessage& message)

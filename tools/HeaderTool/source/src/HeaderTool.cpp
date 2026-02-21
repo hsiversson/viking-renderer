@@ -262,6 +262,7 @@ int main(int argc, char** argv)
         std::ofstream registerAllHeader(registerAllPath);
 
         registerAllHeader << "// Auto-generated reflection register.\n";
+        registerAllHeader << "#pragma once\n";
         // Include all reflection headers
         for (const HeaderInfo& header : g_AllHeaders)
         {
@@ -269,6 +270,35 @@ int main(int argc, char** argv)
             std::replace(includePath.begin(), includePath.end(), '\\', '/');
             registerAllHeader << "#include \"" << includePath << "\"\n";
         }
+
+        registerAllHeader << "\nnamespace vkr\n{\n";
+
+        // --- Generate type list ---
+        registerAllHeader << "using ReflectedTypeList = std::tuple<\n";
+        bool first = true;
+        for (const HeaderInfo& header : g_AllHeaders)
+        {
+            for (const StructInfo& s : header.structs)
+            {
+                if (!first) registerAllHeader << ",\n";
+                first = false;
+                registerAllHeader << "    " << s.namespaceName << s.name;
+            }
+        }
+        registerAllHeader << "\n>;\n\n";
+
+        // --- Generate ForEachReflectedType ---
+        registerAllHeader << "template<typename Func>\n";
+        registerAllHeader << "inline constexpr void ForEachReflectedType(Func&& fn)\n";
+        registerAllHeader << "{\n";
+        registerAllHeader << "    using Types = ReflectedTypeList;\n";
+        registerAllHeader << "    std::apply([&](auto&&... args)\n";
+        registerAllHeader << "    {\n";
+        registerAllHeader << "        (fn.template operator()<std::decay_t<decltype(args)>>(), ...);\n";
+        registerAllHeader << "    }, Types{});\n";
+        registerAllHeader << "}\n\n";
+
+        registerAllHeader << "} // namespace vkr\n\n";
 
         registerAllHeader << "namespace vkr::RegisterReflections\n";
         registerAllHeader << "{\n";
